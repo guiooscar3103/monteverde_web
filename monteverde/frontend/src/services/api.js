@@ -23,7 +23,7 @@ const apiRequest = async (endpoint, options = {}) => {
     const data = await response.json();
     
     if (!response.ok) {
-      throw new Error(data.message || 'Error en la petición');
+      throw new Error(data.message || data.msg || data.error || 'Error en la petición');
     }
     
     if (data.success) {
@@ -102,12 +102,12 @@ export const eliminarUsuario = async (usuarioId) => {
 
 export const getCursos = async () => {
   console.log('🌐 API: Obteniendo cursos...');
-  return await apiRequest('/cursos');
+  return await apiRequest('/cursos/');
 };
 
 export const createCurso = async (curso) => {
   console.log('🌐 API: Creando curso:', curso);
-  return await apiRequest('/cursos', {
+  return await apiRequest('/cursos/', {
     method: 'POST',
     body: JSON.stringify(curso)
   });
@@ -587,4 +587,3 @@ export const getEstudiantesDisponibles = async () => {
   console.log('🌐 API: Obteniendo estudiantes disponibles...');
   return await apiRequest('/estudiantes/disponibles');
 };
-

@@ -3,6 +3,7 @@ import os
 import json
 # Trigger backend reload to connect to started MySQL db
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import decode_token
 from src.extensions import db
 from src.models.usuario import Usuario
 from src.models.curso import Curso
@@ -21,8 +22,8 @@ def get_current_admin_id():
         return None
     token = auth_header.split(' ')[1]
     try:
-        payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-        return payload.get('user_id')
+        payload = decode_token(token)
+        return payload.get('sub') or payload.get('user_id')
     except Exception as e:
         print(f"⚠️ Error decoding token: {e}")
         return None
