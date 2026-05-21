@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { getDocentesConCursos, getCursos, asignarCursoADocente, desasignarCursoDeDocente } from '../../services/api';
+import { getDocentesConCursos, getCursos, getMaterias, asignarCursoADocente, desasignarCursoDeDocente } from '../../services/api';
 
 export default function Docentes() {
   const [docentes, setDocentes] = useState([]);
   const [cursos, setCursos] = useState([]);
+  const [materias, setMaterias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Course select state for each teacher
   const [seleccionCurso, setSeleccionCurso] = useState({});
+  const [seleccionMateria, setSeleccionMateria] = useState({});
 
   useEffect(() => {
     cargarDatos();
@@ -19,15 +20,32 @@ export default function Docentes() {
     setCargando(true);
     setErrorMsg('');
     try {
-      const [resDocentes, resCursos] = await Promise.all([
+      const [resDocentes, resCursos, resMaterias] = await Promise.all([
         getDocentesConCursos(),
-        getCursos()
+        getCursos(),
+        getMaterias()
       ]);
-      if (resDocentes) setDocentes(resDocentes);
-      if (resCursos) setCursos(resCursos);
+
+      const docentesData = Array.isArray(resDocentes) ? resDocentes : [];
+      const cursosData = Array.isArray(resCursos) ? resCursos : [];
+      const materiasData = Array.isArray(resMaterias) ? resMaterias : [];
+
+      if (!Array.isArray(resDocentes)) {
+        console.warn('Respuesta inesperada de /admin/docentes:', resDocentes);
+      }
+      if (!Array.isArray(resCursos)) {
+        console.warn('Respuesta inesperada de /cursos:', resCursos);
+      }
+      if (!Array.isArray(resMaterias)) {
+        console.warn('Respuesta inesperada de /materias:', resMaterias);
+      }
+
+      setDocentes(docentesData);
+      setCursos(cursosData);
+      setMaterias(materiasData);
     } catch (error) {
-      console.error(error);
-      setErrorMsg('Error al cargar docentes o asignaturas.');
+      console.error('Error cargando datos de asignación de docentes:', error);
+      setErrorMsg(error.message || 'Error al cargar docentes, cursos o materias.');
     } finally {
       setCargando(false);
     }
@@ -35,41 +53,43 @@ export default function Docentes() {
 
   const handleAsignar = async (docenteId) => {
     const cursoId = seleccionCurso[docenteId];
-    if (!cursoId) {
-      alert('Por favor selecciona un curso para asignar.');
+    const materiaId = seleccionMateria[docenteId];
+    if (!cursoId || !materiaId) {
+      alert('Por favor selecciona un curso y una materia para asignar.');
       return;
     }
 
     try {
       const res = await asignarCursoADocente({
         docente_id: docenteId,
-        curso_id: parseInt(cursoId)
+        curso_id: parseInt(cursoId),
+        materia_id: parseInt(materiaId)
       });
       if (res.success) {
-        setSuccessMsg(res.message || 'Curso asignado con éxito');
-        // Reload
+        setSuccessMsg(res.message || 'Asignación creada con éxito');
         cargarDatos();
-        // Clear select
         setSeleccionCurso({ ...seleccionCurso, [docenteId]: '' });
+        setSeleccionMateria({ ...seleccionMateria, [docenteId]: '' });
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        alert(res.message || 'Error al asignar curso.');
+        alert(res.message || 'Error al asignar curso y materia.');
       }
     } catch (error) {
       alert(error.message || 'Error en la petición.');
     }
   };
 
-  const handleDesasignar = async (docenteId, cursoId) => {
+  const handleDesasignar = async (docenteId, asignacion) => {
     if (!window.confirm('¿Está seguro de remover la asignación de este curso para el docente?')) {
       return;
     }
 
+    const payload = asignacion.legacy
+      ? { docente_id: docenteId, curso_id: asignacion.curso_id }
+      : { assignment_id: asignacion.id };
+
     try {
-      const res = await desasignarCursoDeDocente({
-        docente_id: docenteId,
-        curso_id: cursoId
-      });
+      const res = await desasignarCursoDeDocente(payload);
       if (res.success) {
         setSuccessMsg(res.message || 'Asignación removida');
         cargarDatos();
@@ -210,14 +230,14 @@ export default function Docentes() {
                     Cursos Asignados
                   </label>
                   
-                  {!doc.cursos_asignados || doc.cursos_asignados.length === 0 ? (
+                  {(!doc.cursos_asignados || !Array.isArray(doc.cursos_asignados) || doc.cursos_asignados.length === 0) ? (
                     <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>
                       Sin cursos asignados actualmente.
                     </span>
                   ) : (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {doc.cursos_asignados.map((cur) => (
-                        <div key={cur.id} style={{
+                        <div key={cur?.id || `${doc.id}-${cur?.nombre || Math.random()}`} style={{
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
@@ -229,9 +249,12 @@ export default function Docentes() {
                           fontWeight: 600,
                           color: '#334155'
                         }}>
-                          <span>{cur.nivel}°{cur.letra} ({cur.nombre})</span>
+                          <span>
+                            {cur.curso_nivel}°{cur.curso_letra} ({cur.curso_nombre})
+                            {cur.materia_nombre ? ` — ${cur.materia_nombre}` : ''}
+                          </span>
                           <button
-                            onClick={() => handleDesasignar(doc.id, cur.id)}
+                            onClick={() => handleDesasignar(doc.id, cur)}
                             style={{
                               background: 'transparent',
                               border: 'none',
@@ -263,24 +286,45 @@ export default function Docentes() {
                 gap: '8px',
                 alignItems: 'center'
               }}>
-                <select
-                  value={seleccionCurso[doc.id] || ''}
-                  onChange={(e) => setSeleccionCurso({ ...seleccionCurso, [doc.id]: e.target.value })}
-                  style={{
-                    flexGrow: 1,
-                    fontSize: '0.85rem',
-                    padding: '0.4rem',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1'
-                  }}
-                >
-                  <option value="">-- Seleccionar Curso --</option>
-                  {cursos.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nivel}°{c.letra} - {c.nombre}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', flexGrow: 1, gap: '0.75rem', alignItems: 'center' }}>
+                  <select
+                    value={seleccionCurso[doc.id] || ''}
+                    onChange={(e) => setSeleccionCurso({ ...seleccionCurso, [doc.id]: e.target.value })}
+                    style={{
+                      flexGrow: 1,
+                      fontSize: '0.85rem',
+                      padding: '0.4rem',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1'
+                    }}
+                  >
+                    <option value="">-- Seleccionar Curso --</option>
+                    {cursos.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nivel}°{c.letra} - {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={seleccionMateria[doc.id] || ''}
+                    onChange={(e) => setSeleccionMateria({ ...seleccionMateria, [doc.id]: e.target.value })}
+                    style={{
+                      flexGrow: 1,
+                      fontSize: '0.85rem',
+                      padding: '0.4rem',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1'
+                    }}
+                  >
+                    <option value="">-- Seleccionar Materia --</option>
+                    {materias.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <button
                   onClick={() => handleAsignar(doc.id)}

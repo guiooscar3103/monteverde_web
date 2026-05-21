@@ -536,8 +536,13 @@ export const getDocentesConCursos = async () => {
   return await apiRequest('/admin/docentes');
 };
 
+export const getMaterias = async () => {
+  console.log('🌐 API: Obteniendo materias...');
+  return await apiRequest('/materias');
+};
+
 export const asignarCursoADocente = async (datos) => {
-  console.log('🌐 API: Asignando curso a docente:', datos);
+  console.log('🌐 API: Asignando curso y materia a docente:', datos);
   return await apiRequest('/admin/docentes/asignar', {
     method: 'POST',
     body: JSON.stringify(datos),
@@ -545,7 +550,7 @@ export const asignarCursoADocente = async (datos) => {
 };
 
 export const desasignarCursoDeDocente = async (datos) => {
-  console.log('🌐 API: Desasignando curso de docente:', datos);
+  console.log('🌐 API: Desasignando asignación de docente:', datos);
   return await apiRequest('/admin/docentes/desasignar', {
     method: 'POST',
     body: JSON.stringify(datos),

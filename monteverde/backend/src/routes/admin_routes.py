@@ -7,6 +7,8 @@ from src.extensions import db
 from src.models.usuario import Usuario
 from src.models.curso import Curso
 from src.models.estudiante import Estudiante
+from src.models.materia import Materia
+from src.models.docente_asignacion import DocenteAsignacion
 from src.models.docente_curso import DocenteCurso
 from src.services.admin_service import AdminService
 
@@ -52,18 +54,46 @@ def get_auditoria():
 
 @admin_bp.route('/docentes', methods=['GET'])
 def get_docentes_asignaciones():
-    """Obtener listado de docentes y sus asignaciones de curso"""
+    """Obtener listado de docentes y sus asignaciones de curso y materia"""
     try:
         docentes = Usuario.query.filter_by(rol='docente', eliminado=False).order_by(Usuario.nombre).all()
         docentes_data = []
         
         for d in docentes:
-            asignaciones = DocenteCurso.query.filter_by(docente_id=d.id).all()
             cursos_asignados = []
+
+            # Legacy course-only assignments
+            curso_legacy = DocenteCurso.query.filter_by(docente_id=d.id).all()
+            for item in curso_legacy:
+                if item.curso:
+                    cursos_asignados.append({
+                        'id': f'legacy-{item.id}',
+                        'docente_id': d.id,
+                        'curso_id': item.curso_id,
+                        'curso_nombre': item.curso.nombre,
+                        'curso_nivel': item.curso.nivel,
+                        'curso_letra': item.curso.letra,
+                        'materia_id': None,
+                        'materia_nombre': 'Sin materia asignada',
+                        'legacy': True
+                    })
+
+            # Course + subject assignments
+            asignaciones = DocenteAsignacion.query.filter_by(docente_id=d.id).all()
             for a in asignaciones:
-                if a.curso:
-                    cursos_asignados.append(a.curso.to_dict())
-                    
+                cursos_asignados.append({
+                    'id': a.id,
+                    'docente_id': d.id,
+                    'curso_id': a.curso_id,
+                    'curso_nombre': a.curso_nombre,
+                    'curso_nivel': a.curso_nivel,
+                    'curso_letra': a.curso_letra,
+                    'materia_id': a.materia_id,
+                    'materia_nombre': a.materia_nombre,
+                    'materia_descripcion': a.materia_descripcion,
+                    'legacy': False
+                })
+
             d_dict = d.to_dict()
             d_dict['cursos_asignados'] = cursos_asignados
             docentes_data.append(d_dict)
@@ -77,77 +107,95 @@ def get_docentes_asignaciones():
 
 @admin_bp.route('/docentes/asignar', methods=['POST'])
 def asignar_curso():
-    """Asignar un curso a un docente"""
+    """Asignar un curso y materia a un docente"""
     try:
         admin_id = get_current_admin_id()
         data = request.get_json() or {}
         docente_id = data.get('docente_id')
         curso_id = data.get('curso_id')
+        materia_id = data.get('materia_id')
         
-        if not docente_id or not curso_id:
-            return jsonify({'success': False, 'message': 'Faltan parámetros: docente_id y curso_id'}), 400
+        if not docente_id or not curso_id or not materia_id:
+            return jsonify({'success': False, 'message': 'Faltan parámetros: docente_id, curso_id y materia_id'}), 400
             
-        # Verificar que el docente y curso existen
+        # Verificar que el docente, curso y materia existen
         docente = Usuario.query.filter_by(id=docente_id, rol='docente', eliminado=False).first()
         curso = Curso.query.get(curso_id)
+        materia = Materia.query.get(materia_id)
         
         if not docente:
             return jsonify({'success': False, 'message': 'Docente no encontrado'}), 404
         if not curso:
             return jsonify({'success': False, 'message': 'Curso no encontrado'}), 404
+        if not materia:
+            return jsonify({'success': False, 'message': 'Materia no encontrada'}), 404
             
-        # Verificar si ya está asignado
-        existente = DocenteCurso.query.filter_by(docente_id=docente_id, curso_id=curso_id).first()
+        # Verificar si ya está asignado el mismo curso+materia
+        existente = DocenteAsignacion.query.filter_by(docente_id=docente_id, curso_id=curso_id, materia_id=materia_id).first()
         if existente:
-            return jsonify({'success': False, 'message': 'El curso ya está asignado a este docente'}), 400
+            return jsonify({'success': False, 'message': 'La asignación curso+materia ya existe para este docente'}), 400
             
-        # Asignar
-        asignacion = DocenteCurso(docente_id=docente_id, curso_id=curso_id)
+        asignacion = DocenteAsignacion(docente_id=docente_id, curso_id=curso_id, materia_id=materia_id)
         db.session.add(asignacion)
         db.session.commit()
         
         # Log
         AdminService.log_actividad(
             usuario_id=admin_id,
-            accion='ASIGNAR_CURSO',
-            detalles=f"Se asignó el curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) al docente {docente.nombre} ({docente.email})"
+            accion='ASIGNAR_CURSO_MATERIA',
+            detalles=f"Se asignó '{materia.nombre}' en el curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) al docente {docente.nombre} ({docente.email})"
         )
         
-        return jsonify({'success': True, 'message': 'Curso asignado exitosamente'}), 200
+        return jsonify({'success': True, 'message': 'Asignación curso+materia creada exitosamente'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/docentes/desasignar', methods=['POST'])
 def desasignar_curso():
-    """Desasignar un curso de un docente"""
+    """Desasignar una asignación de curso y materia de un docente"""
     try:
         admin_id = get_current_admin_id()
         data = request.get_json() or {}
+        assignment_id = data.get('assignment_id')
         docente_id = data.get('docente_id')
         curso_id = data.get('curso_id')
-        
-        if not docente_id or not curso_id:
-            return jsonify({'success': False, 'message': 'Faltan parámetros: docente_id y curso_id'}), 400
-            
-        asignacion = DocenteCurso.query.filter_by(docente_id=docente_id, curso_id=curso_id).first()
+        materia_id = data.get('materia_id')
+
+        asignacion = None
+        if assignment_id:
+            asignacion = DocenteAsignacion.query.get(assignment_id)
+        elif docente_id and curso_id and materia_id is not None:
+            asignacion = DocenteAsignacion.query.filter_by(docente_id=docente_id, curso_id=curso_id, materia_id=materia_id).first()
+        elif docente_id and curso_id:
+            # Fallback for legacy course-only assignment
+            asignacion = DocenteCurso.query.filter_by(docente_id=docente_id, curso_id=curso_id).first()
+
         if not asignacion:
             return jsonify({'success': False, 'message': 'La asignación no existe'}), 404
-            
-        docente = Usuario.query.get(docente_id)
-        curso = Curso.query.get(curso_id)
-        
-        db.session.delete(asignacion)
+
+        # Delete legacy or new assignment
+        if isinstance(asignacion, DocenteCurso):
+            curso = Curso.query.get(asignacion.curso_id)
+            docente = Usuario.query.get(asignacion.docente_id)
+            db.session.delete(asignacion)
+            detalles = f"Se desasignó el curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) del docente {docente.nombre if docente else docente_id}"
+        else:
+            curso = Curso.query.get(asignacion.curso_id)
+            docente = Usuario.query.get(asignacion.docente_id)
+            materia = Materia.query.get(asignacion.materia_id)
+            db.session.delete(asignacion)
+            detalles = f"Se desasignó '{materia.nombre if materia else 'una materia'}' del curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) del docente {docente.nombre if docente else docente_id}"
+
         db.session.commit()
         
-        # Log
         AdminService.log_actividad(
             usuario_id=admin_id,
-            accion='DESASIGNAR_CURSO',
-            detalles=f"Se desasignó el curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) del docente {docente.nombre if docente else docente_id}"
+            accion='DESASIGNAR_ASIGNACION',
+            detalles=detalles
         )
-        
-        return jsonify({'success': True, 'message': 'Curso desasignado exitosamente'}), 200
+
+        return jsonify({'success': True, 'message': 'Asignación desasignada exitosamente'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500

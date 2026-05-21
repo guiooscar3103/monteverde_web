@@ -84,7 +84,7 @@ try:
         # ====================================================
         # REPARAR/RECREAR TABLAS CORRUPTAS
         # ====================================================
-        for table_name in ('actividad_admin', 'docente_curso'):
+        for table_name in ('actividad_admin', 'docente_curso', 'materias', 'docente_asignacion'):
             try:
                 cursor.execute(f"SELECT 1 FROM {table_name} LIMIT 1;")
                 cursor.fetchall()
@@ -134,6 +134,62 @@ try:
             print("[OK] Tabla 'docente_curso' verificada o creada.")
         except Exception as e:
             print(f"[WARN] No se pudo crear la tabla 'docente_curso': {e}")
+
+        # ====================================================
+        # CREAR TABLA materias SI NO EXISTE
+        # ====================================================
+        try:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS materias (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    nombre VARCHAR(100) UNIQUE NOT NULL,
+                    descripcion VARCHAR(255) NULL
+                ) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+                """
+            )
+            print("[OK] Tabla 'materias' verificada o creada.")
+
+            cursor.execute("SELECT COUNT(*) FROM materias;")
+            materia_count = cursor.fetchone()[0]
+            if materia_count == 0:
+                default_materias = [
+                    ('Matemáticas', 'Materia de cálculo, álgebra y geometría'),
+                    ('Lenguaje', 'Materia de comprensión lectora y expresión escrita'),
+                    ('Ciencias Naturales', 'Materia de ciencias y biología'),
+                    ('Ciencias Sociales', 'Materia de historia y geografía'),
+                    ('Inglés', 'Materia de idioma extranjero'),
+                    ('Educación Física', 'Materia de deporte y actividad física')
+                ]
+                cursor.executemany(
+                    "INSERT INTO materias (nombre, descripcion) VALUES (%s, %s);",
+                    default_materias
+                )
+                print("[OK] Se insertaron materias por defecto en la tabla 'materias'.")
+        except Exception as e:
+            print(f"[WARN] No se pudo crear la tabla 'materias': {e}")
+
+        # ====================================================
+        # CREAR TABLA docente_asignacion SI NO EXISTE
+        # ====================================================
+        try:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS docente_asignacion (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    docente_id INT NOT NULL,
+                    curso_id INT NOT NULL,
+                    materia_id INT NOT NULL,
+                    CONSTRAINT fk_docente_asignacion_docente FOREIGN KEY (docente_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_docente_asignacion_curso FOREIGN KEY (curso_id) REFERENCES cursos(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_docente_asignacion_materia FOREIGN KEY (materia_id) REFERENCES materias(id) ON DELETE CASCADE,
+                    UNIQUE KEY uq_docente_curso_materia (docente_id, curso_id, materia_id)
+                ) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+                """
+            )
+            print("[OK] Tabla 'docente_asignacion' verificada o creada.")
+        except Exception as e:
+            print(f"[WARN] No se pudo crear la tabla 'docente_asignacion': {e}")
                 
         # ====================================================
         # MIGRACIÓN DE SEGURIDAD (Hashear contraseñas semilla)

@@ -25,6 +25,8 @@ from src.models.asistencia import Asistencia
 from src.models.observacion import Observacion
 from src.models.actividad_admin import ActividadAdmin
 from src.models.docente_curso import DocenteCurso
+from src.models.materia import Materia
+from src.models.docente_asignacion import DocenteAsignacion
 
 def create_app():
     app = Flask(__name__)
@@ -69,12 +71,15 @@ def create_app():
     from src.routes.usuario_routes import usuario_bp
     from src.routes.admin_routes import admin_bp
     from src.routes.cursos import cursos_bp
-    
+    from src.routes.assignments import assignments_bp
+    from src.routes.materias import materias_bp
+
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(usuario_bp, url_prefix='/api/usuarios')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(cursos_bp, url_prefix='/api/cursos')
-    
+    app.register_blueprint(assignments_bp, url_prefix='/api')
+    app.register_blueprint(materias_bp, url_prefix='/api')
     return app
 
 app = create_app()
