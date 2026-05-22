@@ -587,3 +587,8 @@ export const getEstudiantesDisponibles = async () => {
   console.log('🌐 API: Obteniendo estudiantes disponibles...');
   return await apiRequest('/estudiantes/disponibles');
 };
+
+export const getMyCoursesAndSubjects = async () => {
+  console.log('🌐 API: Obteniendo cursos y materias asignadas al docente...');
+  return await apiRequest('/teacher/my-courses');
+};

@@ -4,27 +4,19 @@ import SelectSimple from '../../components/SelectSimple';
 import CampoNumero from '../../components/CampoNumero';
 import Tabla from '../../components/Tabla';
 import BarraTitulo from '../../components/BarraTitulo';
-import { getCursos, getEstudiantesPorCurso, getCalificacionesPor, guardarCalificaciones } from '../../services/api';
+import { getMyCoursesAndSubjects, getEstudiantesPorCurso, getCalificacionesPor, guardarCalificaciones } from '../../services/api';
 
 export default function RegistroCalificaciones() {
+  const [asignacionAcademica, setAsignacionAcademica] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [calificaciones, setCalificaciones] = useState([]); 
   const [cursoSeleccionado, setCursoSeleccionado] = useState('');
-  const [asignaturaSeleccionada, setAsignaturaSeleccionada] = useState('Matematicas');
+  const [asignaturas, setAsignaturas] = useState([]);
+  const [asignaturaSeleccionada, setAsignaturaSeleccionada] = useState('');
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('2025-P3');
   const [loading, setLoading] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState(''); // ← Nuevo estado para mensajes
-
-  // Definir las opciones de asignaturas y periodos
-  const asignaturas = [
-    { value: 'Matematicas', label: 'Matemáticas' },
-    { value: 'Lenguaje', label: 'Lenguaje' },
-    { value: 'Ciencias', label: 'Ciencias' },
-    { value: 'Historia', label: 'Historia' },
-    { value: 'Ingles', label: 'Inglés' },
-    { value: 'Educacion_Fisica', label: 'Educación Física' }
-  ];
 
   const periodos = [
     { value: '2025-P1', label: '2025 - Primer Período' },
@@ -33,25 +25,78 @@ export default function RegistroCalificaciones() {
     { value: '2025-P4', label: '2025 - Cuarto Período' }
   ];
 
+  // Mapear materias limpias a strings legacy esperados por la base de datos de calificaciones
+  const mapMateriaALegacy = (materiaNombre) => {
+    const map = {
+      'Matemáticas': 'Matematicas',
+      'Lenguaje': 'Lenguaje',
+      'Ciencias Naturales': 'Ciencias',
+      'Ciencias Sociales': 'Historia',
+      'Inglés': 'Ingles',
+      'Educación Física': 'Educacion_Fisica'
+    };
+    return map[materiaNombre] || materiaNombre;
+  };
+
+  // Cargar carga académica al montar
   useEffect(() => {
-    const cargarCursos = async () => {
+    const cargarCargaAcademica = async () => {
       try {
-        const data = await getCursos();
-        console.log('Cursos cargados:', data);
-        setCursos(data);
+        const data = await getMyCoursesAndSubjects();
+        console.log('Carga académica cargada:', data);
+        setAsignacionAcademica(data);
+        
+        const cursosMapeados = data.map(item => ({
+          id: item.curso_id,
+          nombre: item.curso_nombre,
+          nivel: item.curso_nivel,
+          letra: item.curso_letra
+        }));
+        
+        setCursos(cursosMapeados);
         if (data.length > 0) {
-          setCursoSeleccionado(data[0].id.toString());
+          setCursoSeleccionado(data[0].curso_id.toString());
         }
       } catch (error) {
-        console.error('Error al cargar cursos:', error);
+        console.error('Error al cargar carga académica:', error);
+        setMensaje('❌ Error al cargar la carga académica');
       }
     };
-    cargarCursos();
+    cargarCargaAcademica();
   }, []);
+
+  // Actualizar asignaturas dinámicamente cuando cambie el curso seleccionado
+  useEffect(() => {
+    if (!cursoSeleccionado || asignacionAcademica.length === 0) return;
+    
+    const cursoAsig = asignacionAcademica.find(c => c.curso_id.toString() === cursoSeleccionado);
+    if (cursoAsig && cursoAsig.materias) {
+      const asignaturasMapeadas = cursoAsig.materias.map(m => ({
+        value: mapMateriaALegacy(m.materia_nombre),
+        label: m.materia_nombre
+      }));
+      
+      setAsignaturas(asignaturasMapeadas);
+      
+      if (asignaturasMapeadas.length > 0) {
+        // Seleccionar la primera asignatura si la actual no está en la nueva lista
+        const existeActual = asignaturasMapeadas.some(a => a.value === asignaturaSeleccionada);
+        if (!existeActual) {
+          setAsignaturaSeleccionada(asignaturasMapeadas[0].value);
+        }
+      } else {
+        setAsignaturas([]);
+        setAsignaturaSeleccionada('');
+      }
+    } else {
+      setAsignaturas([]);
+      setAsignaturaSeleccionada('');
+    }
+  }, [cursoSeleccionado, asignacionAcademica]);
 
   // ✅ Función separada para cargar datos
   const cargarEstudiantesYCalif = async () => {
-    if (!cursoSeleccionado) return;
+    if (!cursoSeleccionado || !asignaturaSeleccionada) return;
     
     setLoading(true);
     setMensaje(''); // Limpiar mensajes anteriores

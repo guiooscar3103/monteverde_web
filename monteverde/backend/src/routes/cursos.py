@@ -9,20 +9,39 @@ cursos_bp = Blueprint('cursos', __name__)
 
 @cursos_bp.route('', methods=['GET'], strict_slashes=False)
 @cursos_bp.route('/', methods=['GET'], strict_slashes=False)
+@jwt_required(optional=True)
 def list_cursos():
-    """Listar todos los cursos"""
+    """Listar todos los cursos (o filtrados por docente)"""
     try:
+        current_user = get_current_user()
+        
+        query = Curso.query
+        
+        # Si el usuario es docente, filtrar solo sus cursos asignados
+        if current_user and current_user.rol == 'docente':
+            from src.models.docente_asignacion import DocenteAsignacion
+            from src.models.docente_curso import DocenteCurso
+            
+            asignaciones = DocenteAsignacion.query.filter_by(docente_id=current_user.id).all()
+            curso_ids = {a.curso_id for a in asignaciones}
+            
+            legacy_asignaciones = DocenteCurso.query.filter_by(docente_id=current_user.id).all()
+            for la in legacy_asignaciones:
+                curso_ids.add(la.curso_id)
+                
+            query = query.filter(Curso.id.in_(list(curso_ids)))
+
         page = request.args.get('page', type=int)
         per_page = request.args.get('per_page', type=int)
 
         if page is None and per_page is None:
-            cursos = Curso.query.order_by(Curso.nivel, Curso.letra).all()
+            cursos = query.order_by(Curso.nivel, Curso.letra).all()
             return jsonify({'success': True, 'data': [curso.to_dict() for curso in cursos]}), 200
 
         page = page or 1
         per_page = min(per_page or 10, 100)
         
-        pagination = Curso.query.paginate(page=page, per_page=per_page, error_out=False)
+        pagination = query.order_by(Curso.nivel, Curso.letra).paginate(page=page, per_page=per_page, error_out=False)
         return jsonify({
             'success': True,
             'data': {
