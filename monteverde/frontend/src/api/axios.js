@@ -14,7 +14,7 @@ const api = axios.create({
 // Interceptor para requests (agregar token)
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -44,7 +44,7 @@ api.interceptors.response.use(
           });
 
           const newAccessToken = response.data.access_token; // ← Cambié el nombre
-          localStorage.setItem('access_token', newAccessToken);
+          localStorage.setItem('token', newAccessToken);
 
           // Reintentar request original
           original.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -52,7 +52,7 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         // Refresh falló, redirigir a login
-        localStorage.removeItem('access_token');
+        localStorage.removeItem('token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         window.location.href = '/login';

@@ -7,7 +7,7 @@ export const authService = {
     const { access_token, refresh_token, usuario } = response.data;
 
     // Guardar tokens y usuario
-    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('token', access_token);
     localStorage.setItem('refresh_token', refresh_token);
     localStorage.setItem('user', JSON.stringify(usuario));
 
@@ -28,14 +28,14 @@ export const authService = {
 
   // Logout
   logout() {
-    localStorage.removeItem('access_token');
+    localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
   },
 
   // Verificar si está autenticado
   isAuthenticated() {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('token');
     return !!token;
   },
 
