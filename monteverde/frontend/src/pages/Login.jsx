@@ -6,6 +6,7 @@ import adminImg from '../assets/img/admin.png';
 import docenteImg from '../assets/img/docente.png';
 import familiaImg from '../assets/img/familia.png';
 import fondoImg from '../assets/img/fondo.png';
+import BorderBeam from '../components/BorderBeam';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -444,6 +445,8 @@ export default function Login() {
             )}
           </button>
         </form>
+        {/* Magic UI Border Beam Effect */}
+        <BorderBeam duration={8} size={160} borderWidth={2.5} colorFrom="#27ae60" colorTo="#0e4d2b" borderRadius="24px" />
       </div>
 
       {/* Pie de Página e Información de Soporte */}

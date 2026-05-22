@@ -1,185 +1,110 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+from datetime import datetime
 from src.extensions import db
 from src.models.calificacion import Calificacion
 from src.models.estudiante import Estudiante
-from src.utils.auth_helpers import role_required, get_current_user
-from datetime import datetime
 
-calificaciones_bp = Blueprint('calificaciones', __name__, url_prefix='/calificaciones')
+calificaciones_bp = Blueprint('calificaciones_custom', __name__)
 
-@calificaciones_bp.route('/', methods=['GET'])
-@jwt_required()
-def list_calificaciones():
-    """Listar calificaciones con filtros"""
+@calificaciones_bp.route('/calificaciones/buscar', methods=['GET'])
+def get_calificaciones_por():
+    """Buscar calificaciones con filtros."""
     try:
-        current_user = get_current_user()
-        
-        # Parámetros de filtro
-        estudiante_id = request.args.get('estudiante_id', type=int)
+        curso_id = request.args.get('cursoId')
         asignatura = request.args.get('asignatura')
         periodo = request.args.get('periodo')
-        page = request.args.get('page', 1, type=int)
-        per_page = min(request.args.get('per_page', 20, type=int), 100)
+        print(f"🔍 Buscando calificaciones: curso={curso_id}, asignatura={asignatura}, periodo={periodo}")
         
-        query = Calificacion.query
+        query = db.session.query(Calificacion, Estudiante).join(Estudiante)
         
-        # Filtros según rol
-        if current_user.rol == 'familia':
-            if not estudiante_id or current_user.estudiante_id != estudiante_id:
-                return jsonify({'message': 'Solo puedes ver calificaciones de tu estudiante'}), 403
-            query = query.filter_by(estudiante_id=estudiante_id)
-        else:
-            if estudiante_id:
-                query = query.filter_by(estudiante_id=estudiante_id)
-        
+        if curso_id:
+            query = query.filter(Estudiante.curso_id == curso_id)
         if asignatura:
-            query = query.filter_by(asignatura=asignatura)
+            query = query.filter(Calificacion.asignatura == asignatura)
         if periodo:
-            query = query.filter_by(periodo=periodo)
+            query = query.filter(Calificacion.periodo == periodo)
+            
+        calificaciones = query.order_by(Estudiante.nombre).all()
         
-        calificaciones = query.order_by(
-            Calificacion.fecha_registro.desc()
-        ).paginate(page=page, per_page=per_page, error_out=False)
+        calificaciones_data = []
+        for calificacion, estudiante in calificaciones:
+            cal_dict = calificacion.to_dict()
+            cal_dict['estudiante_nombre'] = estudiante.nombre
+            calificaciones_data.append(cal_dict)
+            
+        print(f"📊 Calificaciones encontradas: {len(calificaciones_data)}")
+        return jsonify({'success': True, 'data': calificaciones_data})
+    except Exception as e:
+        print(f"❌ Error buscar calificaciones: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@calificaciones_bp.route('/calificaciones/guardar', methods=['POST'])
+def guardar_calificaciones():
+    """Guardar/actualizar calificaciones."""
+    try:
+        data = request.get_json()
+        calificaciones = data.get('calificaciones', [])
         
-        # Incluir información del estudiante
-        result = []
-        for calif in calificaciones.items:
-            calif_dict = calif.to_dict()
-            if calif.estudiante:
-                calif_dict['estudiante'] = {
-                    'id': calif.estudiante.id,
-                    'nombre': calif.estudiante.nombre
-                }
-            result.append(calif_dict)
+        if not calificaciones:
+            return jsonify({'success': False, 'message': 'No hay calificaciones para guardar'}), 400
+            
+        print(f"💾 Guardando {len(calificaciones)} calificaciones")
         
-        return jsonify({
-            'calificaciones': result,
-            'pagination': {
-                'page': calificaciones.page,
-                'pages': calificaciones.pages,
-                'per_page': calificaciones.per_page,
-                'total': calificaciones.total
+        for calif in calificaciones:
+            estudiante_id = calif.get('estudianteId')
+            asignatura = calif.get('asignatura')
+            periodo = calif.get('periodo')
+            nota = calif.get('nota')
+            
+            existing = Calificacion.query.filter_by(
+                estudiante_id=estudiante_id,
+                asignatura=asignatura,
+                periodo=periodo
+            ).first()
+            
+            if existing:
+                existing.nota = nota
+                existing.fecha_registro = datetime.now()
+                print(f"📝 Actualizada calificación para estudiante {estudiante_id}")
+            else:
+                nueva_cal = Calificacion(
+                    estudiante_id=estudiante_id,
+                    asignatura=asignatura,
+                    periodo=periodo,
+                    nota=nota,
+                    fecha_registro=datetime.now()
+                )
+                db.session.add(nueva_cal)
+                print(f"✅ Nueva calificación para estudiante {estudiante_id}")
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': f'Se guardaron {len(calificaciones)} calificaciones correctamente'})
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error guardar calificaciones: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@calificaciones_bp.route('/familia/hijo-calificaciones/<int:estudiante_id>', methods=['GET'])
+def get_calificaciones_hijo(estudiante_id):
+    """Calificaciones de un hijo."""
+    try:
+        calificaciones = Calificacion.query.filter_by(estudiante_id=estudiante_id).order_by(
+            Calificacion.fecha_registro.desc(), Calificacion.asignatura
+        ).all()
+        
+        calificaciones_data = []
+        for cal in calificaciones:
+            cal_dict = {
+                'id': cal.id,
+                'asignatura': cal.asignatura,
+                'periodo': cal.periodo,
+                'nota': cal.nota,
+                'fecha': cal.fecha_registro.isoformat() if cal.fecha_registro else None
             }
-        }), 200
+            calificaciones_data.append(cal_dict)
+        
+        print(f"📊 Calificaciones encontradas para estudiante {estudiante_id}: {len(calificaciones_data)}")
+        return jsonify({'success': True, 'data': calificaciones_data})
     except Exception as e:
-        return jsonify({'message': 'Error al obtener calificaciones', 'error': str(e)}), 500
-
-@calificaciones_bp.route('/', methods=['POST'])
-@role_required('docente', 'admin')
-def create_calificacion():
-    """Crear nueva calificación"""
-    try:
-        data = request.get_json()
-        
-        required_fields = ['estudiante_id', 'asignatura', 'periodo', 'nota']
-        if not data or not all(k in data for k in required_fields):
-            return jsonify({'message': f'Faltan campos: {required_fields}'}), 400
-        
-        # Validar nota
-        nota = float(data['nota'])
-        if not (0.0 <= nota <= 5.0):
-            return jsonify({'message': 'La nota debe estar entre 0.0 y 5.0'}), 400
-        
-        # Verificar que el estudiante existe
-        estudiante = Estudiante.query.get(data['estudiante_id'])
-        if not estudiante:
-            return jsonify({'message': 'Estudiante no encontrado'}), 404
-        
-        # Verificar si ya existe calificación para este estudiante/asignatura/periodo
-        existing = Calificacion.query.filter_by(
-            estudiante_id=data['estudiante_id'],
-            asignatura=data['asignatura'],
-            periodo=data['periodo']
-        ).first()
-        
-        if existing:
-            return jsonify({
-                'message': 'Ya existe calificación para este estudiante/asignatura/periodo',
-                'existing_id': existing.id
-            }), 409
-        
-        calificacion = Calificacion(
-            estudiante_id=data['estudiante_id'],
-            asignatura=data['asignatura'],
-            periodo=data['periodo'],
-            nota=nota
-        )
-        
-        db.session.add(calificacion)
-        db.session.commit()
-        
-        result = calificacion.to_dict()
-        result['estudiante'] = {
-            'id': estudiante.id,
-            'nombre': estudiante.nombre
-        }
-        
-        return jsonify({
-            'message': 'Calificación creada exitosamente',
-            'calificacion': result
-        }), 201
-        
-    except ValueError:
-        return jsonify({'message': 'Nota debe ser un número válido'}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'message': 'Error al crear calificación', 'error': str(e)}), 500
-
-@calificaciones_bp.route('/<int:calificacion_id>', methods=['PUT'])
-@role_required('docente', 'admin')
-def update_calificacion(calificacion_id):
-    """Actualizar calificación"""
-    try:
-        calificacion = Calificacion.query.get_or_404(calificacion_id)
-        data = request.get_json()
-        
-        if 'nota' in data:
-            nota = float(data['nota'])
-            if not (0.0 <= nota <= 5.0):
-                return jsonify({'message': 'La nota debe estar entre 0.0 y 5.0'}), 400
-            calificacion.nota = nota
-        
-        if 'asignatura' in data:
-            calificacion.asignatura = data['asignatura']
-        if 'periodo' in data:
-            calificacion.periodo = data['periodo']
-        
-        calificacion.fecha_registro = datetime.utcnow()
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Calificación actualizada exitosamente',
-            'calificacion': calificacion.to_dict()
-        }), 200
-        
-    except ValueError:
-        return jsonify({'message': 'Nota debe ser un número válido'}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'message': 'Error al actualizar calificación', 'error': str(e)}), 500
-
-@calificaciones_bp.route('/periodos', methods=['GET'])
-@jwt_required()
-def list_periodos():
-    """Obtener lista de períodos únicos"""
-    try:
-        periodos = db.session.query(Calificacion.periodo).distinct().all()
-        periodos_list = [p[0] for p in periodos if p[0]]
-        
-        return jsonify({'periodos': sorted(periodos_list)}), 200
-    except Exception as e:
-        return jsonify({'message': 'Error al obtener períodos', 'error': str(e)}), 500
-
-@calificaciones_bp.route('/asignaturas', methods=['GET'])
-@jwt_required()
-def list_asignaturas():
-    """Obtener lista de asignaturas únicas"""
-    try:
-        asignaturas = db.session.query(Calificacion.asignatura).distinct().all()
-        asignaturas_list = [a[0] for a in asignaturas if a[0]]
-        
-        return jsonify({'asignaturas': sorted(asignaturas_list)}), 200
-    except Exception as e:
-        return jsonify({'message': 'Error al obtener asignaturas', 'error': str(e)}), 500
+        print(f"❌ Error calificaciones hijo: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500

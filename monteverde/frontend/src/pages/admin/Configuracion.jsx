@@ -25,7 +25,7 @@ export default function Configuracion() {
     setErrorMsg('');
     try {
       const res = await getConfiguracion();
-      // Ensure we set data correctly depending on format
+      // Garantizar el establecimiento correcto de los datos según el formato devuelto por la API
       if (res && res.data) {
         setConfig(res.data);
       } else if (res) {
@@ -94,13 +94,13 @@ export default function Configuracion() {
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-      {/* Header Banner */}
+      {/* Banner de cabecera de la página */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: '2.5rem',
-        background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)', // Deep Violet-Indigo
+        background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)', // Color violeta e índigo profundo
         padding: '1.5rem 2rem',
         borderRadius: '16px',
         color: '#ffffff',
@@ -117,7 +117,7 @@ export default function Configuracion() {
         <div style={{ fontSize: '2.5rem' }}>⚙️</div>
       </div>
 
-      {/* Notifications */}
+      {/* Notificaciones del sistema */}
       {successMsg && (
         <div style={{
           background: '#d1fae5',

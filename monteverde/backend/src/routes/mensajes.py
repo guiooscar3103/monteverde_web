@@ -1,158 +1,105 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+from datetime import datetime
 from src.extensions import db
 from src.models.mensaje import Mensaje
 from src.models.usuario import Usuario
-from src.utils.auth_helpers import get_current_user
-from datetime import datetime
 
-mensajes_bp = Blueprint('mensajes', __name__, url_prefix='/mensajes')
+mensajes_bp = Blueprint('mensajes_custom', __name__)
 
-@mensajes_bp.route('/', methods=['GET'])
-@jwt_required()
-def list_mensajes():
-    """Listar mensajes del usuario actual"""
+@mensajes_bp.route('/mensajes/<int:usuario_id>', methods=['GET'])
+def get_mensajes(usuario_id):
+    """Obtener mensajes usando SQLAlchemy ORM."""
     try:
-        current_user = get_current_user()
+        print(f"🔍 Obteniendo mensajes para usuario: {usuario_id}")
         
-        # Filtros
-        tipo = request.args.get('tipo', 'recibidos')  # 'enviados', 'recibidos', 'todos'
-        page = request.args.get('page', 1, type=int)
-        per_page = min(request.args.get('per_page', 20, type=int), 100)
+        mensajes = Mensaje.query.filter(
+            (Mensaje.receptor_id == usuario_id) | (Mensaje.emisor_id == usuario_id)
+        ).order_by(Mensaje.fecha.desc()).all()
         
-        query = Mensaje.query
-        
-        if tipo == 'enviados':
-            query = query.filter_by(emisor_id=current_user.id)
-        elif tipo == 'recibidos':
-            query = query.filter_by(receptor_id=current_user.id)
-        else:  # todos
-            query = query.filter(
-                (Mensaje.emisor_id == current_user.id) | 
-                (Mensaje.receptor_id == current_user.id)
-            )
-        
-        mensajes = query.order_by(
-            Mensaje.fecha.desc()
-        ).paginate(page=page, per_page=per_page, error_out=False)
-        
-        # Incluir información de emisor y receptor
-        result = []
-        for mensaje in mensajes.items:
-            msg_dict = mensaje.to_dict()
-            msg_dict['emisor'] = {
-                'id': mensaje.emisor.id,
-                'nombre': mensaje.emisor.nombre
-            }
-            msg_dict['receptor'] = {
-                'id': mensaje.receptor.id,
-                'nombre': mensaje.receptor.nombre
-            }
-            result.append(msg_dict)
-        
-        return jsonify({
-            'mensajes': result,
-            'pagination': {
-                'page': mensajes.page,
-                'pages': mensajes.pages,
-                'per_page': mensajes.per_page,
-                'total': mensajes.total
-            }
-        }), 200
+        print(f"📧 Mensajes encontrados: {len(mensajes)}")
+
+        mensajes_data = []
+        for msg in mensajes:
+            msg_dict = msg.to_dict()
+            emisor = Usuario.query.get(msg.emisor_id)
+            receptor = Usuario.query.get(msg.receptor_id)
+            msg_dict['emisor_nombre'] = emisor.nombre if emisor else None
+            msg_dict['receptor_nombre'] = receptor.nombre if receptor else None
+            mensajes_data.append(msg_dict)
+
+        return jsonify({'success': True, 'data': mensajes_data})
     except Exception as e:
-        return jsonify({'message': 'Error al obtener mensajes', 'error': str(e)}), 500
+        print(f"❌ Error get_mensajes: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-@mensajes_bp.route('/', methods=['POST'])
-@jwt_required()
-def create_mensaje():
-    """Enviar nuevo mensaje"""
+@mensajes_bp.route('/conversacion/<int:usuario1>/<int:usuario2>', methods=['GET'])
+def get_conversacion_entre_usuarios(usuario1, usuario2):
+    """Conversación entre dos usuarios."""
     try:
-        current_user = get_current_user()
+        mensajes = Mensaje.query.filter(
+            ((Mensaje.emisor_id == usuario1) & (Mensaje.receptor_id == usuario2)) |
+            ((Mensaje.emisor_id == usuario2) & (Mensaje.receptor_id == usuario1))
+        ).order_by(Mensaje.fecha.asc()).all()
+        
+        mensajes_data = []
+        for msg in mensajes:
+            msg_dict = msg.to_dict()
+            emisor = Usuario.query.get(msg.emisor_id)
+            receptor = Usuario.query.get(msg.receptor_id)
+            msg_dict['emisor_nombre'] = emisor.nombre if emisor else None
+            msg_dict['receptor_nombre'] = receptor.nombre if receptor else None
+            mensajes_data.append(msg_dict)
+            
+        return jsonify({'success': True, 'data': mensajes_data})
+    except Exception as e:
+        print(f"❌ Error conversación: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@mensajes_bp.route('/mensajes/enviar', methods=['POST'])
+def enviar_mensaje_nuevo():
+    """Enviar nuevo mensaje."""
+    try:
         data = request.get_json()
+        emisor_id = data.get('emisorId')
+        receptor_id = data.get('receptorId')
+        asunto = data.get('asunto', 'Sin asunto')
+        cuerpo = data.get('cuerpo')
         
-        required_fields = ['receptor_id', 'asunto', 'cuerpo']
-        if not data or not all(k in data for k in required_fields):
-            return jsonify({'message': f'Faltan campos: {required_fields}'}), 400
-        
-        # Verificar que el receptor existe
-        receptor = Usuario.query.get(data['receptor_id'])
-        if not receptor:
-            return jsonify({'message': 'Receptor no encontrado'}), 404
-        
-        # No permitir enviarse mensajes a sí mismo
-        if current_user.id == data['receptor_id']:
-            return jsonify({'message': 'No puedes enviarte mensajes a ti mismo'}), 400
-        
+        if not all([emisor_id, receptor_id, cuerpo]):
+            return jsonify({'success': False, 'message': 'Faltan campos requeridos'}), 400
+            
         mensaje = Mensaje(
-            emisor_id=current_user.id,
-            receptor_id=data['receptor_id'],
-            asunto=data['asunto'],
-            cuerpo=data['cuerpo']
+            emisor_id=emisor_id,
+            receptor_id=receptor_id,
+            asunto=asunto,
+            cuerpo=cuerpo,
+            fecha=datetime.now(),
+            leido=False
         )
         
         db.session.add(mensaje)
         db.session.commit()
         
-        result = mensaje.to_dict()
-        result['emisor'] = {'id': current_user.id, 'nombre': current_user.nombre}
-        result['receptor'] = {'id': receptor.id, 'nombre': receptor.nombre}
-        
-        return jsonify({
-            'message': 'Mensaje enviado exitosamente',
-            'mensaje': result
-        }), 201
-        
+        print(f"✅ Mensaje creado con ID: {mensaje.id}")
+        return jsonify({'success': True, 'data': mensaje.to_dict()})
     except Exception as e:
         db.session.rollback()
-        return jsonify({'message': 'Error al enviar mensaje', 'error': str(e)}), 500
+        print(f"❌ Error enviar mensaje: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-@mensajes_bp.route('/<int:mensaje_id>/marcar-leido', methods=['PUT'])
-@jwt_required()
-def marcar_leido(mensaje_id):
-    """Marcar mensaje como leído"""
+@mensajes_bp.route('/mensajes/marcar-leido/<int:mensaje_id>', methods=['PUT'])
+def marcar_mensaje_como_leido(mensaje_id):
+    """Marcar mensaje como leído."""
     try:
-        current_user = get_current_user()
-        mensaje = Mensaje.query.get_or_404(mensaje_id)
-        
-        # Solo el receptor puede marcar como leído
-        if mensaje.receptor_id != current_user.id:
-            return jsonify({'message': 'Solo el receptor puede marcar como leído'}), 403
-        
+        mensaje = Mensaje.query.get(mensaje_id)
+        if not mensaje:
+            return jsonify({'success': False, 'message': 'Mensaje no encontrado'}), 404
+            
         mensaje.leido = True
         db.session.commit()
         
-        return jsonify({'message': 'Mensaje marcado como leído'}), 200
-        
+        return jsonify({'success': True, 'message': 'Mensaje marcado como leído'})
     except Exception as e:
         db.session.rollback()
-        return jsonify({'message': 'Error al marcar mensaje', 'error': str(e)}), 500
-
-@mensajes_bp.route('/conversacion/<int:usuario_id>', methods=['GET'])
-@jwt_required()
-def get_conversacion(usuario_id):
-    """Obtener conversación con un usuario específico"""
-    try:
-        current_user = get_current_user()
-        
-        # Verificar que el usuario existe
-        usuario = Usuario.query.get_or_404(usuario_id)
-        
-        mensajes = Mensaje.query.filter(
-            ((Mensaje.emisor_id == current_user.id) & (Mensaje.receptor_id == usuario_id)) |
-            ((Mensaje.emisor_id == usuario_id) & (Mensaje.receptor_id == current_user.id))
-        ).order_by(Mensaje.fecha.asc()).all()
-        
-        result = []
-        for mensaje in mensajes:
-            msg_dict = mensaje.to_dict()
-            msg_dict['es_mio'] = mensaje.emisor_id == current_user.id
-            result.append(msg_dict)
-        
-        return jsonify({
-            'conversacion': result,
-            'usuario': {'id': usuario.id, 'nombre': usuario.nombre},
-            'total_mensajes': len(result)
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'message': 'Error al obtener conversación', 'error': str(e)}), 500
+        print(f"❌ Error marcar leído: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500

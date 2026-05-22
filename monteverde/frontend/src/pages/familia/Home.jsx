@@ -1,5 +1,6 @@
 import Card from '../../components/Card';
 import ButtonLink from '../../components/ButtonLink';
+import DiaTextReveal from '../../components/DiaTextReveal';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { getFamiliaDashboard, getMensajesPorUsuario } from '../../services/api';
@@ -71,7 +72,12 @@ export default function FamiliaHome() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <img src={logoColegio} alt="Monteverde School" style={{ width: '68px', height: 'auto' }} />
           <div>
-            <h2 style={{ margin: 0 }}>¡Hola, {usuario?.nombre}!</h2>
+            <h2 style={{ margin: 0 }}>
+              <DiaTextReveal 
+                text={`¡Hola, ${usuario?.nombre || ''}!`} 
+                colors={["#11998e", "#38ef7d", "#a8ff78"]} 
+              />
+            </h2>
             <p style={{ color: 'var(--text-secondary)', marginTop: '.35rem' }}>Así marcha el día académico de tu familia en Monteverde School.</p>
           </div>
         </div>

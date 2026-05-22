@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getEstadisticasAdmin } from '../../services/api';
 import Chart from 'chart.js/auto';
 import adminImg from '../../assets/img/admin.png';
+import DiaTextReveal from '../../components/DiaTextReveal';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -20,7 +21,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!stats) return;
 
-    // 1. Doughnut Chart: User distribution by role
+    // 1. Gráfico de tipo dona: Distribución de usuarios por rol
     if (doughnutChartRef.current) {
       if (doughnutInstance.current) {
         doughnutInstance.current.destroy();
@@ -38,9 +39,9 @@ export default function Dashboard() {
               stats.usuarios.familias || 0
             ],
             backgroundColor: [
-              'rgba(239, 68, 68, 0.85)',   // Soft Red (Admin)
-              'rgba(79, 70, 229, 0.85)',   // Soft Indigo (Docente)
-              'rgba(16, 185, 129, 0.85)'   // Soft Emerald (Familia)
+              'rgba(239, 68, 68, 0.85)',   // Rojo suave (Administrador)
+              'rgba(79, 70, 229, 0.85)',   // Índigo suave (Docente)
+              'rgba(16, 185, 129, 0.85)'   // Esmeralda suave (Familia)
             ],
             borderColor: [
               '#ef4444',
@@ -67,7 +68,7 @@ export default function Dashboard() {
       });
     }
 
-    // 2. Bar Chart: Student distribution by course
+    // 2. Gráfico de barras: Distribución de estudiantes por curso
     if (barChartRef.current && stats.distribucion_cursos) {
       if (barInstance.current) {
         barInstance.current.destroy();
@@ -106,7 +107,7 @@ export default function Dashboard() {
       });
     }
 
-    // Cleanup charts on unmount
+    // Limpieza y destrucción de las instancias de los gráficos al desmontar el componente
     return () => {
       if (doughnutInstance.current) doughnutInstance.current.destroy();
       if (barInstance.current) barInstance.current.destroy();
@@ -157,7 +158,13 @@ export default function Dashboard() {
   if (errorMsg || !stats) {
     return (
       <div style={{ padding: '2rem', background: '#fee2e2', border: '1px solid #ef4444', color: '#b91c1c', borderRadius: '12px', textAlign: 'center' }}>
-        <span style={{ fontSize: '2rem' }}>⚠️</span>
+        <div style={{ color: '#ef4444', marginBottom: '1rem' }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block' }}>
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </div>
         <h3 style={{ marginTop: '1rem' }}>Fallo en la comunicación con el Backend</h3>
         <p>{errorMsg || 'No se han podido cargar las métricas agregadas del panel.'}</p>
         <button onClick={cargarEstadisticas} className="btn btn--primary" style={{ marginTop: '1rem' }}>Reintentar Conexión</button>
@@ -180,7 +187,10 @@ export default function Dashboard() {
       }}>
         <div>
           <h2 style={{ margin: 0, color: '#ffffff', fontSize: '1.6rem', border: 'none', padding: 0 }}>
-            ¡Hola de nuevo, Administrador!
+            <DiaTextReveal 
+              text="¡Hola de nuevo, Administrador!" 
+              colors={["#11998e", "#38ef7d", "#a8ff78"]} 
+            />
           </h2>
           <p style={{ margin: '5px 0 0', color: '#c7d2fe', fontSize: '0.95rem' }}>
             Aquí tienes el resumen institucional y la actividad reciente del Colegio MonteVerde.
@@ -197,8 +207,13 @@ export default function Dashboard() {
       }}>
         {/* Card 1: Users */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem' }}>
-          <div style={{ background: '#e0e7ff', color: '#4f46e5', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyRef: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
-            👥
+          <div style={{ background: '#e0e7ff', color: '#4f46e5', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
           </div>
           <div>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Cuentas Activas</span>
@@ -208,8 +223,11 @@ export default function Dashboard() {
 
         {/* Card 2: Students */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem' }}>
-          <div style={{ background: '#d1fae5', color: '#10b981', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
-            👶
+          <div style={{ background: '#d1fae5', color: '#10b981', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.91a2 2 0 0 0 1.66 0z" />
+              <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+            </svg>
           </div>
           <div>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Estudiantes</span>
@@ -219,8 +237,13 @@ export default function Dashboard() {
 
         {/* Card 3: Attendance Average */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem' }}>
-          <div style={{ background: '#fef3c7', color: '#d97706', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
-            📅
+          <div style={{ background: '#fef3c7', color: '#d97706', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
           </div>
           <div>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Asistencia Promedio</span>
@@ -230,8 +253,10 @@ export default function Dashboard() {
 
         {/* Card 4: Academic Performance */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem' }}>
-          <div style={{ background: '#fee2e2', color: '#ef4444', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
-            ⭐
+          <div style={{ background: '#fee2e2', color: '#ef4444', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
           </div>
           <div>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Promedio de Notas</span>
@@ -277,8 +302,11 @@ export default function Dashboard() {
           paddingBottom: '0.75rem',
           marginBottom: '1rem'
         }}>
-          <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#1e293b' }}>
-            🕵️ Bitácora de Auditoría (Actividad Reciente)
+          <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            Bitácora de Auditoría (Actividad Reciente)
           </h3>
           <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Mostrando los últimos 5 eventos</span>
         </div>

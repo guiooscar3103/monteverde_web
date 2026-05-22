@@ -10,7 +10,7 @@ export const useAuth = () => {
   
   return {
     usuario: context.user, 
-    user: context.user, // Added for compatibility with layout components
+    user: context.user, // Agregado para mantener la compatibilidad con los componentes de diseño (layouts)
     isAuthenticated: context.isAuthenticated,
     isLoading: context.isLoading,
     error: context.error,

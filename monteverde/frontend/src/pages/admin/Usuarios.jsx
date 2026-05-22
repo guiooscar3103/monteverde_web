@@ -11,7 +11,7 @@ import {
 } from '../../services/api';
 
 export default function Usuarios() {
-  // State for user listings
+  // Estado para el listado de usuarios
   const [usuarios, setUsuarios] = useState([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
@@ -21,16 +21,16 @@ export default function Usuarios() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Filters state
+  // Estado de los filtros de búsqueda y paginación
   const [search, setSearch] = useState('');
   const [rol, setRol] = useState('');
   const [activo, setActivo] = useState('');
   const [orderBy, setOrderBy] = useState('nombre');
   const [orderDirection, setOrderDirection] = useState('ASC');
 
-  // Modal control states
+  // Estados para el control del modal de creación y edición
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [editandoId, setEditandoId] = useState(null); // null means creation
+  const [editandoId, setEditandoId] = useState(null); // Un valor null indica creación de un nuevo usuario
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,20 +38,20 @@ export default function Usuarios() {
   const [estudianteId, setEstudianteId] = useState('');
   const [activoForm, setActivoForm] = useState(true);
 
-  // Password reset modal state
+  // Estado para el control del modal de restablecimiento de contraseña
   const [modalPasswordAbierto, setModalPasswordAbierto] = useState(false);
   const [passwordResetId, setPasswordResetId] = useState(null);
   const [nuevoPassword, setNuevoPassword] = useState('');
 
-  // List of all students for family binding
+  // Lista de todos los estudiantes para la vinculación con el rol de Familia
   const [estudiantes, setEstudiantes] = useState([]);
 
-  // Fetch users on filter or pagination changes
+  // Obtener la lista de usuarios al cambiar filtros o de página
   useEffect(() => {
     cargarUsuarios();
   }, [pagina, search, rol, activo, orderBy, orderDirection, limite]);
 
-  // Fetch students once
+  // Obtener la lista completa de estudiantes una sola vez al montar el componente
   useEffect(() => {
     cargarEstudiantes();
   }, []);
@@ -99,7 +99,7 @@ export default function Usuarios() {
       const res = await cambiarEstadoUsuario(id, nuevoEstado);
       if (res.success) {
         setSuccessMsg(res.message || 'Estado actualizado con éxito');
-        // Update locally
+        // Actualizar el estado localmente para evitar una petición de recarga completa
         setUsuarios(usuarios.map(u => u.id === id ? { ...u, activo: nuevoEstado } : u));
         setTimeout(() => setSuccessMsg(''), 3000);
       }
@@ -155,7 +155,7 @@ export default function Usuarios() {
     setEditandoId(u.id);
     setNombre(u.nombre || '');
     setEmail(u.email || '');
-    setPassword(''); // keep blank to not change password
+    setPassword(''); // Mantener en blanco para no modificar la contraseña actual
     setRolForm(u.rol || 'familia');
     setEstudianteId(u.estudiante_id || '');
     setActivoForm(u.activo !== false);
@@ -250,7 +250,7 @@ export default function Usuarios() {
     }
   };
 
-  // Toggle order fields
+  // Alternar el campo y sentido de ordenación
   const handleSort = (col) => {
     if (orderBy === col) {
       setOrderDirection(orderDirection === 'ASC' ? 'DESC' : 'ASC');
@@ -263,7 +263,7 @@ export default function Usuarios() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Title Header with Action Button */}
+      {/* Encabezado del título principal con botón de acción */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -311,7 +311,7 @@ export default function Usuarios() {
         </button>
       </div>
 
-      {/* Notifications */}
+      {/* Notificaciones flotantes del sistema */}
       {successMsg && (
         <div style={{
           background: '#d1fae5',
@@ -325,7 +325,10 @@ export default function Usuarios() {
           alignItems: 'center',
           gap: '10px'
         }}>
-          <span>✅</span> {successMsg}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {successMsg}
         </div>
       )}
       {errorMsg && (
@@ -341,11 +344,15 @@ export default function Usuarios() {
           alignItems: 'center',
           gap: '10px'
         }}>
-          <span>❌</span> {errorMsg}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+          {errorMsg}
         </div>
       )}
 
-      {/* Filters Card */}
+      {/* Tarjeta contenedora de filtros */}
       <div style={{
         background: '#ffffff',
         border: '1px solid #e2e8f0',
@@ -355,7 +362,7 @@ export default function Usuarios() {
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem' }}>
-          {/* Search Bar */}
+          {/* Barra de búsqueda por texto */}
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Buscar</label>
             <div style={{ position: 'relative' }}>
@@ -383,7 +390,7 @@ export default function Usuarios() {
             </div>
           </div>
 
-          {/* Role selector */}
+          {/* Selector de filtro por rol */}
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Rol</label>
             <select 
@@ -398,7 +405,7 @@ export default function Usuarios() {
             </select>
           </div>
 
-          {/* Active status selector */}
+          {/* Selector de filtro por estado de cuenta */}
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Estado</label>
             <select 
@@ -412,7 +419,7 @@ export default function Usuarios() {
             </select>
           </div>
 
-          {/* Items per page */}
+          {/* Elementos mostrados por página */}
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Elementos por Página</label>
             <select 
@@ -429,7 +436,7 @@ export default function Usuarios() {
         </div>
       </div>
 
-      {/* Main Table Card */}
+      {/* Tarjeta que contiene la tabla principal de datos */}
       <div style={{
         background: '#ffffff',
         border: '1px solid #e2e8f0',
@@ -458,7 +465,14 @@ export default function Usuarios() {
           </div>
         ) : usuarios.length === 0 ? (
           <div style={{ padding: '4rem 0', textAlign: 'center', color: '#64748b' }}>
-            <span style={{ fontSize: '2.5rem' }}>👥</span>
+            <div style={{ color: '#94a3b8', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
             <h3 style={{ margin: '1rem 0 0.5rem', color: '#334155' }}>No se encontraron usuarios</h3>
             <p style={{ margin: 0, fontSize: '0.9rem' }}>Intente cambiar los filtros o busque otro nombre.</p>
           </div>
@@ -539,8 +553,12 @@ export default function Usuarios() {
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569' }}>
                       {u.rol === 'familia' && (u.estudiante_nombre || u.estudiante?.nombre) ? (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          👶 <strong>{u.estudiante_nombre || u.estudiante?.nombre}</strong>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}>
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                          <strong>{u.estudiante_nombre || u.estudiante?.nombre}</strong>
                         </span>
                       ) : u.rol === 'familia' ? (
                         <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Sin estudiante</span>
@@ -578,7 +596,7 @@ export default function Usuarios() {
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        {/* Edit Button */}
+                        {/* Botón para editar el usuario */}
                         <button
                           disabled={u.eliminado}
                           onClick={() => abrirModalEditar(u)}
@@ -601,7 +619,7 @@ export default function Usuarios() {
                           </svg>
                         </button>
 
-                        {/* Reset Password Button */}
+                        {/* Botón para cambiar/restablecer la contraseña del usuario */}
                         <button
                           disabled={u.eliminado}
                           onClick={() => abrirModalPassword(u.id)}
@@ -624,7 +642,7 @@ export default function Usuarios() {
                           </svg>
                         </button>
 
-                        {/* Delete or Restore button */}
+                        {/* Botón condicional para eliminar de forma lógica o restaurar la cuenta */}
                         {u.eliminado ? (
                           <button
                             onClick={() => handleRestore(u.id)}
@@ -678,7 +696,7 @@ export default function Usuarios() {
           </div>
         )}
 
-        {/* Paginated Footer */}
+        {/* Pie de página con controles de paginación */}
         <div style={{
           padding: '1rem 1.5rem',
           borderTop: '1px solid #e2e8f0',
@@ -735,7 +753,7 @@ export default function Usuarios() {
         </div>
       </div>
 
-      {/* Main Creation/Edition Modal */}
+      {/* Modal principal de registro o actualización de usuario */}
       {modalAbierto && (
         <div style={{
           position: 'fixed',
@@ -760,7 +778,7 @@ export default function Usuarios() {
             border: '1px solid #e2e8f0',
             animation: 'fadeIn 0.2s ease-out'
           }}>
-            {/* Modal Header */}
+            {/* Cabecera del modal */}
             <div style={{
               background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
               color: '#ffffff',
@@ -770,7 +788,7 @@ export default function Usuarios() {
               alignItems: 'center'
             }}>
               <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.15rem', fontWeight: 700 }}>
-                {editandoId === null ? '🌟 Crear Nuevo Usuario' : '✍️ Editar Usuario'}
+                {editandoId === null ? 'Crear Nuevo Usuario' : 'Editar Usuario'}
               </h3>
               <button 
                 onClick={() => setModalAbierto(false)}
@@ -787,10 +805,10 @@ export default function Usuarios() {
               </button>
             </div>
 
-            {/* Modal Body / Form */}
+            {/* Formulario y cuerpo del modal */}
             <form onSubmit={guardarUsuario} style={{ padding: '1.5rem' }}>
               <div style={{ display: 'grid', gap: '1.25rem' }}>
-                {/* Nombre */}
+                {/* Campo para el nombre completo */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                     Nombre Completo <span style={{ color: '#ef4444' }}>*</span>
@@ -805,7 +823,7 @@ export default function Usuarios() {
                   />
                 </div>
 
-                {/* Email */}
+                {/* Campo para el correo electrónico */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                     Correo Electrónico <span style={{ color: '#ef4444' }}>*</span>
@@ -820,7 +838,7 @@ export default function Usuarios() {
                   />
                 </div>
 
-                {/* Password (Only on creation) */}
+                {/* Campo para la contraseña (solo visible al crear una nueva cuenta) */}
                 {editandoId === null && (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
@@ -837,7 +855,7 @@ export default function Usuarios() {
                   </div>
                 )}
 
-                {/* Role selection */}
+                {/* Selección del rol del sistema */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                     Rol del Sistema <span style={{ color: '#ef4444' }}>*</span>
@@ -853,7 +871,7 @@ export default function Usuarios() {
                   </select>
                 </div>
 
-                {/* Family student binding (Conditional for family role) */}
+                {/* Vínculo con estudiante (visible condicionalmente solo para el rol de familia) */}
                 {rolForm === 'familia' && (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
@@ -877,7 +895,7 @@ export default function Usuarios() {
                   </div>
                 )}
 
-                {/* Active check toggle */}
+                {/* Control de activación inmediata de la cuenta */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
                     type="checkbox"
@@ -892,7 +910,7 @@ export default function Usuarios() {
                 </div>
               </div>
 
-              {/* Modal Actions */}
+              {/* Botones de acción del modal */}
               <div style={{
                 marginTop: '2rem',
                 display: 'flex',
@@ -937,7 +955,7 @@ export default function Usuarios() {
         </div>
       )}
 
-      {/* Password Reset Modal */}
+      {/* Modal secundario para el restablecimiento de contraseña */}
       {modalPasswordAbierto && (
         <div style={{
           position: 'fixed',
@@ -962,7 +980,7 @@ export default function Usuarios() {
             border: '1px solid #e2e8f0',
             animation: 'fadeIn 0.2s ease-out'
           }}>
-            {/* Modal Header */}
+            {/* Cabecera del modal de contraseña */}
             <div style={{
               background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
               color: '#ffffff',
@@ -972,7 +990,7 @@ export default function Usuarios() {
               alignItems: 'center'
             }}>
               <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.15rem', fontWeight: 700 }}>
-                🔑 Restablecer Contraseña
+                Restablecer Contraseña
               </h3>
               <button 
                 onClick={() => setModalPasswordAbierto(false)}
@@ -989,7 +1007,7 @@ export default function Usuarios() {
               </button>
             </div>
 
-            {/* Modal Body */}
+            {/* Cuerpo del modal de contraseña */}
             <form onSubmit={guardarPassword} style={{ padding: '1.5rem' }}>
               <div style={{ display: 'grid', gap: '1.25rem' }}>
                 <p style={{ margin: 0, color: '#475569', fontSize: '0.9rem', lineHeight: '1.5' }}>
@@ -1011,7 +1029,7 @@ export default function Usuarios() {
                 </div>
               </div>
 
-              {/* Modal Actions */}
+              {/* Botones de acción del modal de contraseña */}
               <div style={{
                 marginTop: '1.5rem',
                 display: 'flex',

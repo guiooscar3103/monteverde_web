@@ -2,7 +2,7 @@ import os
 import pymysql
 from dotenv import load_dotenv
 
-# Load env variables from backend/.env
+# Cargar las variables de entorno desde backend/.env
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(backend_dir, '.env')
 load_dotenv(env_path)
@@ -16,7 +16,7 @@ db_name = os.environ.get('DB_NAME', 'monteverde_db')
 print(f"Connecting to MySQL at {db_host}:{db_port} as {db_user}...")
 
 try:
-    # First, connect without a database to create the database if not exists
+    # Primero, conectar sin una base de datos específica para crearla si no existe
     conn = pymysql.connect(
         host=db_host,
         port=db_port,
@@ -29,7 +29,7 @@ try:
         print(f"[OK] Database '{db_name}' verified or created.")
     conn.close()
 
-    # Now, connect to the database and check if we should run the SQL script
+    # Ahora, conectar a la base de datos y verificar si debemos ejecutar el script SQL
     conn = pymysql.connect(
         host=db_host,
         port=db_port,
@@ -41,7 +41,7 @@ try:
     )
     
     with conn.cursor() as cursor:
-        # Check if the database has any tables already
+        # Verificar si la base de datos ya contiene tablas
         cursor.execute("SHOW TABLES;")
         tables = cursor.fetchall()
         
@@ -55,7 +55,7 @@ try:
                 with open(sql_path, 'r', encoding='utf-8') as f:
                     sql_content = f.read()
                 
-                # Execute the SQL statements
+                # Ejecutar las sentencias SQL
                 cursor.execute(sql_content)
                 print("[OK] Database schema and seed data imported successfully!")
             else:

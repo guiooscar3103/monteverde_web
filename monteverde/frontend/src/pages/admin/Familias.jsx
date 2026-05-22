@@ -13,9 +13,9 @@ export default function Familias() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Student selection state per family card
+  // Estado de selección del estudiante asociado por cada tarjeta de familia
   const [seleccionEstudiante, setSeleccionEstudiante] = useState({});
-  // Search text for filtering families
+  // Texto de búsqueda para filtrar el listado de familias
   const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
@@ -54,9 +54,9 @@ export default function Familias() {
       });
       if (res.success) {
         setSuccessMsg(res.message || 'Vínculo establecido con éxito');
-        // Clear select
+        // Limpiar el estudiante seleccionado
         setSeleccionEstudiante({ ...seleccionEstudiante, [familiaId]: '' });
-        // Reload
+        // Recargar los datos desde la base de datos
         await cargarDatos();
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {
@@ -88,7 +88,7 @@ export default function Familias() {
     }
   };
 
-  // Filter families by name or email
+  // Filtrar el listado de familias por coincidencia en nombre o correo
   const familiasFiltradas = familias.filter(f => 
     f.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
     f.email.toLowerCase().includes(busqueda.toLowerCase())
@@ -125,7 +125,7 @@ export default function Familias() {
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: '2rem',
-        background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)', // Elegant Royal Blue
+        background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)', // Elegante color azul real profundo
         padding: '1.5rem 2rem',
         borderRadius: '16px',
         color: '#ffffff',

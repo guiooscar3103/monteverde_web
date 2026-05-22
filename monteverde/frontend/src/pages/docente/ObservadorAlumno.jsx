@@ -3,6 +3,7 @@ import Tabla from '../../components/Tabla';
 import SelectSimple from '../../components/SelectSimple';
 import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
+import BlurFade from '../../components/BlurFade';
 import { useAuth } from '../../hooks/useAuth';
 import {
   getCursos,
@@ -216,192 +217,204 @@ export default function ObservadorAlumno() {
 
   return (
     <div className="grid">
-      <BarraTitulo 
-        titulo="Observador del Alumno" 
-        subtitulo="Registrar observaciones y seguimiento de estudiantes"
-        derecha={
-          <div style={{ fontSize: '0.9rem', textAlign: 'right', color: '#666' }}>
-            {cursoActual && (
-              <>
-                <div><strong>{cursoActual.label}</strong></div>
-                <div>Total: {anotaciones.length} observaciones</div>
-              </>
-            )}
-          </div>
-        }
-      />
+      <BlurFade delay={0.05} duration={0.3}>
+        <BarraTitulo 
+          titulo="Observador del Alumno" 
+          subtitulo="Registrar observaciones y seguimiento de estudiantes"
+          derecha={
+            <div style={{ fontSize: '0.9rem', textAlign: 'right', color: '#666' }}>
+              {cursoActual && (
+                <>
+                  <div><strong>{cursoActual.label}</strong></div>
+                  <div>Total: {anotaciones.length} observaciones</div>
+                </>
+              )}
+            </div>
+          }
+        />
+      </BlurFade>
 
       {/* 👇 INDICADOR DE CARGA (usa la variable `loading`) */}
       {loading && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '2rem', 
-          backgroundColor: '#f8f9fa', 
-          borderRadius: '8px',
-          marginBottom: '1rem',
-          color: '#666'
-        }}>
-          <p>⏳ Cargando datos del curso...</p>
-        </div>
+        <BlurFade delay={0.08} duration={0.25}>
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '2rem', 
+            backgroundColor: '#f8f9fa', 
+            borderRadius: '8px',
+            marginBottom: '1rem',
+            color: '#666'
+          }}>
+            <p>⏳ Cargando datos del curso...</p>
+          </div>
+        </BlurFade>
       )}
 
       {/* Mensajes */}
       {mensaje && (
-        <div style={{ 
-          padding: '0.75rem 1rem',
-          backgroundColor: mensaje.includes('✅') ? '#d4edda' : '#f8d7da',
-          color: mensaje.includes('✅') ? '#155724' : '#721c24',
-          border: '1px solid',
-          borderRadius: '6px',
-          marginBottom: '1rem',
-          textAlign: 'center'
-        }}>
-          {mensaje}
-        </div>
+        <BlurFade delay={0.1} duration={0.25}>
+          <div style={{ 
+            padding: '0.75rem 1rem',
+            backgroundColor: mensaje.includes('✅') ? '#d4edda' : '#f8d7da',
+            color: mensaje.includes('✅') ? '#155724' : '#721c24',
+            border: '1px solid',
+            borderRadius: '6px',
+            marginBottom: '1rem',
+            textAlign: 'center'
+          }}>
+            {mensaje}
+          </div>
+        </BlurFade>
       )}
 
       {/* Selector de curso */}
-      <Card title="Seleccionar Curso">
-        <SelectSimple
-          value={cursoId}
-          onChange={(valor) => {
-            console.log('📚 Curso cambiado a:', valor);
-            setCursoId(valor);
-          }}
-          options={cursosOptions}
-          etiqueta="Curso"
-        />
-      </Card>
+      <BlurFade delay={0.12} duration={0.35}>
+        <Card title="Seleccionar Curso">
+          <SelectSimple
+            value={cursoId}
+            onChange={(valor) => {
+              console.log('📚 Curso cambiado a:', valor);
+              setCursoId(valor);
+            }}
+            options={cursosOptions}
+            etiqueta="Curso"
+          />
+        </Card>
+      </BlurFade>
 
       {/* Historial */}
-      <Card title={`Historial - ${cursoActual?.label || 'Curso'}`}>
-        {filas.length > 0 ? (
-          <Tabla columns={columnas} rows={filas} />
-        ) : (
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-            <p>No hay observaciones para este curso</p>
-          </div>
-        )}
-      </Card>
+      <BlurFade delay={0.18} duration={0.4}>
+        <Card title={`Historial - ${cursoActual?.label || 'Curso'}`}>
+          {filas.length > 0 ? (
+            <Tabla columns={columnas} rows={filas} />
+          ) : (
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+              <p>No hay observaciones para este curso</p>
+            </div>
+          )}
+        </Card>
+      </BlurFade>
 
       {/* Formulario SÚPER SIMPLE */}
-      <Card title="Agregar Nueva Observación">
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          
-          {/* Estudiante */}
-          <div>
-            <label><strong>Estudiante:</strong></label>
-            <select
-              value={form.estudianteId}
-              onChange={(e) => {
-                console.log('👤 Estudiante cambiado a:', e.target.value);
-                setForm({ ...form, estudianteId: e.target.value });
-              }}
-              style={{
-                padding: '0.75rem',
-                border: '2px solid #ccc',
-                borderRadius: '4px',
-                width: '100%',
-                fontSize: '1rem'
-              }}
-            >
-              <option value="">-- Selecciona un estudiante --</option>
-              {estOptions.map(est => (
-                <option key={est.value} value={est.value}>
-                  {est.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Tipo */}
-          <div>
-            <label><strong>Tipo:</strong></label>
-            <select
-              value={form.tipo}
-              onChange={(e) => {
-                console.log('📋 Tipo cambiado a:', e.target.value);
-                setForm({ ...form, tipo: e.target.value });
-              }}
-              style={{
-                padding: '0.75rem',
-                border: '2px solid #ccc',
-                borderRadius: '4px',
-                width: '100%',
-                fontSize: '1rem'
-              }}
-            >
-              {TIPOS_OBSERVACION.map(tipo => (
-                <option key={tipo.value} value={tipo.value}>
-                  {tipo.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Detalle */}
-          <div>
-            <label><strong>Detalle:</strong></label>
-            <textarea
-              rows={4}
-              placeholder="Escribe aquí la observación..."
-              value={form.detalle}
-              onChange={(e) => {
-                console.log('📝 Detalle cambiado, longitud:', e.target.value.length);
-                setForm({ ...form, detalle: e.target.value });
-              }}
-              style={{
-                padding: '0.75rem',
-                border: '2px solid #ccc',
-                borderRadius: '4px',
-                width: '100%',
-                fontSize: '1rem',
-                fontFamily: 'inherit',
-                resize: 'vertical'
-              }}
-            />
-          </div>
-
-          {/* BOTÓN SUPER VISIBLE */}
-          <div style={{ textAlign: 'center' }}>
-            <button
-              type="button"
-              onClick={(e) => {
-                console.log('🔴🔴🔴 CLICK CAPTURADO!!! 🔴🔴🔴');
-                console.log('Event object:', e);
-                e.preventDefault();
-                e.stopPropagation();
-                agregar();
-              }}
-              disabled={!botonHabilitado}
-              style={{
-                padding: '1rem 3rem',
-                backgroundColor: botonHabilitado ? '#007bff' : '#cccccc',
-                color: 'white',
-                border: '3px solid ' + (botonHabilitado ? '#0056b3' : '#999'),
-                borderRadius: '8px',
-                fontSize: '1.2rem',
-                fontWeight: 'bold',
-                cursor: botonHabilitado ? 'pointer' : 'not-allowed',
-                minWidth: '200px',
-                textTransform: 'uppercase'
-              }}
-            >
-              {guardando ? '⏳ Guardando...' : '📝 AGREGAR OBSERVACIÓN'}
-            </button>
+      <BlurFade delay={0.24} duration={0.45}>
+        <Card title="Agregar Nueva Observación">
+          <div style={{ display: 'grid', gap: '1rem' }}>
             
-            <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-              Estado: <strong>{botonHabilitado ? '🟢 HABILITADO' : '🔴 DESHABILITADO'}</strong>
-              <br />
-              {!botonHabilitado && (
-                <span style={{ color: '#dc3545' }}>
-                  Falta: {!form.estudianteId ? 'Estudiante ' : ''}{!form.detalle.trim() ? 'Detalle' : ''}
-                </span>
-              )}
+            {/* Estudiante */}
+            <div>
+              <label><strong>Estudiante:</strong></label>
+              <select
+                value={form.estudianteId}
+                onChange={(e) => {
+                  console.log('👤 Estudiante cambiado a:', e.target.value);
+                  setForm({ ...form, estudianteId: e.target.value });
+                }}
+                style={{
+                  padding: '0.75rem',
+                  border: '2px solid #ccc',
+                  borderRadius: '4px',
+                  width: '100%',
+                  fontSize: '1rem'
+                }}
+              >
+                <option value="">-- Selecciona un estudiante --</option>
+                {estOptions.map(est => (
+                  <option key={est.value} value={est.value}>
+                    {est.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tipo */}
+            <div>
+              <label><strong>Tipo:</strong></label>
+              <select
+                value={form.tipo}
+                onChange={(e) => {
+                  console.log('📋 Tipo cambiado a:', e.target.value);
+                  setForm({ ...form, tipo: e.target.value });
+                }}
+                style={{
+                  padding: '0.75rem',
+                  border: '2px solid #ccc',
+                  borderRadius: '4px',
+                  width: '100%',
+                  fontSize: '1rem'
+                }}
+              >
+                {TIPOS_OBSERVACION.map(tipo => (
+                  <option key={tipo.value} value={tipo.value}>
+                    {tipo.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Detalle */}
+            <div>
+              <label><strong>Detalle:</strong></label>
+              <textarea
+                rows={4}
+                placeholder="Escribe aquí la observación..."
+                value={form.detalle}
+                onChange={(e) => {
+                  console.log('📝 Detalle cambiado, longitud:', e.target.value.length);
+                  setForm({ ...form, detalle: e.target.value });
+                }}
+                style={{
+                  padding: '0.75rem',
+                  border: '2px solid #ccc',
+                  borderRadius: '4px',
+                  width: '100%',
+                  fontSize: '1rem',
+                  fontFamily: 'inherit',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            {/* BOTÓN SUPER VISIBLE */}
+            <div style={{ textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  console.log('🔴🔴🔴 CLICK CAPTURADO!!! 🔴🔴🔴');
+                  console.log('Event object:', e);
+                  e.preventDefault();
+                  e.stopPropagation();
+                  agregar();
+                }}
+                disabled={!botonHabilitado}
+                style={{
+                  padding: '1rem 3rem',
+                  backgroundColor: botonHabilitado ? '#007bff' : '#cccccc',
+                  color: 'white',
+                  border: '3px solid ' + (botonHabilitado ? '#0056b3' : '#999'),
+                  borderRadius: '8px',
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  cursor: botonHabilitado ? 'pointer' : 'not-allowed',
+                  minWidth: '200px',
+                  textTransform: 'uppercase'
+                }}
+              >
+                {guardando ? '⏳ Guardando...' : '📝 AGREGAR OBSERVACIÓN'}
+              </button>
+              
+              <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                Estado: <strong>{botonHabilitado ? '🟢 HABILITADO' : '🔴 DESHABILITADO'}</strong>
+                <br />
+                {!botonHabilitado && (
+                  <span style={{ color: '#dc3545' }}>
+                    Falta: {!form.estudianteId ? 'Estudiante ' : ''}{!form.detalle.trim() ? 'Detalle' : ''}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </BlurFade>
     </div>
   );
 }

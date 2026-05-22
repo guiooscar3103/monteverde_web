@@ -4,6 +4,7 @@ import SelectSimple from '../../components/SelectSimple';
 import CampoNumero from '../../components/CampoNumero';
 import Tabla from '../../components/Tabla';
 import BarraTitulo from '../../components/BarraTitulo';
+import BlurFade from '../../components/BlurFade';
 import { getMyCoursesAndSubjects, getEstudiantesPorCurso, getCalificacionesPor, guardarCalificaciones } from '../../services/api';
 
 export default function RegistroCalificaciones() {
@@ -243,112 +244,122 @@ export default function RegistroCalificaciones() {
 
   return (
     <div className="grid">
-      <BarraTitulo 
-        titulo="Gestión de Calificaciones"
-        subtitulo="Registrar y actualizar notas de estudiantes"
-        derecha={
-          <div style={{ fontSize: '0.9rem', textAlign: 'right', color: '#666' }}>
-            {cursoActual && (
-              <>
-                <div><strong>{cursoActual.nombre}</strong></div>
-                <div>{asignaturaSeleccionada} - {periodoSeleccionado}</div>
-              </>
-            )}
-          </div>
-        }
-      />
+      <BlurFade delay={0.05} duration={0.3}>
+        <BarraTitulo 
+          titulo="Gestión de Calificaciones"
+          subtitulo="Registrar y actualizar notas de estudiantes"
+          derecha={
+            <div style={{ fontSize: '0.9rem', textAlign: 'right', color: '#666' }}>
+              {cursoActual && (
+                <>
+                  <div><strong>{cursoActual.nombre}</strong></div>
+                  <div>{asignaturaSeleccionada} - {periodoSeleccionado}</div>
+                </>
+              )}
+            </div>
+          }
+        />
+      </BlurFade>
 
       {/* Mostrar mensajes de estado */}
       {mensaje && (
-        <div style={{ 
-          padding: '0.75rem 1rem',
-          backgroundColor: mensaje.includes('✅') ? '#d4edda' : mensaje.includes('⚠️') ? '#fff3cd' : '#f8d7da',
-          color: mensaje.includes('✅') ? '#155724' : mensaje.includes('⚠️') ? '#856404' : '#721c24',
-          border: '1px solid',
-          borderColor: mensaje.includes('✅') ? '#c3e6cb' : mensaje.includes('⚠️') ? '#ffeaa7' : '#f5c6cb',
-          borderRadius: '6px',
-          marginBottom: '1rem',
-          textAlign: 'center'
-        }}>
-          {mensaje}
-        </div>
+        <BlurFade delay={0.1} duration={0.25}>
+          <div style={{ 
+            padding: '0.75rem 1rem',
+            backgroundColor: mensaje.includes('✅') ? '#d4edda' : mensaje.includes('⚠️') ? '#fff3cd' : '#f8d7da',
+            color: mensaje.includes('✅') ? '#155724' : mensaje.includes('⚠️') ? '#856404' : '#721c24',
+            border: '1px solid',
+            borderColor: mensaje.includes('✅') ? '#c3e6cb' : mensaje.includes('⚠️') ? '#ffeaa7' : '#f5c6cb',
+            borderRadius: '6px',
+            marginBottom: '1rem',
+            textAlign: 'center'
+          }}>
+            {mensaje}
+          </div>
+        </BlurFade>
       )}
 
       {/* Filtros */}
-      <Card title="Filtros">
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-          <SelectSimple
-            etiqueta="Curso"
-            value={cursoSeleccionado}
-            onChange={(valor) => {
-              console.log('Curso seleccionado:', valor);
-              setCursoSeleccionado(valor);
-            }}
-            options={cursos.map(c => ({ value: c.id.toString(), label: c.nombre }))}
-          />
-          <SelectSimple
-            etiqueta="Asignatura"
-            value={asignaturaSeleccionada}
-            onChange={(valor) => {
-              console.log('Asignatura seleccionada:', valor);
-              setAsignaturaSeleccionada(valor);
-            }}
-            options={asignaturas}
-          />
-          <SelectSimple
-            etiqueta="Período"
-            value={periodoSeleccionado}
-            onChange={(valor) => {
-              console.log('Periodo seleccionado:', valor);
-              setPeriodoSeleccionado(valor);
-            }}
-            options={periodos}
-          />
-        </div>
-      </Card>
+      <BlurFade delay={0.12} duration={0.35}>
+        <Card title="Filtros">
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <SelectSimple
+              etiqueta="Curso"
+              value={cursoSeleccionado}
+              onChange={(valor) => {
+                console.log('Curso seleccionado:', valor);
+                setCursoSeleccionado(valor);
+              }}
+              options={cursos.map(c => ({ value: c.id.toString(), label: c.nombre }))}
+            />
+            <SelectSimple
+              etiqueta="Asignatura"
+              value={asignaturaSeleccionada}
+              onChange={(valor) => {
+                console.log('Asignatura seleccionada:', valor);
+                setAsignaturaSeleccionada(valor);
+              }}
+              options={asignaturas}
+            />
+            <SelectSimple
+              etiqueta="Período"
+              value={periodoSeleccionado}
+              onChange={(valor) => {
+                console.log('Periodo seleccionado:', valor);
+                setPeriodoSeleccionado(valor);
+              }}
+              options={periodos}
+            />
+          </div>
+        </Card>
+      </BlurFade>
 
       {/* Estadísticas */}
       {calificaciones.length > 0 && !loading && (
-        <Card>
-          <div className="grid grid-4" style={{ textAlign: 'center', gap: '1rem' }}>
-            <div>
-              <strong style={{ color: 'var(--brand)', fontSize: '1.5rem' }}>{totalEstudiantes}</strong>
-              <br />
-              <small>Total Estudiantes</small>
+        <BlurFade delay={0.18} duration={0.4}>
+          <Card>
+            <div className="grid grid-4" style={{ textAlign: 'center', gap: '1rem' }}>
+              <div>
+                <strong style={{ color: 'var(--brand)', fontSize: '1.5rem' }}>{totalEstudiantes}</strong>
+                <br />
+                <small>Total Estudiantes</small>
+              </div>
+              <div>
+                <strong style={{ color: '#007bff', fontSize: '1.5rem' }}>{estudiantesConNota}</strong>
+                <br />
+                <small>Con Calificación</small>
+              </div>
+              <div>
+                <strong style={{ color: estudiantesConNota > 0 ? '#28a745' : '#6c757d', fontSize: '1.5rem' }}>
+                  {estudiantesConNota > 0 ? promedioGeneral : '--'}
+                </strong>
+                <br />
+                <small>Promedio General</small>
+              </div>
+              <div>
+                <strong style={{ color: '#ffc107', fontSize: '1.5rem' }}>
+                  {totalEstudiantes > 0 ? Math.round((estudiantesConNota / totalEstudiantes) * 100) : 0}%
+                </strong>
+                <br />
+                <small>Progreso</small>
+              </div>
             </div>
-            <div>
-              <strong style={{ color: '#007bff', fontSize: '1.5rem' }}>{estudiantesConNota}</strong>
-              <br />
-              <small>Con Calificación</small>
-            </div>
-            <div>
-              <strong style={{ color: estudiantesConNota > 0 ? '#28a745' : '#6c757d', fontSize: '1.5rem' }}>
-                {estudiantesConNota > 0 ? promedioGeneral : '--'}
-              </strong>
-              <br />
-              <small>Promedio General</small>
-            </div>
-            <div>
-              <strong style={{ color: '#ffc107', fontSize: '1.5rem' }}>
-                {totalEstudiantes > 0 ? Math.round((estudiantesConNota / totalEstudiantes) * 100) : 0}%
-              </strong>
-              <br />
-              <small>Progreso</small>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </BlurFade>
       )}
 
       {/* Tabla de calificaciones */}
       {loading ? (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
-            <p>Cargando estudiantes...</p>
-          </div>
-        </Card>
+        <BlurFade delay={0.2} duration={0.3}>
+          <Card>
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
+              <p>Cargando estudiantes...</p>
+            </div>
+          </Card>
+        </BlurFade>
       ) : calificaciones.length > 0 ? (
-        <>
+        <BlurFade delay={0.24} duration={0.45}>
           <Card title={`Estudiantes de ${cursoActual?.nombre || 'Curso'}`}>
             <Tabla
               columns={columnas}
@@ -378,15 +389,17 @@ export default function RegistroCalificaciones() {
               {guardando ? '💾 Guardando...' : `💾 Guardar ${calificaciones.filter(e => e.nota !== '').length} Calificaciones`}
             </button>
           </div>
-        </>
+        </BlurFade>
       ) : (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📚</div>
-            <p>No hay estudiantes en este curso</p>
-            <small>Selecciona un curso diferente o verifica que tenga estudiantes asignados</small>
-          </div>
-        </Card>
+        <BlurFade delay={0.2} duration={0.3}>
+          <Card>
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📚</div>
+              <p>No hay estudiantes en este curso</p>
+              <small>Selecciona un curso diferente o verifica que tenga estudiantes asignados</small>
+            </div>
+          </Card>
+        </BlurFade>
       )}
     </div>
   );

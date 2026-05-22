@@ -7,7 +7,7 @@ class DocenteCurso(db.Model):
     docente_id = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
     curso_id = db.Column(db.Integer, db.ForeignKey('cursos.id', ondelete='CASCADE'), nullable=False)
     
-    # Relationships
+    # Relaciones del modelo
     docente = db.relationship('Usuario', backref=db.backref('asignaciones_curso', lazy=True, cascade="all, delete-orphan"))
     curso = db.relationship('Curso', backref=db.backref('asignaciones_docente', lazy=True, cascade="all, delete-orphan"))
     

@@ -3,6 +3,7 @@ import Tabla from '../../components/Tabla';
 import SelectSimple from '../../components/SelectSimple';
 import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
+import BlurFade from '../../components/BlurFade';
 import {
   getCursos,
   getEstudiantesPorCurso,
@@ -199,156 +200,170 @@ export default function Asistencia() {
 
   return (
     <div className="grid">
-      <BarraTitulo 
-        titulo="Control de Asistencia" 
-        subtitulo="Registrar asistencia diaria de estudiantes"
-        derecha={
-          <div style={{ fontSize: '0.9rem', textAlign: 'right', color: '#666' }}>
-            {cursoActual && (
-              <>
-                <div><strong>{cursoActual.label}</strong></div>
-                <div>{fechaFormateada}</div>
-              </>
-            )}
-          </div>
-        }
-      />
+      <BlurFade delay={0.05} duration={0.3}>
+        <BarraTitulo 
+          titulo="Control de Asistencia" 
+          subtitulo="Registrar asistencia diaria de estudiantes"
+          derecha={
+            <div style={{ fontSize: '0.9rem', textAlign: 'right', color: '#666' }}>
+              {cursoActual && (
+                <>
+                  <div><strong>{cursoActual.label}</strong></div>
+                  <div>{fechaFormateada}</div>
+                </>
+              )}
+            </div>
+          }
+        />
+      </BlurFade>
 
       {mensaje && (
-        <div style={{ 
-          padding: '0.75rem 1rem',
-          backgroundColor: mensaje.includes('✅') ? '#d4edda' : '#f8d7da',
-          color: mensaje.includes('✅') ? '#155724' : '#721c24',
-          border: '1px solid',
-          borderColor: mensaje.includes('✅') ? '#c3e6cb' : '#f5c6cb',
-          borderRadius: '6px',
-          marginBottom: '1rem',
-          textAlign: 'center'
-        }}>
-          {mensaje}
-        </div>
+        <BlurFade delay={0.08} duration={0.25}>
+          <div style={{ 
+            padding: '0.75rem 1rem',
+            backgroundColor: mensaje.includes('✅') ? '#d4edda' : '#f8d7da',
+            color: mensaje.includes('✅') ? '#155724' : '#721c24',
+            border: '1px solid',
+            borderColor: mensaje.includes('✅') ? '#c3e6cb' : '#f5c6cb',
+            borderRadius: '6px',
+            marginBottom: '1rem',
+            textAlign: 'center'
+          }}>
+            {mensaje}
+          </div>
+        </BlurFade>
       )}
 
-      <Card title="Filtros">
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', flexWrap: 'wrap' }}>
-          <SelectSimple
-            value={cursoId}
-            onChange={setCursoId}
-            options={cursosOptions}
-            etiqueta="Curso"
-          />
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Fecha</label>
-            <input
-              type="date"
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
-              disabled={loading}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '6px',
-                border: '1px solid #ccc',
-                fontSize: '1rem',
-                width: '160px'
-              }}
+      <BlurFade delay={0.12} duration={0.35}>
+        <Card title="Filtros">
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', flexWrap: 'wrap' }}>
+            <SelectSimple
+              value={cursoId}
+              onChange={setCursoId}
+              options={cursosOptions}
+              etiqueta="Curso"
             />
-          </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>Fecha</label>
+              <input
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                disabled={loading}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '6px',
+                  border: '1px solid #ccc',
+                  fontSize: '1rem',
+                  width: '160px'
+                }}
+              />
+            </div>
 
-          <button
-            onClick={handleGuardar}
-            disabled={loading || guardando || marcas.length === 0}
-            style={{
-              padding: '0.75rem 2rem',
-              backgroundColor: guardando ? '#6c757d' : '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              cursor: guardando ? 'not-allowed' : 'pointer',
-              opacity: guardando ? 0.7 : 1
-            }}
-          >
-            {guardando ? '💾 Guardando...' : `💾 Guardar Asistencia (${marcas.length})`}
-          </button>
-        </div>
-      </Card>
-
-      {estadisticas && (
-        <Card title="Resumen del Día">
-          <div className="grid grid-4" style={{ textAlign: 'center', gap: '1rem' }}>
-            <div>
-              <strong style={{ color: '#28a745', fontSize: '1.5rem' }}>
-                {estadisticas.por_estado.PRESENTE || 0}
-              </strong>
-              <br />
-              <small>✅ Presentes</small>
-            </div>
-            <div>
-              <strong style={{ color: '#dc3545', fontSize: '1.5rem' }}>
-                {estadisticas.por_estado.AUSENTE || 0}
-              </strong>
-              <br />
-              <small>❌ Ausentes</small>
-            </div>
-            <div>
-              <strong style={{ color: '#ffc107', fontSize: '1.5rem' }}>
-                {estadisticas.por_estado.TARDE || 0}
-              </strong>
-              <br />
-              <small>⏰ Tarde</small>
-            </div>
-            <div>
-              <strong style={{ color: '#17a2b8', fontSize: '1.5rem' }}>
-                {estadisticas.por_estado.JUSTIFICADO || 0}
-              </strong>
-              <br />
-              <small>📝 Justificado</small>
-            </div>
-          </div>
-          
-          <div style={{ 
-            marginTop: '1rem', 
-            textAlign: 'center', 
-            padding: '0.5rem',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '6px'
-          }}>
-            <strong>
-              Total: {estadisticas.registrados} / {estadisticas.total_estudiantes} estudiantes
-            </strong>
-            {estadisticas.pendientes > 0 && (
-              <span style={{ color: '#dc3545', marginLeft: '1rem' }}>
-                ({estadisticas.pendientes} pendientes)
-              </span>
-            )}
+            <button
+              onClick={handleGuardar}
+              disabled={loading || guardando || marcas.length === 0}
+              style={{
+                padding: '0.75rem 2rem',
+                backgroundColor: guardando ? '#6c757d' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                cursor: guardando ? 'not-allowed' : 'pointer',
+                opacity: guardando ? 0.7 : 1
+              }}
+            >
+              {guardando ? '💾 Guardando...' : `💾 Guardar Asistencia (${marcas.length})`}
+            </button>
           </div>
         </Card>
+      </BlurFade>
+
+      {estadisticas && (
+        <BlurFade delay={0.18} duration={0.4}>
+          <Card title="Resumen del Día">
+            <div className="grid grid-4" style={{ textAlign: 'center', gap: '1rem' }}>
+              <div>
+                <strong style={{ color: '#28a745', fontSize: '1.5rem' }}>
+                  {estadisticas.por_estado.PRESENTE || 0}
+                </strong>
+                <br />
+                <small>✅ Presentes</small>
+              </div>
+              <div>
+                <strong style={{ color: '#dc3545', fontSize: '1.5rem' }}>
+                  {estadisticas.por_estado.AUSENTE || 0}
+                </strong>
+                <br />
+                <small>❌ Ausentes</small>
+              </div>
+              <div>
+                <strong style={{ color: '#ffc107', fontSize: '1.5rem' }}>
+                  {estadisticas.por_estado.TARDE || 0}
+                </strong>
+                <br />
+                <small>⏰ Tarde</small>
+              </div>
+              <div>
+                <strong style={{ color: '#17a2b8', fontSize: '1.5rem' }}>
+                  {estadisticas.por_estado.JUSTIFICADO || 0}
+                </strong>
+                <br />
+                <small>📝 Justificado</small>
+              </div>
+            </div>
+            
+            <div style={{ 
+              marginTop: '1rem', 
+              textAlign: 'center', 
+              padding: '0.5rem',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '6px'
+            }}>
+              <strong>
+                Total: {estadisticas.registrados} / {estadisticas.total_estudiantes} estudiantes
+              </strong>
+              {estadisticas.pendientes > 0 && (
+                <span style={{ color: '#dc3545', marginLeft: '1rem' }}>
+                  ({estadisticas.pendientes} pendientes)
+                </span>
+              )}
+            </div>
+          </Card>
+        </BlurFade>
       )}
 
       {loading ? (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
-            <p>Cargando estudiantes...</p>
-          </div>
-        </Card>
+        <BlurFade delay={0.24} duration={0.3}>
+          <Card>
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
+              <p>Cargando estudiantes...</p>
+            </div>
+          </Card>
+        </BlurFade>
       ) : estudiantes.length > 0 ? (
-        <Card title={`Lista de Asistencia - ${cursoActual?.label || 'Curso'}`}>
-          <Tabla columns={columnas} rows={filas} />
-          <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666', textAlign: 'center' }}>
-            💡 Selecciona el estado de asistencia para cada estudiante y haz clic en "Guardar Asistencia"
-          </div>
-        </Card>
+        <BlurFade delay={0.24} duration={0.45}>
+          <Card title={`Lista de Asistencia - ${cursoActual?.label || 'Curso'}`}>
+            <Tabla columns={columnas} rows={filas} />
+            <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666', textAlign: 'center' }}>
+              💡 Selecciona el estado de asistencia para cada estudiante y haz clic en "Guardar Asistencia"
+            </div>
+          </Card>
+        </BlurFade>
       ) : (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📅</div>
-            <p>No hay estudiantes en este curso</p>
-            <small>Selecciona un curso diferente o verifica que tenga estudiantes asignados</small>
-          </div>
-        </Card>
+        <BlurFade delay={0.24} duration={0.3}>
+          <Card>
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📅</div>
+              <p>No hay estudiantes en este curso</p>
+              <small>Selecciona un curso diferente o verifica que tenga estudiantes asignados</small>
+            </div>
+          </Card>
+        </BlurFade>
       )}
     </div>
   );

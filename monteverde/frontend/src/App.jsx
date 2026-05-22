@@ -9,16 +9,16 @@ import FamiliaHome from './pages/familia/Home';
 import FamiliaMensajes from './pages/familia/Mensajes';
 import ReporteAcademico from './pages/familia/ReporteAcademico';
 
-// Layouts
+// Estructuras de diseño (Layouts)
 import DocenteLayout from './layouts/DocenteLayout';
 import FamiliaLayout from './layouts/FamiliaLayout'; 
 import AdminLayout from './layouts/AdminLayout';
 
-// Pages
+// Páginas
 import DocenteHome from './pages/docente/Home';
 import RegistroCalificaciones from './pages/docente/RegistroCalificaciones';
 
-// Admin Pages
+// Páginas de administración
 import Dashboard from './pages/admin/Dashboard';
 import Usuarios from './pages/admin/Usuarios';
 import Docentes from './pages/admin/Docentes';
@@ -152,7 +152,7 @@ function App() {
       <Route path="/" element={<RootRedirect />} />
       
       {/* ======================================
-          CATCH-ALL (404)
+          RUTA COMODÍN DE CAPTURA (404)
       ====================================== */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

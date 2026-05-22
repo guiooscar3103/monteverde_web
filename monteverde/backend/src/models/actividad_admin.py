@@ -10,7 +10,7 @@ class ActividadAdmin(db.Model):
     detalles = db.Column(db.Text, nullable=True)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationship to user
+    # Relación del log de actividad con el usuario
     usuario = db.relationship('Usuario', backref=db.backref('actividades_admin', lazy=True))
     
     def to_dict(self):

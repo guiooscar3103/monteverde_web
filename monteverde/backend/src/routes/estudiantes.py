@@ -1,103 +1,60 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+from flask import Blueprint, jsonify
 from src.extensions import db
 from src.models.estudiante import Estudiante
 from src.models.curso import Curso
-from src.utils.auth_helpers import role_required, get_current_user
+from src.models.usuario import Usuario
 
-estudiantes_bp = Blueprint('estudiantes', __name__, url_prefix='/estudiantes')
+estudiantes_bp = Blueprint('estudiantes_custom', __name__)
 
-@estudiantes_bp.route('/', methods=['GET'])
-@role_required('admin', 'docente')
-def list_estudiantes():
-    """Listar estudiantes con filtros"""
+@estudiantes_bp.route('/estudiantes/por-curso/<int:curso_id>', methods=['GET'])
+def get_estudiantes_por_curso(curso_id):
+    """Estudiantes de un curso."""
     try:
-        page = request.args.get('page', 1, type=int)
-        per_page = min(request.args.get('per_page', 20, type=int), 100)
-        curso_id = request.args.get('curso_id', type=int)
+        estudiantes = db.session.query(Estudiante, Curso).join(Curso).filter(Estudiante.curso_id == curso_id).order_by(Estudiante.nombre).all()
         
-        query = Estudiante.query
-        
-        if curso_id:
-            query = query.filter_by(curso_id=curso_id)
-        
-        estudiantes = query.paginate(
-            page=page, per_page=per_page, error_out=False
-        )
-        
-        # Incluir información del curso
-        result = []
-        for estudiante in estudiantes.items:
+        estudiantes_data = []
+        for estudiante, curso in estudiantes:
             est_dict = estudiante.to_dict()
-            if estudiante.curso:
-                est_dict['curso'] = estudiante.curso.to_dict()
-            result.append(est_dict)
-        
-        return jsonify({
-            'estudiantes': result,
-            'pagination': {
-                'page': estudiantes.page,
-                'pages': estudiantes.pages,
-                'per_page': estudiantes.per_page,
-                'total': estudiantes.total
-            }
-        }), 200
+            est_dict['curso_nombre'] = curso.nombre
+            est_dict['nivel'] = curso.nivel
+            est_dict['letra'] = curso.letra
+            estudiantes_data.append(est_dict)
+            
+        return jsonify({'success': True, 'data': estudiantes_data})
     except Exception as e:
-        return jsonify({'message': 'Error al obtener estudiantes', 'error': str(e)}), 500
+        print(f"❌ Error estudiantes por curso: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-@estudiantes_bp.route('/<int:estudiante_id>', methods=['GET'])
-@jwt_required()
-def get_estudiante(estudiante_id):
-    """Obtener estudiante específico"""
+@estudiantes_bp.route('/estudiantes', methods=['GET'])
+def get_todos_los_estudiantes():
+    """Obtener todos los estudiantes para dropdowns de vinculación."""
     try:
-        current_user = get_current_user()
-        
-        # Verificar permisos
-        if current_user.rol == 'familia':
-            if current_user.estudiante_id != estudiante_id:
-                return jsonify({'message': 'Solo puedes ver tu propio estudiante'}), 403
-        
-        estudiante = Estudiante.query.get_or_404(estudiante_id)
-        
-        result = estudiante.to_dict()
-        if estudiante.curso:
-            result['curso'] = estudiante.curso.to_dict()
-        
-        return jsonify({'estudiante': result}), 200
-    except Exception as e:
-        return jsonify({'message': 'Error al obtener estudiante', 'error': str(e)}), 500
-
-@estudiantes_bp.route('/', methods=['POST'])
-@role_required('admin')
-def create_estudiante():
-    """Crear nuevo estudiante (solo admin)"""
-    try:
-        data = request.get_json()
-        
-        if not data or not all(k in data for k in ('nombre', 'curso_id')):
-            return jsonify({'message': 'Faltan campos: nombre, curso_id'}), 400
-        
-        # Verificar que el curso existe
-        curso = Curso.query.get(data['curso_id'])
-        if not curso:
-            return jsonify({'message': 'Curso no encontrado'}), 404
-        
-        estudiante = Estudiante(
-            nombre=data['nombre'],
-            curso_id=data['curso_id']
-        )
-        
-        db.session.add(estudiante)
-        db.session.commit()
-        
-        result = estudiante.to_dict()
-        result['curso'] = curso.to_dict()
-        
+        estudiantes = Estudiante.query.order_by(Estudiante.nombre).all()
         return jsonify({
-            'message': 'Estudiante creado exitosamente',
-            'estudiante': result
-        }), 201
-        
+            'success': True,
+            'data': [e.to_dict() for e in estudiantes]
+        })
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'message': 'Error al crear estudiante', 'error': str(e)}), 500
+        print(f"❌ Error al obtener estudiantes: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@estudiantes_bp.route('/estudiantes/disponibles', methods=['GET'])
+def get_estudiantes_disponibles():
+    """Obtener estudiantes no vinculados a ninguna familia."""
+    try:
+        linked_students = db.session.query(Usuario.estudiante_id).filter(
+            Usuario.rol == 'familia',
+            Usuario.estudiante_id.isnot(None)
+        ).subquery()
+
+        estudiantes = Estudiante.query.filter(
+            ~Estudiante.id.in_(linked_students)
+        ).order_by(Estudiante.nombre).all()
+
+        return jsonify({
+            'success': True,
+            'data': [e.to_dict() for e in estudiantes]
+        })
+    except Exception as e:
+        print(f"❌ Error al obtener estudiantes disponibles: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500

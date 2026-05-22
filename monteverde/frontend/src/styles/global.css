@@ -494,3 +494,114 @@ li { margin-bottom: var(--spacing-2xs); color: var(--text); }
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
+
+/* =========================================================
+   BLUR FADE ANIMATIONS
+   ========================================================= */
+@keyframes blurFadeIn {
+  from {
+    opacity: 0;
+    filter: blur(var(--blur-fade-blur, 8px));
+    transform: translateY(var(--blur-fade-y, 10px));
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.blur-fade {
+  animation-name: blurFadeIn;
+  animation-duration: var(--blur-fade-duration, 0.4s);
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+  animation-delay: var(--blur-fade-delay, 0s);
+  will-change: opacity, filter, transform;
+}
+
+/* =========================================================
+   BORDER BEAM ANIMATIONS
+   ========================================================= */
+@keyframes border-beam {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+.border-beam-container {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border: var(--border-beam-width, 2px) solid transparent;
+  border-radius: inherit;
+  
+  /* Masking to show only the border outline */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.border-beam-container::after {
+  content: "";
+  position: absolute;
+  aspect-ratio: 1;
+  width: var(--border-beam-size, 100px);
+  background: linear-gradient(to left, var(--border-beam-from, #27ae60), var(--border-beam-to, #0e4d2b), transparent);
+  
+  /* Trace the rounded rectangular perimeter of the parent card */
+  offset-path: rect(0 auto auto 0 round var(--border-beam-radius, 24px));
+  offset-anchor: 100% 50%;
+  animation: border-beam var(--border-beam-duration, 8s) linear infinite;
+  animation-delay: var(--border-beam-delay, 0s);
+}
+
+/* =========================================================
+   DIA TEXT REVEAL ANIMATIONS
+   ========================================================= */
+@keyframes diaCharReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes diaGradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.dia-text-reveal-container {
+  display: inline-block;
+}
+
+.dia-text-char {
+  background: var(--dia-gradient);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-fill-color: transparent;
+  animation: 
+    diaCharReveal var(--dia-char-duration, 0.5s) cubic-bezier(0.16, 1, 0.3, 1) both,
+    diaGradientMove 6s ease infinite;
+  animation-delay: 
+    var(--dia-char-delay, 0s),
+    0s;
+  will-change: opacity, transform, filter;
+}
+

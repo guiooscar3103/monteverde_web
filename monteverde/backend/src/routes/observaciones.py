@@ -1,189 +1,118 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+from datetime import datetime
 from src.extensions import db
 from src.models.observacion import Observacion
 from src.models.estudiante import Estudiante
-from src.utils.auth_helpers import role_required, get_current_user
-from datetime import datetime, date
+from src.models.usuario import Usuario
 
-observaciones_bp = Blueprint('observaciones', __name__, url_prefix='/observaciones')
+observaciones_bp = Blueprint('observaciones_custom', __name__)
 
-@observaciones_bp.route('/', methods=['GET'])
-@jwt_required()
-def list_observaciones():
-    """Listar observaciones según permisos"""
+@observaciones_bp.route('/observaciones/por-curso/<int:curso_id>', methods=['GET'])
+def get_observaciones_por_curso(curso_id):
+    """Observaciones por curso - CONSULTA CORREGIDA."""
     try:
-        current_user = get_current_user()
+        print(f"🔍 Obteniendo observaciones para curso: {curso_id}")
         
-        # Parámetros
-        estudiante_id = request.args.get('estudiante_id', type=int)
-        tipo = request.args.get('tipo')
-        fecha_inicio = request.args.get('fecha_inicio')
-        fecha_fin = request.args.get('fecha_fin')
-        page = request.args.get('page', 1, type=int)
-        per_page = min(request.args.get('per_page', 20, type=int), 100)
+        # ✅ CONSULTA EXPLÍCITA Y CORREGIDA
+        observaciones = db.session.query(
+            Observacion,
+            Estudiante,
+            Usuario
+        ).join(
+            Estudiante, Observacion.estudiante_id == Estudiante.id
+        ).outerjoin(
+            Usuario, Observacion.docente_id == Usuario.id  
+        ).filter(
+            Estudiante.curso_id == curso_id
+        ).order_by(
+            Observacion.fecha.desc(), 
+            Observacion.id.desc()
+        ).all()
         
-        query = Observacion.query
-        
-        # Filtros según rol
-        if current_user.rol == 'familia':
-            if not estudiante_id or current_user.estudiante_id != estudiante_id:
-                return jsonify({'message': 'Solo puedes ver observaciones de tu estudiante'}), 403
-            query = query.filter_by(estudiante_id=estudiante_id)
-        elif current_user.rol == 'docente':
-            # Los docentes pueden ver todas las observaciones
-            if estudiante_id:
-                query = query.filter_by(estudiante_id=estudiante_id)
-        else:  # admin
-            if estudiante_id:
-                query = query.filter_by(estudiante_id=estudiante_id)
-        
-        # Filtros adicionales
-        if tipo:
-            query = query.filter_by(tipo=tipo)
-        
-        if fecha_inicio:
-            try:
-                fecha_ini = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
-                query = query.filter(Observacion.fecha >= fecha_ini)
-            except ValueError:
-                return jsonify({'message': 'Formato de fecha inválido (usar YYYY-MM-DD)'}), 400
-        
-        if fecha_fin:
-            try:
-                fecha_fin_date = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
-                query = query.filter(Observacion.fecha <= fecha_fin_date)
-            except ValueError:
-                return jsonify({'message': 'Formato de fecha inválido (usar YYYY-MM-DD)'}), 400
-        
-        observaciones = query.order_by(
-            Observacion.fecha.desc()
-        ).paginate(page=page, per_page=per_page, error_out=False)
-        
-        # Incluir información del estudiante y docente
-        result = []
-        for obs in observaciones.items:
-            obs_dict = obs.to_dict()
-            obs_dict['estudiante'] = {
-                'id': obs.estudiante.id,
-                'nombre': obs.estudiante.nombre
+        observaciones_data = []
+        for observacion, estudiante, docente in observaciones:
+            obs_dict = {
+                'id': observacion.id,
+                'estudianteId': observacion.estudiante_id,
+                'docenteId': observacion.docente_id,
+                'fecha': observacion.fecha.isoformat() if observacion.fecha else None,
+                'tipo': observacion.tipo,
+                'detalle': observacion.detalle,
+                'estudiante_nombre': estudiante.nombre,
+                'docente_nombre': docente.nombre if docente else None
             }
-            obs_dict['docente'] = {
-                'id': obs.docente.id,
-                'nombre': obs.docente.nombre
-            }
-            result.append(obs_dict)
+            observaciones_data.append(obs_dict)
         
-        return jsonify({
-            'observaciones': result,
-            'pagination': {
-                'page': observaciones.page,
-                'pages': observaciones.pages,
-                'per_page': observaciones.per_page,
-                'total': observaciones.total
-            }
-        }), 200
+        print(f"📊 Observaciones encontradas para curso {curso_id}: {len(observaciones_data)}")
+        return jsonify({'success': True, 'data': observaciones_data})
+        
     except Exception as e:
-        return jsonify({'message': 'Error al obtener observaciones', 'error': str(e)}), 500
+        print(f"❌ Error observaciones por curso: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-@observaciones_bp.route('/', methods=['POST'])
-@role_required('docente', 'admin')
-def create_observacion():
-    """Crear nueva observación"""
+@observaciones_bp.route('/observaciones/agregar', methods=['POST'])
+def agregar_observacion():
+    """Agregar nueva observación."""
     try:
-        current_user = get_current_user()
+        print("📝 Recibiendo nueva observación...")
         data = request.get_json()
         
-        required_fields = ['estudiante_id', 'tipo', 'detalle']
-        if not data or not all(k in data for k in required_fields):
-            return jsonify({'message': f'Faltan campos: {required_fields}'}), 400
+        estudiante_id = data.get('estudianteId')
+        docente_id = data.get('docenteId')  
+        fecha = data.get('fecha')
+        tipo = data.get('tipo')
+        detalle = data.get('detalle')
         
-        # Validar tipo
-        tipos_validos = ['POSITIVA', 'NEGATIVA', 'NEUTRAL', 'DISCIPLINARIA']
-        if data['tipo'] not in tipos_validos:
-            return jsonify({'message': f'Tipo debe ser uno de: {tipos_validos}'}), 400
+        print(f"Datos recibidos: {data}")
         
-        # Verificar que el estudiante existe
-        estudiante = Estudiante.query.get(data['estudiante_id'])
-        if not estudiante:
-            return jsonify({'message': 'Estudiante no encontrado'}), 404
+        if not all([estudiante_id, docente_id, fecha, tipo, detalle]):
+            return jsonify({
+                'success': False, 
+                'message': 'Faltan campos requeridos: estudianteId, docenteId, fecha, tipo, detalle'
+            }), 400
         
-        # Fecha: usar la proporcionada o fecha actual
-        fecha_obs = date.today()
-        if 'fecha' in data:
-            try:
-                fecha_obs = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({'message': 'Formato de fecha inválido (usar YYYY-MM-DD)'}), 400
-        
-        observacion = Observacion(
-            estudiante_id=data['estudiante_id'],
-            docente_id=current_user.id,
-            fecha=fecha_obs,
-            tipo=data['tipo'],
-            detalle=data['detalle']
+        # Crear la observación
+        obs = Observacion(
+            estudiante_id=estudiante_id,
+            docente_id=docente_id,
+            fecha=datetime.strptime(fecha, '%Y-%m-%d').date(),  # ✅ .date() para que coincida con el modelo
+            tipo=tipo,
+            detalle=detalle
         )
         
-        db.session.add(observacion)
+        db.session.add(obs)
         db.session.commit()
         
-        result = observacion.to_dict()
-        result['estudiante'] = {'id': estudiante.id, 'nombre': estudiante.nombre}
-        result['docente'] = {'id': current_user.id, 'nombre': current_user.nombre}
-        
-        return jsonify({
-            'message': 'Observación creada exitosamente',
-            'observacion': result
-        }), 201
+        print(f"✅ Observación creada con ID: {obs.id}")
+        return jsonify({'success': True, 'data': obs.to_dict()})
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'message': 'Error al crear observación', 'error': str(e)}), 500
+        print(f"❌ Error agregar observación: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-@observaciones_bp.route('/<int:observacion_id>', methods=['PUT'])
-@role_required('docente', 'admin')
-def update_observacion(observacion_id):
-    """Actualizar observación (solo el autor o admin)"""
+@observaciones_bp.route('/familia/hijo-observaciones/<int:estudiante_id>', methods=['GET'])
+def get_observaciones_hijo(estudiante_id):
+    """Observaciones de un hijo."""
     try:
-        current_user = get_current_user()
-        observacion = Observacion.query.get_or_404(observacion_id)
+        observaciones = db.session.query(Observacion, Usuario).outerjoin(
+            Usuario, Observacion.docente_id == Usuario.id
+        ).filter(
+            Observacion.estudiante_id == estudiante_id
+        ).order_by(Observacion.fecha.desc()).all()
         
-        # Solo el docente que creó la observación o admin puede editarla
-        if current_user.rol != 'admin' and observacion.docente_id != current_user.id:
-            return jsonify({'message': 'Solo puedes editar tus propias observaciones'}), 403
-        
-        data = request.get_json()
-        
-        if 'tipo' in data:
-            tipos_validos = ['POSITIVA', 'NEGATIVA', 'NEUTRAL', 'DISCIPLINARIA']
-            if data['tipo'] not in tipos_validos:
-                return jsonify({'message': f'Tipo debe ser uno de: {tipos_validos}'}), 400
-            observacion.tipo = data['tipo']
-        
-        if 'detalle' in data:
-            observacion.detalle = data['detalle']
-        
-        if 'fecha' in data:
-            try:
-                observacion.fecha = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({'message': 'Formato de fecha inválido (usar YYYY-MM-DD)'}), 400
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Observación actualizada exitosamente',
-            'observacion': observacion.to_dict()
-        }), 200
-        
+        observaciones_data = []
+        for observacion, docente in observaciones:
+            obs_dict = {
+                'id': observacion.id,
+                'fecha': observacion.fecha.isoformat() if observacion.fecha else None,
+                'tipo': observacion.tipo,
+                'detalle': observacion.detalle,
+                'docente_nombre': docente.nombre if docente else 'Desconocido'
+            }
+            observaciones_data.append(obs_dict)
+            
+        return jsonify({'success': True, 'data': observaciones_data})
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'message': 'Error al actualizar observación', 'error': str(e)}), 500
-
-@observaciones_bp.route('/tipos', methods=['GET'])
-@jwt_required()
-def list_tipos():
-    """Obtener tipos de observaciones disponibles"""
-    return jsonify({
-        'tipos': ['POSITIVA', 'NEGATIVA', 'NEUTRAL', 'DISCIPLINARIA']
-    }), 200
+        print(f"❌ Error observaciones hijo: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500

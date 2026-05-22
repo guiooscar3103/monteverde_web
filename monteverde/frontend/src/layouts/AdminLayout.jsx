@@ -88,7 +88,7 @@ export default function AdminLayout() {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', minHeight: '100vh', background: '#f8fafc' }}>
-      {/* Sidebar */}
+      {/* Menú lateral */}
       <aside style={{
         background: '#ecfdf5',
         color: '#134e4a',
@@ -97,7 +97,7 @@ export default function AdminLayout() {
         borderRight: '1px solid rgba(16, 185, 129, 0.2)',
         boxShadow: '4px 0 24px rgba(16, 185, 129, 0.14)'
       }}>
-        {/* Sidebar Logo Header */}
+        {/* Cabecera de logotipo del menú lateral */}
         <div style={{
           padding: '1.5rem 1.25rem',
           display: 'flex',
@@ -107,7 +107,7 @@ export default function AdminLayout() {
         }}>
           <img
             src={logoColegio}
-            alt="Monteverde"
+            alt="MonteVerde"
             style={{
               width: '40px',
               height: '40px',
@@ -141,7 +141,7 @@ export default function AdminLayout() {
           </div>
         </div>
 
-        {/* Sidebar Navigation */}
+        {/* Navegación del menú lateral */}
         <nav style={{ padding: '1.25rem 1rem', display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 }}>
           {navItems.map((item) => (
             <NavLink
@@ -181,7 +181,7 @@ export default function AdminLayout() {
           ))}
         </nav>
 
-        {/* User Card Footer in Sidebar */}
+        {/* Pie de página con tarjeta de usuario en el menú lateral */}
         <div style={{
           padding: '1.25rem 1rem',
           borderTop: '1px solid rgba(255, 255, 255, 0.1)',
@@ -214,7 +214,7 @@ export default function AdminLayout() {
               </span>
             </div>
           </div>
-          
+
           <button
             onClick={handleLogout}
             style={{
@@ -252,7 +252,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      {/* Main Panel Content Area */}
+      {/* Área de contenido del panel principal */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -263,7 +263,7 @@ export default function AdminLayout() {
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}>
-        {/* Header Bar */}
+        {/* Barra superior de cabecera */}
         <header style={{
           background: '#ffffff',
           padding: '0.75rem 1.5rem',
@@ -283,7 +283,7 @@ export default function AdminLayout() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* Mock Notification Bell */}
+            {/* Campana de notificación simulada */}
             <div style={{ position: 'relative', cursor: 'pointer' }}>
               <div style={{
                 background: '#f1f5f9',
@@ -312,7 +312,7 @@ export default function AdminLayout() {
               }}></span>
             </div>
 
-            {/* Profile Pill */}
+            {/* Píldora de perfil de usuario */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -343,7 +343,7 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        {/* Inner Content Area */}
+        {/* Área de contenido interno */}
         <main style={{ padding: '2rem 1.5rem', flexGrow: 1 }}>
           <Outlet />
         </main>

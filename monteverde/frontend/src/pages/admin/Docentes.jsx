@@ -127,13 +127,13 @@ export default function Docentes() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Page header banner */}
+      {/* Banner de cabecera de la página */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: '2rem',
-        background: 'linear-gradient(135deg, #166534 0%, #064e3b 100%)', // Forest Green
+        background: 'linear-gradient(135deg, #166534 0%, #064e3b 100%)', // Elegante color verde bosque
         padding: '1.5rem 2rem',
         borderRadius: '16px',
         color: '#ffffff',
@@ -150,7 +150,7 @@ export default function Docentes() {
         <div style={{ fontSize: '2.5rem' }}>👨‍🏫</div>
       </div>
 
-      {/* Notifications */}
+      {/* Notificaciones del sistema */}
       {successMsg && (
         <div style={{
           background: '#d1fae5',
