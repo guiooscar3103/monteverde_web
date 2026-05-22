@@ -3,10 +3,12 @@ from src.extensions import db
 from src.models.estudiante import Estudiante
 from src.models.curso import Curso
 from src.models.usuario import Usuario
+from src.utils.auth_helpers import role_required
 
 estudiantes_bp = Blueprint('estudiantes_custom', __name__)
 
 @estudiantes_bp.route('/estudiantes/por-curso/<int:curso_id>', methods=['GET'])
+@role_required('docente', 'admin')
 def get_estudiantes_por_curso(curso_id):
     """Estudiantes de un curso."""
     try:
@@ -26,6 +28,7 @@ def get_estudiantes_por_curso(curso_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @estudiantes_bp.route('/estudiantes', methods=['GET'])
+@role_required('docente', 'admin')
 def get_todos_los_estudiantes():
     """Obtener todos los estudiantes para dropdowns de vinculación."""
     try:
@@ -39,6 +42,7 @@ def get_todos_los_estudiantes():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @estudiantes_bp.route('/estudiantes/disponibles', methods=['GET'])
+@role_required('admin')
 def get_estudiantes_disponibles():
     """Obtener estudiantes no vinculados a ninguna familia."""
     try:

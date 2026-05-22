@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
+from flask_jwt_extended import jwt_required
 from src.extensions import db
 from src.models.mensaje import Mensaje
 from src.models.usuario import Usuario
@@ -7,6 +8,7 @@ from src.models.usuario import Usuario
 mensajes_bp = Blueprint('mensajes_custom', __name__)
 
 @mensajes_bp.route('/mensajes/<int:usuario_id>', methods=['GET'])
+@jwt_required()
 def get_mensajes(usuario_id):
     """Obtener mensajes usando SQLAlchemy ORM."""
     try:
@@ -17,7 +19,7 @@ def get_mensajes(usuario_id):
         ).order_by(Mensaje.fecha.desc()).all()
         
         print(f"📧 Mensajes encontrados: {len(mensajes)}")
-
+ 
         mensajes_data = []
         for msg in mensajes:
             msg_dict = msg.to_dict()
@@ -26,13 +28,14 @@ def get_mensajes(usuario_id):
             msg_dict['emisor_nombre'] = emisor.nombre if emisor else None
             msg_dict['receptor_nombre'] = receptor.nombre if receptor else None
             mensajes_data.append(msg_dict)
-
+ 
         return jsonify({'success': True, 'data': mensajes_data})
     except Exception as e:
         print(f"❌ Error get_mensajes: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @mensajes_bp.route('/conversacion/<int:usuario1>/<int:usuario2>', methods=['GET'])
+@jwt_required()
 def get_conversacion_entre_usuarios(usuario1, usuario2):
     """Conversación entre dos usuarios."""
     try:
@@ -56,6 +59,7 @@ def get_conversacion_entre_usuarios(usuario1, usuario2):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @mensajes_bp.route('/mensajes/enviar', methods=['POST'])
+@jwt_required()
 def enviar_mensaje_nuevo():
     """Enviar nuevo mensaje."""
     try:
@@ -88,6 +92,7 @@ def enviar_mensaje_nuevo():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @mensajes_bp.route('/mensajes/marcar-leido/<int:mensaje_id>', methods=['PUT'])
+@jwt_required()
 def marcar_mensaje_como_leido(mensaje_id):
     """Marcar mensaje como leído."""
     try:

@@ -1,10 +1,13 @@
 from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
 from src.extensions import db
 from src.models.usuario import Usuario
+from src.utils.auth_helpers import role_required
 
 usuarios_bp = Blueprint('usuarios_custom', __name__)
 
 @usuarios_bp.route('/usuarios/familia', methods=['GET'])
+@role_required('docente', 'admin')
 def get_familias():
     """Obtener usuarios familia."""
     try:
@@ -17,6 +20,7 @@ def get_familias():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @usuarios_bp.route('/usuarios/docentes', methods=['GET'])
+@role_required('familia', 'docente', 'admin')
 def get_docentes():
     """Obtener usuarios docentes."""
     try:
@@ -27,6 +31,7 @@ def get_docentes():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @usuarios_bp.route('/usuario/<int:usuario_id>', methods=['GET'])
+@jwt_required()
 def get_usuario_por_id_simple(usuario_id):
     """Obtener usuario por ID."""
     try:

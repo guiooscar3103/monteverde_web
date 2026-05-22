@@ -3,10 +3,12 @@ from datetime import datetime
 from src.extensions import db
 from src.models.calificacion import Calificacion
 from src.models.estudiante import Estudiante
+from src.utils.auth_helpers import role_required
 
 calificaciones_bp = Blueprint('calificaciones_custom', __name__)
 
 @calificaciones_bp.route('/calificaciones/buscar', methods=['GET'])
+@role_required('docente', 'admin')
 def get_calificaciones_por():
     """Buscar calificaciones con filtros."""
     try:
@@ -39,6 +41,7 @@ def get_calificaciones_por():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @calificaciones_bp.route('/calificaciones/guardar', methods=['POST'])
+@role_required('docente', 'admin')
 def guardar_calificaciones():
     """Guardar/actualizar calificaciones."""
     try:
@@ -85,6 +88,7 @@ def guardar_calificaciones():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @calificaciones_bp.route('/familia/hijo-calificaciones/<int:estudiante_id>', methods=['GET'])
+@role_required('familia', 'admin')
 def get_calificaciones_hijo(estudiante_id):
     """Calificaciones de un hijo."""
     try:

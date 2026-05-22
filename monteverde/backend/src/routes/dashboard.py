@@ -9,10 +9,12 @@ from src.models.mensaje import Mensaje
 from src.models.calificacion import Calificacion
 from src.models.asistencia import Asistencia
 from src.models.observacion import Observacion
+from src.utils.auth_helpers import role_required
 
 dashboard_bp = Blueprint('dashboard_custom', __name__)
 
 @dashboard_bp.route('/docente/dashboard/<int:docente_id>', methods=['GET'])
+@role_required('docente', 'admin')
 def get_docente_dashboard(docente_id):
     """Dashboard del docente."""
     try:
@@ -59,6 +61,7 @@ def get_docente_dashboard(docente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @dashboard_bp.route('/familia/dashboard/<int:familia_id>', methods=['GET'])
+@role_required('familia', 'admin')
 def get_familia_dashboard(familia_id):
     """Dashboard familiar."""
     try:

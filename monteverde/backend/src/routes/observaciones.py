@@ -4,10 +4,12 @@ from src.extensions import db
 from src.models.observacion import Observacion
 from src.models.estudiante import Estudiante
 from src.models.usuario import Usuario
+from src.utils.auth_helpers import role_required
 
 observaciones_bp = Blueprint('observaciones_custom', __name__)
 
 @observaciones_bp.route('/observaciones/por-curso/<int:curso_id>', methods=['GET'])
+@role_required('docente', 'admin')
 def get_observaciones_por_curso(curso_id):
     """Observaciones por curso - CONSULTA CORREGIDA."""
     try:
@@ -51,6 +53,7 @@ def get_observaciones_por_curso(curso_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @observaciones_bp.route('/observaciones/agregar', methods=['POST'])
+@role_required('docente', 'admin')
 def agregar_observacion():
     """Agregar nueva observación."""
     try:
@@ -92,6 +95,7 @@ def agregar_observacion():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @observaciones_bp.route('/familia/hijo-observaciones/<int:estudiante_id>', methods=['GET'])
+@role_required('familia', 'admin')
 def get_observaciones_hijo(estudiante_id):
     """Observaciones de un hijo."""
     try:

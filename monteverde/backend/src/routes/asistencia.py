@@ -4,10 +4,12 @@ from sqlalchemy import func
 from src.extensions import db
 from src.models.asistencia import Asistencia
 from src.models.estudiante import Estudiante
+from src.utils.auth_helpers import role_required
 
 asistencia_bp = Blueprint('asistencia_custom', __name__)
 
 @asistencia_bp.route('/asistencia/por-fecha', methods=['GET'])
+@role_required('docente', 'admin')
 def get_asistencia_por_fecha():
     """Asistencia por curso y fecha."""
     try:
@@ -43,6 +45,7 @@ def get_asistencia_por_fecha():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @asistencia_bp.route('/asistencia/guardar', methods=['POST'])
+@role_required('docente', 'admin')
 def guardar_asistencia():
     """Guardar/actualizar asistencia."""
     try:
@@ -89,6 +92,7 @@ def guardar_asistencia():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @asistencia_bp.route('/asistencia/estadisticas', methods=['GET'])
+@role_required('docente', 'admin')
 def get_estadisticas_asistencia():
     """Estadísticas de asistencia."""
     try:
@@ -126,6 +130,7 @@ def get_estadisticas_asistencia():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @asistencia_bp.route('/familia/hijo-asistencia/<int:estudiante_id>', methods=['GET'])
+@role_required('familia', 'admin')
 def get_asistencia_hijo(estudiante_id):
     """Asistencia de un hijo."""
     try:
