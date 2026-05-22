@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCursos, createCurso, updateCurso, deleteCurso } from '../../services/api';
 
 export default function Cursos() {
-  const [cursos, setCursos] = useState([]);
-  const [cargando, setCargando] = useState(true);
+  const queryClient = useQueryClient();
+
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -12,23 +13,68 @@ export default function Cursos() {
   const [grado, setGrado] = useState('');
   const [descripcion, setDescripcion] = useState('');
 
-  useEffect(() => {
-    cargarCursos();
-  }, []);
+  // 1. Consulta reactiva de cursos
+  const { data: cursos = [], isLoading: cargando } = useQuery({
+    queryKey: ['cursos'],
+    queryFn: getCursos,
+  });
 
-  const cargarCursos = async () => {
-    setCargando(true);
-    setErrorMsg('');
-    try {
-      const data = await getCursos();
-      setCursos(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
-      setErrorMsg('No se pudieron cargar los cursos.');
-    } finally {
-      setCargando(false);
+  // 2. Mutaciones para CRUD
+  const createMutation = useMutation({
+    mutationFn: createCurso,
+    onSuccess: (respuesta) => {
+      const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
+      const mensaje = respuesta?.message || 'Curso creado';
+      if (exito) {
+        setSuccessMsg(mensaje);
+        queryClient.invalidateQueries({ queryKey: ['cursos'] });
+        cerrarModal();
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        setErrorMsg(respuesta?.message || 'No se pudo crear el curso.');
+      }
+    },
+    onError: (error) => {
+      setErrorMsg(error.message || 'Error en el servidor.');
     }
-  };
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }) => updateCurso(id, payload),
+    onSuccess: (respuesta) => {
+      const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
+      const mensaje = respuesta?.message || 'Curso actualizado';
+      if (exito) {
+        setSuccessMsg(mensaje);
+        queryClient.invalidateQueries({ queryKey: ['cursos'] });
+        cerrarModal();
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        setErrorMsg(respuesta?.message || 'No se pudo guardar el curso.');
+      }
+    },
+    onError: (error) => {
+      setErrorMsg(error.message || 'Error en el servidor.');
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteCurso,
+    onSuccess: (respuesta) => {
+      const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
+      const mensaje = respuesta?.message || 'Curso eliminado exitosamente';
+      if (exito) {
+        setSuccessMsg(mensaje);
+        queryClient.invalidateQueries({ queryKey: ['cursos'] });
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        setErrorMsg(respuesta?.message || 'No se pudo eliminar el curso.');
+      }
+    },
+    onError: (error) => {
+      setErrorMsg(error.message || 'Error en el servidor.');
+    }
+  });
 
   const abrirModal = (curso = null) => {
     if (curso) {
@@ -54,7 +100,7 @@ export default function Cursos() {
     setErrorMsg('');
   };
 
-  const handleGuardar = async (event) => {
+  const handleGuardar = (event) => {
     event.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -70,49 +116,18 @@ export default function Cursos() {
       descripcion: descripcion.trim() || null
     };
 
-    try {
-      const respuesta = editandoCurso
-        ? await updateCurso(editandoCurso.id, payload)
-        : await createCurso(payload);
-
-      const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
-      const mensaje = respuesta?.message || (editandoCurso ? 'Curso actualizado' : 'Curso creado');
-
-      if (exito) {
-        setSuccessMsg(mensaje);
-        cerrarModal();
-        cargarCursos();
-        setTimeout(() => setSuccessMsg(''), 3000);
-      } else {
-        setErrorMsg(respuesta?.message || 'No se pudo guardar el curso.');
-      }
-    } catch (error) {
-      console.error(error);
-      setErrorMsg(error.message || 'Error en el servidor.');
+    if (editandoCurso) {
+      updateMutation.mutate({ id: editandoCurso.id, payload });
+    } else {
+      createMutation.mutate(payload);
     }
   };
 
-  const handleEliminar = async (cursoId) => {
+  const handleEliminar = (cursoId) => {
     if (!window.confirm('¿Seguro que deseas eliminar este curso?')) {
       return;
     }
-
-    try {
-      const respuesta = await deleteCurso(cursoId);
-      const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
-      const mensaje = respuesta?.message || 'Curso eliminado exitosamente';
-
-      if (exito) {
-        setSuccessMsg(mensaje);
-        cargarCursos();
-        setTimeout(() => setSuccessMsg(''), 3000);
-      } else {
-        setErrorMsg(respuesta?.message || 'No se pudo eliminar el curso.');
-      }
-    } catch (error) {
-      console.error(error);
-      setErrorMsg(error.message || 'Error en el servidor.');
-    }
+    deleteMutation.mutate(cursoId);
   };
 
   return (

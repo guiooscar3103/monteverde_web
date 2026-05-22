@@ -1,57 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDocentesConCursos, getCursos, getMaterias, asignarCursoADocente, desasignarCursoDeDocente } from '../../services/api';
 
 export default function Docentes() {
-  const [docentes, setDocentes] = useState([]);
-  const [cursos, setCursos] = useState([]);
-  const [materias, setMaterias] = useState([]);
-  const [cargando, setCargando] = useState(true);
+  const queryClient = useQueryClient();
+
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   const [seleccionCurso, setSeleccionCurso] = useState({});
   const [seleccionMateria, setSeleccionMateria] = useState({});
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
+  // 1. Parallel React Queries
+  const { data: docentes = [], isLoading: loadingDocentes } = useQuery({
+    queryKey: ['admin', 'docentes'],
+    queryFn: getDocentesConCursos,
+  });
 
-  const cargarDatos = async () => {
-    setCargando(true);
-    setErrorMsg('');
-    try {
-      const [resDocentes, resCursos, resMaterias] = await Promise.all([
-        getDocentesConCursos(),
-        getCursos(),
-        getMaterias()
-      ]);
+  const { data: cursos = [], isLoading: loadingCursos } = useQuery({
+    queryKey: ['cursos'],
+    queryFn: getCursos,
+  });
 
-      const docentesData = Array.isArray(resDocentes) ? resDocentes : [];
-      const cursosData = Array.isArray(resCursos) ? resCursos : [];
-      const materiasData = Array.isArray(resMaterias) ? resMaterias : [];
+  const { data: materias = [], isLoading: loadingMaterias } = useQuery({
+    queryKey: ['materias'],
+    queryFn: getMaterias,
+  });
 
-      if (!Array.isArray(resDocentes)) {
-        console.warn('Respuesta inesperada de /admin/docentes:', resDocentes);
+  const cargando = loadingDocentes || loadingCursos || loadingMaterias;
+
+  // 2. Mutations
+  const assignMutation = useMutation({
+    mutationFn: asignarCursoADocente,
+    onSuccess: (res) => {
+      if (res.success) {
+        setSuccessMsg(res.message || 'Asignación creada con éxito');
+        queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        alert(res.message || 'Error al asignar curso y materia.');
       }
-      if (!Array.isArray(resCursos)) {
-        console.warn('Respuesta inesperada de /cursos:', resCursos);
-      }
-      if (!Array.isArray(resMaterias)) {
-        console.warn('Respuesta inesperada de /materias:', resMaterias);
-      }
-
-      setDocentes(docentesData);
-      setCursos(cursosData);
-      setMaterias(materiasData);
-    } catch (error) {
-      console.error('Error cargando datos de asignación de docentes:', error);
-      setErrorMsg(error.message || 'Error al cargar docentes, cursos o materias.');
-    } finally {
-      setCargando(false);
+    },
+    onError: (error) => {
+      alert(error.message || 'Error en la petición.');
     }
-  };
+  });
 
-  const handleAsignar = async (docenteId) => {
+  const desassignMutation = useMutation({
+    mutationFn: desasignarCursoDeDocente,
+    onSuccess: (res) => {
+      if (res.success) {
+        setSuccessMsg(res.message || 'Asignación removida');
+        queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        alert(res.message || 'Error al desasignar curso.');
+      }
+    },
+    onError: (error) => {
+      alert(error.message || 'Error en la petición.');
+    }
+  });
+
+  const handleAsignar = (docenteId) => {
     const cursoId = seleccionCurso[docenteId];
     const materiaId = seleccionMateria[docenteId];
     if (!cursoId || !materiaId) {
@@ -59,27 +70,19 @@ export default function Docentes() {
       return;
     }
 
-    try {
-      const res = await asignarCursoADocente({
-        docente_id: docenteId,
-        curso_id: parseInt(cursoId),
-        materia_id: parseInt(materiaId)
-      });
-      if (res.success) {
-        setSuccessMsg(res.message || 'Asignación creada con éxito');
-        cargarDatos();
+    assignMutation.mutate({
+      docente_id: docenteId,
+      curso_id: parseInt(cursoId),
+      materia_id: parseInt(materiaId)
+    }, {
+      onSuccess: () => {
         setSeleccionCurso({ ...seleccionCurso, [docenteId]: '' });
         setSeleccionMateria({ ...seleccionMateria, [docenteId]: '' });
-        setTimeout(() => setSuccessMsg(''), 3000);
-      } else {
-        alert(res.message || 'Error al asignar curso y materia.');
       }
-    } catch (error) {
-      alert(error.message || 'Error en la petición.');
-    }
+    });
   };
 
-  const handleDesasignar = async (docenteId, asignacion) => {
+  const handleDesasignar = (docenteId, asignacion) => {
     if (!window.confirm('¿Está seguro de remover la asignación de este curso para el docente?')) {
       return;
     }
@@ -88,18 +91,7 @@ export default function Docentes() {
       ? { docente_id: docenteId, curso_id: asignacion.curso_id }
       : { assignment_id: asignacion.id };
 
-    try {
-      const res = await desasignarCursoDeDocente(payload);
-      if (res.success) {
-        setSuccessMsg(res.message || 'Asignación removida');
-        cargarDatos();
-        setTimeout(() => setSuccessMsg(''), 3000);
-      } else {
-        alert(res.message || 'Error al desasignar curso.');
-      }
-    } catch (error) {
-      alert(error.message || 'Error en la petición.');
-    }
+    desassignMutation.mutate(payload);
   };
 
   if (cargando) {
