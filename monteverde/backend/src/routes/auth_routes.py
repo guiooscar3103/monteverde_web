@@ -13,23 +13,8 @@ def login():
         email = data.get('email')
         password = data.get('password')
         
-        # Buscar usuario directamente para crear un token válido de Flask-JWT-Extended
-        usuario = Usuario.query.filter_by(email=email).first()
-        
-        if not usuario or not usuario.check_password(password):
-            return jsonify({'success': False, 'message': 'Credenciales inválidas'}), 401
-            
-        # Generar token con el claim "sub" automático
-        access_token = create_access_token(
-            identity=str(usuario.id),
-            additional_claims={'rol': usuario.rol}
-        )
-        
-        return jsonify({
-            'success': True,
-            'token': access_token,
-            'user': usuario.to_dict()
-        }), 200
+        result, status_code = AuthService.login(email, password)
+        return jsonify(result), status_code
     except Exception as e:
         print(f"❌ Error en login route: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500

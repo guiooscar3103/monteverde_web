@@ -24,23 +24,18 @@ class AuthService:
         if user.check_password(password):
             user_data = user.to_dict()
             
-            # Generar token JWT
-            token_payload = {
-                'user_id': user.id,
-                'email': user.email,
-                'rol': user.rol,
-                'nombre': user.nombre,
-                'exp': datetime.utcnow() + timedelta(hours=24)
-            }
-            
-            token = jwt.encode(
-                token_payload, 
-                current_app.config['SECRET_KEY'], 
-                algorithm='HS256'
+            # Generar token JWT usando Flask-JWT-Extended
+            from flask_jwt_extended import create_access_token
+            token = create_access_token(
+                identity=str(user.id),
+                additional_claims={
+                    'user_id': user.id,
+                    'email': user.email,
+                    'rol': user.rol,
+                    'nombre': user.nombre
+                },
+                expires_delta=timedelta(hours=24)
             )
-            
-            if isinstance(token, bytes):
-                token = token.decode('utf-8')
                 
             return {
                 'success': True,
