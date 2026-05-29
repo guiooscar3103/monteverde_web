@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDocentesConCursos, getCursos, getMaterias, asignarCursoADocente, desasignarCursoDeDocente } from '../../services/api';
+import iconoDocente from '../../assets/img/docente.png';
 
 export default function Docentes() {
   const queryClient = useQueryClient();
@@ -139,7 +140,30 @@ export default function Docentes() {
             Asocia a los profesores con los grados y grupos correspondientes para la gestión de calificaciones y asistencia.
           </p>
         </div>
-        <div style={{ fontSize: '2.5rem' }}>👨‍🏫</div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '68px',
+          height: '68px',
+          background: 'rgba(255, 255, 255, 0.15)',
+          borderRadius: '14px',
+          padding: '6px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+          backdropFilter: 'blur(4px)',
+          flexShrink: 0
+        }}>
+          <img 
+            src={iconoDocente} 
+            alt="Icono Docente" 
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'contain',
+              borderRadius: '8px'
+            }} 
+          />
+        </div>
       </div>
 
       {/* Notificaciones del sistema */}

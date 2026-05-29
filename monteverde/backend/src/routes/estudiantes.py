@@ -46,13 +46,22 @@ def get_todos_los_estudiantes():
 def get_estudiantes_disponibles():
     """Obtener estudiantes no vinculados a ninguna familia."""
     try:
-        linked_students = db.session.query(Usuario.estudiante_id).filter(
+        from sqlalchemy import text
+        # Obtener IDs de estudiantes vinculados desde la tabla de asociación
+        linked_students_query = db.session.execute(text("SELECT estudiante_id FROM familia_estudiante")).fetchall()
+        linked_student_ids = [row[0] for row in linked_students_query]
+        
+        # También incluir los que tengan estudiante_id en la tabla usuarios por compatibilidad
+        legacy_linked = db.session.query(Usuario.estudiante_id).filter(
             Usuario.rol == 'familia',
             Usuario.estudiante_id.isnot(None)
-        ).subquery()
+        ).all()
+        for r in legacy_linked:
+            if r[0] not in linked_student_ids:
+                linked_student_ids.append(r[0])
 
         estudiantes = Estudiante.query.filter(
-            ~Estudiante.id.in_(linked_students)
+            ~Estudiante.id.in_(linked_student_ids) if linked_student_ids else True
         ).order_by(Estudiante.nombre).all()
 
         return jsonify({

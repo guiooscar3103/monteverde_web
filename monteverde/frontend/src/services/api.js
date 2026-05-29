@@ -592,3 +592,21 @@ export const getMyCoursesAndSubjects = async () => {
   console.log('🌐 API: Obteniendo cursos y materias asignadas al docente...');
   return await apiRequest('/teacher/my-courses');
 };
+
+// =====================================================
+// CIRCULARES
+// =====================================================
+
+export const getCirculares = async (limit) => {
+  console.log('🌐 API: Obteniendo circulares...', limit ? `con límite ${limit}` : '');
+  const url = limit ? `/circulares?limit=${limit}` : '/circulares';
+  return await apiRequest(url);
+};
+
+export const crearCircular = async (datos) => {
+  console.log('🌐 API: Creando circular:', datos);
+  return await apiRequest('/circulares', {
+    method: 'POST',
+    body: JSON.stringify(datos),
+  });
+};

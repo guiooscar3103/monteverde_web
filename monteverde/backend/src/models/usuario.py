@@ -3,6 +3,16 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 
+# Tabla asociativa para relación de familias y múltiples estudiantes
+familia_estudiante = db.Table(
+    'familia_estudiante',
+    db.Column('id', db.Integer, primary_key=True),
+    db.Column('familia_id', db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False),
+    db.Column('estudiante_id', db.Integer, db.ForeignKey('estudiantes.id', ondelete='CASCADE'), nullable=False),
+    db.UniqueConstraint('familia_id', 'estudiante_id', name='uq_familia_estudiante')
+)
+
+
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
     
@@ -17,8 +27,15 @@ class Usuario(db.Model):
     fecha_eliminacion = db.Column(db.DateTime, nullable=True)
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
-    # Relación con estudiante (para familias)
+    # Relación legacy con estudiante (para familias)
     estudiante = db.relationship('Estudiante', backref='familia', foreign_keys=[estudiante_id])
+    
+    # Relación Many-to-Many con múltiples estudiantes (para familias con múltiples hermanos)
+    estudiantes = db.relationship(
+        'Estudiante',
+        secondary=familia_estudiante,
+        backref=db.backref('familias', lazy='dynamic')
+    )
     
     def __repr__(self):
         return f'<Usuario {self.email}>'
@@ -54,5 +71,16 @@ class Usuario(db.Model):
             data['estudiante'] = None
             data['estudiante_nombre'] = None
             data['estudiante_curso'] = None
+
+        # Serializar la lista de múltiples estudiantes asociados
+        data['estudiantes'] = []
+        if self.estudiantes:
+            for est in self.estudiantes:
+                est_dict = est.to_dict()
+                if est.curso:
+                    est_dict['curso'] = est.curso.to_dict()
+                else:
+                    est_dict['curso'] = None
+                data['estudiantes'].append(est_dict)
 
         return data

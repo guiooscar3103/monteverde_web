@@ -13,6 +13,7 @@ export default function FamiliaHome() {
   const [ultimoMensaje, setUltimoMensaje] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mensaje, setMensaje] = useState('');
+  const [selectedHijoIndex, setSelectedHijoIndex] = useState(0);
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -59,7 +60,7 @@ export default function FamiliaHome() {
     );
   }
 
-  const hijoSeleccionado = dashboardData?.hijos?.[0] || {};
+  const hijoSeleccionado = dashboardData?.hijos?.[selectedHijoIndex] || {};
   const semaforo = [
     { label: 'Entregado', value: 12, color: 'status-chip--green' },
     { label: 'Pendiente', value: 4, color: 'status-chip--yellow' },
@@ -87,6 +88,51 @@ export default function FamiliaHome() {
       {mensaje && (
         <div style={{ padding: '1rem', backgroundColor: '#FDECEA', color: '#912E2E', borderRadius: '16px', border: '1px solid #F5C6CB' }}>
           {mensaje}
+        </div>
+      )}
+
+      {/* Selector premium de hijo (hermanos vinculados) */}
+      {dashboardData?.hijos?.length > 1 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          background: 'rgba(255,255,255,0.9)',
+          padding: '1rem',
+          borderRadius: '18px',
+          border: '1px solid rgba(14,77,43,.08)',
+          boxShadow: '0 4px 15px rgba(14,77,43,0.03)',
+          marginBottom: '1rem',
+          backdropFilter: 'blur(8px)'
+        }}>
+          <span style={{ fontSize: '1.25rem' }}>🧑‍🎓</span>
+          <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Hijo:
+          </span>
+          <select
+            value={selectedHijoIndex}
+            onChange={(e) => setSelectedHijoIndex(parseInt(e.target.value))}
+            style={{
+              flexGrow: 1,
+              padding: '0.55rem 1rem',
+              borderRadius: '12px',
+              border: '2px solid rgba(14,77,43,0.1)',
+              outline: 'none',
+              background: '#fff',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              color: '#0e4d2b',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.01)',
+              transition: 'all 0.2s'
+            }}
+          >
+            {dashboardData.hijos.map((hijo, idx) => (
+              <option key={hijo.id} value={idx}>
+                {hijo.nombre} ({hijo.curso})
+              </option>
+            ))}
+          </select>
         </div>
       )}
 

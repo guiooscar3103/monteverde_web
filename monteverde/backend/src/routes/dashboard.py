@@ -65,65 +65,71 @@ def get_docente_dashboard(docente_id):
 def get_familia_dashboard(familia_id):
     """Dashboard familiar."""
     try:
-        # Obtener el usuario familia y su estudiante asociado
+        # Obtener el usuario familia
         familia = Usuario.query.get(familia_id)
         if not familia or familia.rol != 'familia':
             return jsonify({'success': False, 'message': 'Familia no encontrada'}), 404
             
-        if not familia.estudiante_id:
-            return jsonify({'success': True, 'data': {'hijos': [], 'total_hijos': 0}})
+        # Si no tiene estudiantes asociados (Many-to-Many), retornar vacío
+        if not familia.estudiantes:
+            # Fallback legacy si la tabla Many-to-Many no está poblada pero estudiante_id sí
+            if familia.estudiante_id:
+                legacy_est = Estudiante.query.get(familia.estudiante_id)
+                if legacy_est:
+                    familia.estudiantes.append(legacy_est)
+                    db.session.commit()
+                else:
+                    return jsonify({'success': True, 'data': {'hijos': [], 'total_hijos': 0}})
+            else:
+                return jsonify({'success': True, 'data': {'hijos': [], 'total_hijos': 0}})
+                
+        hijos_data = []
+        for estudiante in familia.estudiantes:
+            curso = Curso.query.get(estudiante.curso_id)
             
-        estudiante = Estudiante.query.get(familia.estudiante_id)
-        if not estudiante:
-            return jsonify({'success': True, 'data': {'hijos': [], 'total_hijos': 0}})
+            # Calcular calificaciones
+            calificaciones = Calificacion.query.filter_by(estudiante_id=estudiante.id).all()
+            promedio = sum(c.nota for c in calificaciones) / len(calificaciones) if calificaciones else 0
             
-        curso = Curso.query.get(estudiante.curso_id)
-        
-        print(f"🏠 Estudiantes encontrados para familia {familia_id}: 1")
-        
-        # Calcular estadísticas del estudiante
-        calificaciones = Calificacion.query.filter_by(estudiante_id=estudiante.id).all()
-        promedio = sum(c.nota for c in calificaciones) / len(calificaciones) if calificaciones else 0
-        
-        # Asistencia del mes actual
-        asistencias_mes = Asistencia.query.filter(
-            Asistencia.estudiante_id == estudiante.id,
-            extract('month', Asistencia.fecha) == datetime.now().month,
-            extract('year', Asistencia.fecha) == datetime.now().year
-        ).all()
-        
-        dias_presentes = len([a for a in asistencias_mes if a.estado == 'Presente'])
-        total_dias = len(asistencias_mes)
-        asistencia_porcentaje = (dias_presentes / total_dias * 100) if total_dias > 0 else 100
-        
-        # Observaciones recientes (último mes)
-        observaciones_mes = Observacion.query.filter(
-            and_(
-                Observacion.estudiante_id == estudiante.id,
-                Observacion.fecha >= datetime.now().date() - timedelta(days=30)
-            )
-        ).count()
-        
-        hijo_data = {
-            'id': estudiante.id,
-            'nombre': estudiante.nombre,
-            'grado': f"{curso.nivel}{curso.letra}" if curso and curso.nivel and curso.letra else 'Sin grado',
-            'curso': curso.nombre if curso else 'Sin curso',
-            'curso_id': estudiante.curso_id,
-            'promedio': float(promedio),
-            'total_notas': len(calificaciones),
-            'asistencia_porcentaje': asistencia_porcentaje,
-            'dias_presentes': dias_presentes,
-            'total_dias': total_dias,
-            'observaciones_mes': observaciones_mes
-        }
-        
-        print(f"✅ Dashboard familia generado: {[hijo_data]}")
+            # Asistencia del mes actual
+            asistencias_mes = Asistencia.query.filter(
+                Asistencia.estudiante_id == estudiante.id,
+                extract('month', Asistencia.fecha) == datetime.now().month,
+                extract('year', Asistencia.fecha) == datetime.now().year
+            ).all()
+            
+            dias_presentes = len([a for a in asistencias_mes if a.estado.upper() == 'PRESENTE'])
+            total_dias = len(asistencias_mes)
+            asistencia_porcentaje = (dias_presentes / total_dias * 100) if total_dias > 0 else 100
+            
+            # Observaciones recientes (último mes)
+            observaciones_mes = Observacion.query.filter(
+                and_(
+                    Observacion.estudiante_id == estudiante.id,
+                    Observacion.fecha >= datetime.now().date() - timedelta(days=30)
+                )
+            ).count()
+            
+            hijos_data.append({
+                'id': estudiante.id,
+                'nombre': estudiante.nombre,
+                'grado': f"{curso.nivel}{curso.letra}" if curso and curso.nivel and curso.letra else 'Sin grado',
+                'curso': curso.nombre if curso else 'Sin curso',
+                'curso_id': estudiante.curso_id,
+                'promedio': float(promedio),
+                'total_notas': len(calificaciones),
+                'asistencia_porcentaje': asistencia_porcentaje,
+                'dias_presentes': dias_presentes,
+                'total_dias': total_dias,
+                'observaciones_mes': observaciones_mes
+            })
+            
+        print(f"🏠 Estudiantes encontrados para familia {familia_id}: {len(hijos_data)}")
         return jsonify({
             'success': True,
             'data': {
-                'hijos': [hijo_data],
-                'total_hijos': 1
+                'hijos': hijos_data,
+                'total_hijos': len(hijos_data)
             }
         })
     except Exception as e:

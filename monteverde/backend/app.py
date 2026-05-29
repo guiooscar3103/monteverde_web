@@ -15,7 +15,7 @@ from config import Config
 from sqlalchemy import extract, and_, func, inspect, text
 from sqlalchemy.exc import OperationalError
 
-# ✅ IMPORTS DIRECTOS (más seguro)
+# IMPORTS DIRECTOS
 from src.models.mensaje import Mensaje
 from src.models.usuario import Usuario
 from src.models.estudiante import Estudiante
@@ -27,12 +27,13 @@ from src.models.actividad_admin import ActividadAdmin
 from src.models.docente_curso import DocenteCurso
 from src.models.materia import Materia
 from src.models.docente_asignacion import DocenteAsignacion
+from src.models.circular import Circular
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # Resolver solicitudes preflight para rutas API protegidas
+    # Gestionar solicitudes pre-flight (OPTIONS) para permitir la comunicación entre frontend y API
     @app.before_request
     def handle_preflight():
         if request.method == 'OPTIONS' and request.path.startswith('/api/'):
@@ -67,6 +68,28 @@ def create_app():
         except Exception as exc:
             print(f"[WARN] No se pudo actualizar la tabla cursos: {exc}")
 
+        try:
+            # Crear y verificar la tabla familia_estudiante, migrando datos legacy de usuarios.estudiante_id
+            with db.engine.begin() as conn:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS familia_estudiante (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        familia_id INT NOT NULL,
+                        estudiante_id INT NOT NULL,
+                        FOREIGN KEY (familia_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                        FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id) ON DELETE CASCADE,
+                        UNIQUE KEY uq_familia_estudiante (familia_id, estudiante_id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+                """))
+                conn.execute(text("""
+                    INSERT IGNORE INTO familia_estudiante (familia_id, estudiante_id)
+                    SELECT id, estudiante_id FROM usuarios 
+                    WHERE rol = 'familia' AND estudiante_id IS NOT NULL AND eliminado = 0;
+                """))
+            print('[INFO] Tabla familia_estudiante y migración de datos legacy verificadas/creadas con éxito')
+        except Exception as exc:
+            print(f"[WARN] No se pudo verificar/migrar la tabla asociativa familia_estudiante: {exc}")
+
     from src.routes.auth_routes import auth_bp
     from src.routes.usuario_routes import usuario_bp
     from src.routes.admin_routes import admin_bp
@@ -80,6 +103,7 @@ def create_app():
     from src.routes.usuarios import usuarios_bp
     from src.routes.estudiantes import estudiantes_bp
     from src.routes.dashboard import dashboard_bp
+    from src.routes.circulares import circulares_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(usuario_bp, url_prefix='/api/usuarios')
@@ -94,6 +118,7 @@ def create_app():
     app.register_blueprint(usuarios_bp, url_prefix='/api')
     app.register_blueprint(estudiantes_bp, url_prefix='/api')
     app.register_blueprint(dashboard_bp, url_prefix='/api')
+    app.register_blueprint(circulares_bp, url_prefix='/api')
     return app
 
 app = create_app()
@@ -133,7 +158,7 @@ def test_db():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# All modular routes (dashboard, messages, users, students, grades, attendance, observations) are now handled by Blueprints registered in create_app()
+
 
 # =====================================================
 # MAIN

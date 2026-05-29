@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   getUsuariosPaginados, 
   crearUsuario, 
@@ -11,6 +12,8 @@ import {
 } from '../../services/api';
 
 export default function Usuarios() {
+  const queryClient = useQueryClient();
+
   // Estado para el listado de usuarios
   const [usuarios, setUsuarios] = useState([]);
   const [total, setTotal] = useState(0);
@@ -99,6 +102,7 @@ export default function Usuarios() {
       const res = await cambiarEstadoUsuario(id, nuevoEstado);
       if (res.success) {
         setSuccessMsg(res.message || 'Estado actualizado con éxito');
+        queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
         // Actualizar el estado localmente para evitar una petición de recarga completa
         setUsuarios(usuarios.map(u => u.id === id ? { ...u, activo: nuevoEstado } : u));
         setTimeout(() => setSuccessMsg(''), 3000);
@@ -117,6 +121,7 @@ export default function Usuarios() {
       const res = await eliminarUsuario(id);
       if (res.success) {
         setSuccessMsg(res.message || 'Usuario eliminado lógicamente');
+        queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
         cargarUsuarios();
         setTimeout(() => setSuccessMsg(''), 3000);
       }
@@ -131,6 +136,7 @@ export default function Usuarios() {
       const res = await restaurarUsuario(id);
       if (res.success) {
         setSuccessMsg(res.message || 'Usuario restaurado exitosamente');
+        queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
         cargarUsuarios();
         setTimeout(() => setSuccessMsg(''), 3000);
       }
@@ -216,6 +222,7 @@ export default function Usuarios() {
       if (success) {
         setSuccessMsg(message || 'Operación realizada con éxito');
         setModalAbierto(false);
+        queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
         cargarUsuarios();
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {

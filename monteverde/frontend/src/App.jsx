@@ -25,6 +25,7 @@ import Docentes from './pages/admin/Docentes';
 import Familias from './pages/admin/Familias';
 import Configuracion from './pages/admin/Configuracion';
 import Cursos from './pages/admin/Cursos';
+import Circulares from './pages/admin/Circulares';
 
 // ===================================================
 // RUTA ADMINISTRATIVA DE ALTA FIDELIDAD
@@ -127,6 +128,7 @@ function App() {
         <Route path="familias" element={<Familias />} />
         <Route path="cursos" element={<Cursos />} />
         <Route path="configuracion" element={<Configuracion />} />
+        <Route path="circulares" element={<Circulares />} />
       </Route>
       
       {/* ======================================

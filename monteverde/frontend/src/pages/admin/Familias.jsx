@@ -5,6 +5,7 @@ import {
   vincularEstudianteAFamilia, 
   desvincularEstudianteDeFamilia 
 } from '../../services/api';
+import iconoFamilia from '../../assets/img/icono familia.png';
 
 export default function Familias() {
   const [familias, setFamilias] = useState([]);
@@ -17,6 +18,10 @@ export default function Familias() {
   const [seleccionEstudiante, setSeleccionEstudiante] = useState({});
   // Texto de búsqueda para filtrar el listado de familias
   const [busqueda, setBusqueda] = useState('');
+
+  // Estados para búsqueda de estudiantes por autocompletado en tarjetas
+  const [searchQueries, setSearchQueries] = useState({});
+  const [activeDropdownFamId, setActiveDropdownFamId] = useState(null);
 
   useEffect(() => {
     cargarDatos();
@@ -54,8 +59,9 @@ export default function Familias() {
       });
       if (res.success) {
         setSuccessMsg(res.message || 'Vínculo establecido con éxito');
-        // Limpiar el estudiante seleccionado
+        // Limpiar el estudiante seleccionado y su query de búsqueda
         setSeleccionEstudiante({ ...seleccionEstudiante, [familiaId]: '' });
+        setSearchQueries({ ...searchQueries, [familiaId]: '' });
         // Recargar los datos desde la base de datos
         await cargarDatos();
         setTimeout(() => setSuccessMsg(''), 4000);
@@ -67,14 +73,15 @@ export default function Familias() {
     }
   };
 
-  const handleDesvincular = async (familiaId) => {
-    if (!window.confirm('¿Está seguro de remover la vinculación con el estudiante para esta familia?')) {
+  const handleDesvincular = async (familiaId, estudianteId, estudianteNombre) => {
+    if (!window.confirm(`¿Está seguro de remover la vinculación con el estudiante ${estudianteNombre} para esta familia?`)) {
       return;
     }
 
     try {
       const res = await desvincularEstudianteDeFamilia({
-        familia_id: familiaId
+        familia_id: familiaId,
+        estudiante_id: estudianteId
       });
       if (res.success) {
         setSuccessMsg(res.message || 'Vínculo familiar removido');
@@ -139,7 +146,29 @@ export default function Familias() {
             Vincule cuentas del rol Familia con sus respectivos alumnos matriculados para permitirles ver calificaciones y reportes de asistencia.
           </p>
         </div>
-        <div style={{ fontSize: '2.5rem' }}>👨‍👩‍👧‍👦</div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '68px',
+          height: '68px',
+          background: 'rgba(255, 255, 255, 0.15)',
+          borderRadius: '14px',
+          padding: '6px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+          backdropFilter: 'blur(4px)',
+          flexShrink: 0
+        }}>
+          <img 
+            src={iconoFamilia} 
+            alt="Icono Familia" 
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'contain'
+            }} 
+          />
+        </div>
       </div>
 
       {/* Notifications */}
@@ -253,10 +282,10 @@ export default function Familias() {
                 {/* Assigned Student Section */}
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Estudiante Vinculado
+                    Estudiantes Vinculados
                   </label>
                   
-                  {!fam.estudiante ? (
+                  {!fam.estudiantes || fam.estudiantes.length === 0 ? (
                     <div style={{ 
                       display: 'flex', 
                       alignItems: 'center', 
@@ -268,52 +297,56 @@ export default function Familias() {
                       borderRadius: '8px',
                       fontSize: '0.85rem'
                     }}>
-                      <span>⚠️ Sin estudiante asociado actualmente.</span>
+                      <span>⚠️ Sin estudiantes asociados actualmente.</span>
                     </div>
                   ) : (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      padding: '0.6rem 0.85rem',
-                      borderRadius: '10px'
-                    }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>
-                          🧑‍🎓 {fam.estudiante.nombre}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                          Grado: {fam.estudiante.curso ? `${fam.estudiante.curso.nivel}°${fam.estudiante.curso.letra} - ${fam.estudiante.curso.nombre}` : 'Sin Curso'} (ID Estudiante: #{fam.estudiante.id})
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDesvincular(fam.id)}
-                        style={{
-                          background: '#fee2e2',
-                          color: '#dc2626',
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '0.35rem 0.6rem',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {fam.estudiantes.map((est) => (
+                        <div key={est.id} style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          transition: 'all 0.15s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#fca5a5';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#fee2e2';
-                        }}
-                        title="Remover vinculación"
-                      >
-                        Desvincular
-                      </button>
+                          justifyContent: 'space-between',
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          padding: '0.6rem 0.85rem',
+                          borderRadius: '10px'
+                        }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>
+                              🧑‍🎓 {est.nombre}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                              Grado: {est.curso ? `${est.curso.nivel}°${est.curso.letra} - ${est.curso.nombre}` : 'Sin Curso'} (ID Estudiante: #{est.id})
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDesvincular(fam.id, est.id, est.nombre)}
+                            style={{
+                              background: '#fee2e2',
+                              color: '#dc2626',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '0.35rem 0.6rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 0.15s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#fca5a5';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#fee2e2';
+                            }}
+                            title="Remover vinculación"
+                          >
+                            Desvincular
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -328,38 +361,153 @@ export default function Familias() {
                 gap: '8px',
                 alignItems: 'center'
               }}>
-                <select
-                  value={seleccionEstudiante[fam.id] || ''}
-                  onChange={(e) => setSeleccionEstudiante({ ...seleccionEstudiante, [fam.id]: e.target.value })}
-                  style={{
-                    flexGrow: 1,
-                    fontSize: '0.85rem',
-                    padding: '0.45rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    outline: 'none',
-                    color: '#334155'
-                  }}
-                  disabled={estudiantes.length === 0}
-                >
-                  <option value="">-- Seleccionar Alumno --</option>
-                  {estudiantes.map((est) => (
-                    <option key={est.id} value={est.id}>
-                      {est.nombre} {est.curso_nombre ? `- ${est.curso_nombre}` : ''}
-                    </option>
-                  ))}
-                </select>
-                {estudiantes.length === 0 && (
-                  <span style={{
-                    color: '#7c3aed',
-                    fontSize: '0.8rem',
-                    marginLeft: '0.75rem',
-                    fontWeight: 600
-                  }}>
-                    No existen estudiantes disponibles
-                  </span>
-                )}
+                {/* Autocomplete buscador inteligente de estudiantes */}
+                <div style={{
+                  position: 'relative',
+                  flexGrow: 1,
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <span style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      pointerEvents: 'none',
+                      fontSize: '1rem',
+                      color: '#94a3b8'
+                    }}>
+                      🔍
+                    </span>
+                    <input
+                      type="text"
+                      placeholder={estudiantes.length === 0 ? "No hay estudiantes disponibles" : "Buscar alumno por nombre, curso..."}
+                      value={searchQueries[fam.id] || ''}
+                      onFocus={() => {
+                        if (estudiantes.length > 0) setActiveDropdownFamId(fam.id);
+                      }}
+                      onBlur={() => {
+                        // El delay de 250ms es fundamental para que el evento onMouseDown del dropdown ocurra antes del cierre
+                        setTimeout(() => setActiveDropdownFamId(null), 250);
+                      }}
+                      onChange={(e) => {
+                        const q = e.target.value;
+                        setSearchQueries({ ...searchQueries, [fam.id]: q });
+                        setSeleccionEstudiante({ ...seleccionEstudiante, [fam.id]: '' });
+                        setActiveDropdownFamId(fam.id);
+                      }}
+                      style={{
+                        width: '100%',
+                        fontSize: '0.85rem',
+                        padding: '0.55rem 2rem 0.55rem 2.25rem',
+                        borderRadius: '10px',
+                        border: seleccionEstudiante[fam.id] ? '2px solid #22c55e' : '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        outline: 'none',
+                        color: '#334155',
+                        transition: 'all 0.15s'
+                      }}
+                      disabled={estudiantes.length === 0}
+                    />
+                    {searchQueries[fam.id] && (
+                      <button
+                        onClick={() => {
+                          setSearchQueries({ ...searchQueries, [fam.id]: '' });
+                          setSeleccionEstudiante({ ...seleccionEstudiante, [fam.id]: '' });
+                        }}
+                        type="button"
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#94a3b8',
+                          padding: '4px',
+                          fontWeight: 'bold',
+                          fontSize: '0.85rem'
+                        }}
+                        title="Limpiar búsqueda"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Panel flotante de sugerencias Autocomplete (desplegado hacia arriba para evitar desbordamiento del contenedor) */}
+                  {activeDropdownFamId === fam.id && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 1000,
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '12px',
+                      boxShadow: '0 -10px 15px -3px rgba(0,0,0,0.1), 0 -4px 6px -4px rgba(0,0,0,0.1)',
+                      maxHeight: '180px',
+                      overflowY: 'auto',
+                      marginBottom: '6px'
+                    }}>
+                      {(() => {
+                        const linkedIds = fam.estudiantes?.map(e => e.id) || [];
+                        const query = (searchQueries[fam.id] || '').toLowerCase().trim();
+                        const filtered = estudiantes.filter(est => {
+                          // Excluir estudiantes ya vinculados a esta misma familia
+                          if (linkedIds.includes(est.id)) return false;
+                          if (!query) return true;
+                          
+                          const matchNombre = est.nombre?.toLowerCase().includes(query);
+                          const matchCurso = est.curso_nombre?.toLowerCase().includes(query) || (est.curso && `${est.curso.nivel}°${est.curso.letra}`.toLowerCase().includes(query));
+                          const matchId = est.id?.toString().includes(query);
+                          
+                          return matchNombre || matchCurso || matchId;
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: '#64748b', textAlign: 'center' }}>
+                              😞 Sin coincidencias disponibles
+                            </div>
+                          );
+                        }
+
+                        return filtered.map((est) => (
+                          <div
+                            key={est.id}
+                            onMouseDown={() => {
+                              setSeleccionEstudiante({ ...seleccionEstudiante, [fam.id]: est.id });
+                              setSearchQueries({ ...searchQueries, [fam.id]: est.nombre });
+                              setActiveDropdownFamId(null);
+                            }}
+                            style={{
+                              padding: '0.6rem 0.9rem',
+                              fontSize: '0.85rem',
+                              color: '#334155',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid #f1f5f9',
+                              transition: 'background 0.15s',
+                              textAlign: 'left'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                          >
+                            <div style={{ fontWeight: 700, color: '#1e293b' }}>
+                              🧑‍🎓 {est.nombre}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                              Curso: {est.curso_nombre || 'Sin curso'} · ID: #{est.id}
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                </div>
 
                 <button
                   onClick={() => handleVincular(fam.id)}

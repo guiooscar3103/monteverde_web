@@ -201,6 +201,7 @@ def desasignar_curso():
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 @admin_bp.route('/familias', methods=['GET'])
 def get_familias_vinculos():
     """Obtener listado de familias y sus vínculos con estudiantes"""
@@ -210,12 +211,6 @@ def get_familias_vinculos():
         
         for f in familias:
             f_dict = f.to_dict()
-            if f.estudiante:
-                f_dict['estudiante'] = f.estudiante.to_dict()
-                if f.estudiante.curso:
-                    f_dict['estudiante']['curso'] = f.estudiante.curso.to_dict()
-            else:
-                f_dict['estudiante'] = None
             familias_data.append(f_dict)
             
         return jsonify({
@@ -245,11 +240,20 @@ def vincular_estudiante():
         if not estudiante:
             return jsonify({'success': False, 'message': 'Estudiante no encontrado'}), 404
             
-        # Vincular
-        familia.estudiante_id = estudiante_id
+        # Validar que un estudiante no se vincule dos veces a la misma familia
+        if estudiante in familia.estudiantes:
+            return jsonify({'success': False, 'message': 'El estudiante ya está vinculado a esta familia'}), 400
+            
+        # Vincular (relación Many-to-Many)
+        familia.estudiantes.append(estudiante)
+        
+        # Mantener la columna legacy para compatibilidad
+        if not familia.estudiante_id:
+            familia.estudiante_id = estudiante_id
+            
         db.session.commit()
         
-        # Log
+        # Log de auditoría
         AdminService.log_actividad(
             usuario_id=admin_id,
             accion='VINCULAR_ESTUDIANTE',
@@ -263,36 +267,48 @@ def vincular_estudiante():
 
 @admin_bp.route('/familias/desvincular', methods=['POST'])
 def desvincular_estudiante():
-    """Desvincular una cuenta de familia de su estudiante"""
+    """Desvincular una cuenta de familia de un estudiante de manera individual"""
     try:
         admin_id = get_current_admin_id()
         data = request.get_json() or {}
         familia_id = data.get('familia_id')
+        estudiante_id = data.get('estudiante_id')
         
-        if not familia_id:
-            return jsonify({'success': False, 'message': 'Falta parámetro: familia_id'}), 400
+        if not familia_id or not estudiante_id:
+            return jsonify({'success': False, 'message': 'Faltan parámetros: familia_id y estudiante_id'}), 400
             
         familia = Usuario.query.filter_by(id=familia_id, rol='familia', eliminado=False).first()
         if not familia:
             return jsonify({'success': False, 'message': 'Familia no encontrada'}), 404
             
-        nombre_estudiante = familia.estudiante.nombre if familia.estudiante else 'un estudiante'
+        estudiante = Estudiante.query.get(estudiante_id)
+        if not estudiante:
+            return jsonify({'success': False, 'message': 'Estudiante no encontrado'}), 404
+            
+        if estudiante not in familia.estudiantes:
+            return jsonify({'success': False, 'message': 'El estudiante no está vinculado a esta familia'}), 400
+            
+        # Desvincular individualmente de la relación Many-to-Many
+        familia.estudiantes.remove(estudiante)
         
-        # Desvincular
-        familia.estudiante_id = None
+        # Actualizar columna legacy estudiante_id si es necesario
+        if familia.estudiante_id == estudiante_id:
+            familia.estudiante_id = familia.estudiantes[0].id if familia.estudiantes else None
+            
         db.session.commit()
         
-        # Log
+        # Log de auditoría
         AdminService.log_actividad(
             usuario_id=admin_id,
             accion='DESVINCULAR_ESTUDIANTE',
-            detalles=f"Se desvinculó a {nombre_estudiante} de la cuenta familiar {familia.nombre} ({familia.email})"
+            detalles=f"Se desvinculó al estudiante {estudiante.nombre} de la cuenta familiar {familia.nombre} ({familia.email})"
         )
         
         return jsonify({'success': True, 'message': 'Estudiante desvinculado exitosamente'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @admin_bp.route('/configuracion', methods=['GET'])
 def get_configuracion():

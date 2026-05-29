@@ -13,6 +13,7 @@ export default function ReporteAcademico() {
   const [dashboardData, setDashboardData] = useState(null);
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('todos');
   const [periodosDisponibles, setPeriodosDisponibles] = useState([]);
+  const [selectedHijoIndex, setSelectedHijoIndex] = useState(0);
 
   // Cargar calificaciones del hijo
   useEffect(() => {
@@ -29,13 +30,13 @@ export default function ReporteAcademico() {
         // Primero obtener info de la familia para saber qué hijo mostrar
         const dashboard = await getFamiliaDashboard(usuario.id).catch(() => null);
         
-        if (dashboard?.hijos?.[0]) {
-          const primerHijo = dashboard.hijos[0];
+        if (dashboard?.hijos?.[selectedHijoIndex]) {
+          const primerHijo = dashboard.hijos[selectedHijoIndex];
           setDashboardData(dashboard);
           
           console.log('📊 Cargando calificaciones para estudiante:', primerHijo.id);
           
-          // Cargar calificaciones del primer hijo
+          // Cargar calificaciones del hijo seleccionado
           const calificacionesData = await getCalificacionesHijo(primerHijo.id);
           setCalificaciones(calificacionesData || []);
           setCalificacionesFiltradas(calificacionesData || []);
@@ -60,7 +61,7 @@ export default function ReporteAcademico() {
     };
 
     cargarDatos();
-  }, [usuario]);
+  }, [usuario, selectedHijoIndex]);
 
   // Filtrar calificaciones cuando cambie el período
   useEffect(() => {
@@ -143,7 +144,7 @@ export default function ReporteAcademico() {
     );
   }
 
-  const primerHijo = dashboardData?.hijos?.[0];
+  const primerHijo = dashboardData?.hijos?.[selectedHijoIndex];
   const estadisticasAsignaturas = obtenerEstadisticasPorAsignatura();
 
   return (
@@ -163,6 +164,41 @@ export default function ReporteAcademico() {
           </div>
         }
       />
+
+      {/* Selector premium de hijo (hermanos vinculados) */}
+      {dashboardData?.hijos?.length > 1 && (
+        <Card title="🧑‍🎓 Seleccionar Estudiante">
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ fontWeight: 'bold', color: '#0e4d2b' }}>
+              Estudiante:
+            </label>
+            <select
+              value={selectedHijoIndex}
+              onChange={(e) => {
+                setLoading(true);
+                setSelectedHijoIndex(parseInt(e.target.value));
+              }}
+              style={{
+                padding: '0.5rem 1rem',
+                border: '2px solid #ddd',
+                borderRadius: '6px',
+                fontSize: '0.9rem',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                minWidth: '200px',
+                fontWeight: 600,
+                color: '#0e4d2b'
+              }}
+            >
+              {dashboardData.hijos.map((hijo, idx) => (
+                <option key={hijo.id} value={idx}>
+                  {hijo.nombre} ({hijo.curso})
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
 
       {calificaciones.length === 0 ? (
         <Card>
