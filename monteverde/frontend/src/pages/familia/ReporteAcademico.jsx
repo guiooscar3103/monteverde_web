@@ -43,7 +43,8 @@ export default function ReporteAcademico() {
           
           // Extraer períodos únicos
           const periodosUnicos = [...new Set((calificacionesData || []).map(cal => cal.periodo))].filter(Boolean);
-          setPeriodosDisponibles(periodosUnicos.sort());
+          const periodosOrdenados = periodosUnicos.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+          setPeriodosDisponibles(periodosOrdenados);
           
           console.log('📊 Calificaciones cargadas:', calificacionesData);
           console.log('📊 Períodos disponibles:', periodosUnicos);
@@ -73,8 +74,8 @@ export default function ReporteAcademico() {
   }, [periodoSeleccionado, calificaciones]);
 
   const calcularPromedio = (calificacionesParaCalcular = calificacionesFiltradas) => {
-    if (calificacionesParaCalcular.length === 0) return 0;
-    const suma = calificacionesParaCalcular.reduce((acc, cal) => acc + (parseFloat(cal.nota) || 0), 0);
+    if (calificacionesParaCalcular.length === 0) return '0.0';
+    const suma = calificacionesParaCalcular.reduce((acc, cal) => acc + (Number.parseFloat(cal.nota) || 0), 0);
     return (suma / calificacionesParaCalcular.length).toFixed(1);
   };
 
@@ -89,7 +90,7 @@ export default function ReporteAcademico() {
           total: 0
         };
       }
-      asignaturas[cal.asignatura].notas.push(parseFloat(cal.nota) || 0);
+      asignaturas[cal.asignatura].notas.push(Number.parseFloat(cal.nota) || 0);
       asignaturas[cal.asignatura].total++;
     });
     
@@ -125,7 +126,7 @@ export default function ReporteAcademico() {
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
             <p style={{ color: '#e74c3c', fontSize: '1.1rem' }}>{error}</p>
             <button 
-              onClick={() => window.location.reload()} 
+              onClick={() => globalThis.location.reload()} 
               style={{
                 marginTop: '1rem',
                 padding: '0.75rem 1.5rem',
@@ -146,6 +147,14 @@ export default function ReporteAcademico() {
 
   const primerHijo = dashboardData?.hijos?.[selectedHijoIndex];
   const estadisticasAsignaturas = obtenerEstadisticasPorAsignatura();
+
+  const promedioGeneral = Number.parseFloat(calcularPromedio());
+  let colorPromedioGeneral = '#e74c3c';
+  if (promedioGeneral >= 3.5) {
+    colorPromedioGeneral = '#27ae60';
+  } else if (promedioGeneral >= 3) {
+    colorPromedioGeneral = '#f39c12';
+  }
 
   return (
     <div className="grid">
@@ -169,14 +178,15 @@ export default function ReporteAcademico() {
       {dashboardData?.hijos?.length > 1 && (
         <Card title="🧑‍🎓 Seleccionar Estudiante">
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ fontWeight: 'bold', color: '#0e4d2b' }}>
+            <label htmlFor="student-select" style={{ fontWeight: 'bold', color: '#0e4d2b' }}>
               Estudiante:
             </label>
             <select
+              id="student-select"
               value={selectedHijoIndex}
               onChange={(e) => {
                 setLoading(true);
-                setSelectedHijoIndex(parseInt(e.target.value));
+                setSelectedHijoIndex(Number.parseInt(e.target.value, 10));
               }}
               style={{
                 padding: '0.5rem 1rem',
@@ -214,10 +224,11 @@ export default function ReporteAcademico() {
           {/* Filtro por período */}
           <Card title="🔍 Filtrar por Período">
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ fontWeight: 'bold', color: '#0e4d2b' }}>
+              <label htmlFor="period-select" style={{ fontWeight: 'bold', color: '#0e4d2b' }}>
                 Período:
               </label>
               <select
+                id="period-select"
                 value={periodoSeleccionado}
                 onChange={(e) => setPeriodoSeleccionado(e.target.value)}
                 style={{
@@ -244,11 +255,24 @@ export default function ReporteAcademico() {
           </Card>
 
           {/* Resumen por asignaturas */}
-          <Card title={`📚 Resumen por Asignaturas ${periodoSeleccionado !== 'todos' ? `- ${periodoSeleccionado}` : ''}`}>
+          <Card title={periodoSeleccionado === 'todos' ? '📚 Resumen por Asignaturas' : `📚 Resumen por Asignaturas - ${periodoSeleccionado}`}>
             <div className="grid grid-3" style={{ gap: '1rem' }}>
               {Object.entries(estadisticasAsignaturas).map(([asignatura, stats]) => {
-                const promedio = parseFloat(stats.promedio);
-                const colorPromedio = promedio >= 3.5 ? '#27ae60' : promedio >= 3.0 ? '#f39c12' : '#e74c3c';
+                const promedio = Number.parseFloat(stats.promedio);
+                
+                let colorPromedio = '#e74c3c';
+                if (promedio >= 3.5) {
+                  colorPromedio = '#27ae60';
+                } else if (promedio >= 3) {
+                  colorPromedio = '#f39c12';
+                }
+
+                let estadoAsignatura = 'REPROBADO';
+                if (promedio >= 3.5) {
+                  estadoAsignatura = 'APROBADO';
+                } else if (promedio >= 3) {
+                  estadoAsignatura = 'EN RIESGO';
+                }
                 
                 return (
                   <div 
@@ -288,7 +312,7 @@ export default function ReporteAcademico() {
                       fontSize: '0.7rem',
                       fontWeight: 'bold'
                     }}>
-                      {promedio >= 3.5 ? 'APROBADO' : promedio >= 3.0 ? 'EN RIESGO' : 'REPROBADO'}
+                      {estadoAsignatura}
                     </div>
                   </div>
                 );
@@ -297,7 +321,7 @@ export default function ReporteAcademico() {
           </Card>
 
           {/* Tabla detallada de calificaciones */}
-          <Card title={`📊 Detalle de Calificaciones ${periodoSeleccionado !== 'todos' ? `- ${periodoSeleccionado}` : ''}` }>
+          <Card title={periodoSeleccionado === 'todos' ? '📊 Detalle de Calificaciones' : `📊 Detalle de Calificaciones - ${periodoSeleccionado}`}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
@@ -338,9 +362,17 @@ export default function ReporteAcademico() {
                 </thead>
                 <tbody>
                   {calificacionesFiltradas.map((cal) => {
-                    const nota = parseFloat(cal.nota) || 0;
-                    const estado = nota >= 3.5 ? 'Aprobado' : nota >= 3.0 ? 'En riesgo' : 'Reprobado';
-                    const colorEstado = nota >= 3.5 ? '#27ae60' : nota >= 3.0 ? '#f39c12' : '#e74c3c';
+                    const nota = Number.parseFloat(cal.nota) || 0;
+                    
+                    let estado = 'Reprobado';
+                    let colorEstado = '#e74c3c';
+                    if (nota >= 3.5) {
+                      estado = 'Aprobado';
+                      colorEstado = '#27ae60';
+                    } else if (nota >= 3) {
+                      estado = 'En riesgo';
+                      colorEstado = '#f39c12';
+                    }
                     
                     return (
                       <tr key={cal.id} style={{ borderBottom: '1px solid #eee' }}>
@@ -411,23 +443,23 @@ export default function ReporteAcademico() {
                 <div style={{ 
                   fontSize: '1.5rem', 
                   fontWeight: 'bold', 
-                  color: parseFloat(calcularPromedio()) >= 3.5 ? '#27ae60' : parseFloat(calcularPromedio()) >= 3.0 ? '#f39c12' : '#e74c3c'
+                  color: colorPromedioGeneral
                 }}>
                   {calcularPromedio()}
                 </div>
                 <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                  Promedio {periodoSeleccionado !== 'todos' ? periodoSeleccionado : 'General'}
+                  Promedio {periodoSeleccionado === 'todos' ? 'General' : periodoSeleccionado}
                 </div>
               </div>
               <div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#27ae60' }}>
-                  {calificacionesFiltradas.filter(c => parseFloat(c.nota) >= 3.5).length}
+                  {calificacionesFiltradas.filter(c => Number.parseFloat(c.nota) >= 3.5).length}
                 </div>
                 <div style={{ fontSize: '0.9rem', color: '#666' }}>Evaluaciones Aprobadas</div>
               </div>
               <div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#e74c3c' }}>
-                  {calificacionesFiltradas.filter(c => parseFloat(c.nota) < 3.0).length}
+                  {calificacionesFiltradas.filter(c => Number.parseFloat(c.nota) < 3).length}
                 </div>
                 <div style={{ fontSize: '0.9rem', color: '#666' }}>Evaluaciones Perdidas</div>
               </div>

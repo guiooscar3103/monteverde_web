@@ -33,5 +33,5 @@ def get_current_user():
     try:
         current_user_id = get_jwt_identity()
         return Usuario.query.get(current_user_id)
-    except:
+    except Exception:
         return None
