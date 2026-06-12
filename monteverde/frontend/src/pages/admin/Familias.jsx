@@ -55,6 +55,82 @@ const filterEstudiantes = (estudiantes, query, linkedIds) => {
   });
 };
 
+function StudentDropdown({
+  fam,
+  estudiantes,
+  searchQueries,
+  seleccionEstudiante,
+  setSeleccionEstudiante,
+  setSearchQueries,
+  setActiveDropdownFamId
+}) {
+  const linkedIds = fam.estudiantes?.map(e => e.id) || [];
+  const query = (searchQueries[fam.id] || '').toLowerCase().trim();
+  
+  const filtered = estudiantes.filter(est => {
+    if (linkedIds.includes(est.id)) return false;
+    if (!query) return true;
+    
+    const matchNombre = est.nombre?.toLowerCase().includes(query);
+    const matchCurso = est.curso_nombre?.toLowerCase().includes(query) || 
+                      (est.curso && `${est.curso.nivel}°${est.curso.letra}`.toLowerCase().includes(query));
+    const matchId = est.id?.toString().includes(query);
+    
+    return matchNombre || matchCurso || matchId;
+  });
+
+  if (filtered.length === 0) {
+    return (
+      <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: '#64748b', textAlign: 'center' }}>
+        😞 Sin coincidencias disponibles
+      </div>
+    );
+  }
+
+  const handleSelect = (est) => {
+    setSeleccionEstudiante({ ...seleccionEstudiante, [fam.id]: est.id });
+    setSearchQueries({ ...searchQueries, [fam.id]: est.nombre });
+    setActiveDropdownFamId(null);
+  };
+
+  const handleMouseEnter = (e) => {
+    e.currentTarget.style.backgroundColor = '#eff6ff';
+  };
+
+  const handleMouseLeave = (e) => {
+    e.currentTarget.style.backgroundColor = 'transparent';
+  };
+
+  return (
+    <>
+      {filtered.map((est) => (
+        <div
+          key={est.id}
+          onMouseDown={() => handleSelect(est)}
+          style={{
+            padding: '0.6rem 0.9rem',
+            fontSize: '0.85rem',
+            color: '#334155',
+            cursor: 'pointer',
+            borderBottom: '1px solid #f1f5f9',
+            transition: 'background 0.15s',
+            textAlign: 'left'
+          }}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div style={{ fontWeight: 700, color: '#1e293b' }}>
+            🧑‍🎓 {est.nombre}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+            Curso: {est.curso_nombre || 'Sin curso'} · ID: #{est.id}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 export default function Familias() {
   const [familias, setFamilias] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
@@ -497,58 +573,15 @@ export default function Familias() {
                       overflowY: 'auto',
                       marginBottom: '6px'
                     }}>
-                      {(() => {
-                        const linkedIds = fam.estudiantes?.map(e => e.id) || [];
-                        const query = (searchQueries[fam.id] || '').toLowerCase().trim();
-                        const filtered = estudiantes.filter(est => {
-                          // Excluir estudiantes ya vinculados a esta misma familia
-                          if (linkedIds.includes(est.id)) return false;
-                          if (!query) return true;
-                          
-                          const matchNombre = est.nombre?.toLowerCase().includes(query);
-                          const matchCurso = est.curso_nombre?.toLowerCase().includes(query) || (est.curso && `${est.curso.nivel}°${est.curso.letra}`.toLowerCase().includes(query));
-                          const matchId = est.id?.toString().includes(query);
-                          
-                          return matchNombre || matchCurso || matchId;
-                        });
-
-                        if (filtered.length === 0) {
-                          return (
-                            <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: '#64748b', textAlign: 'center' }}>
-                              😞 Sin coincidencias disponibles
-                            </div>
-                          );
-                        }
-
-                        return filtered.map((est) => (
-                          <div
-                            key={est.id}
-                            onMouseDown={() => {
-                              setSeleccionEstudiante({ ...seleccionEstudiante, [fam.id]: est.id });
-                              setSearchQueries({ ...searchQueries, [fam.id]: est.nombre });
-                              setActiveDropdownFamId(null);
-                            }}
-                            style={{
-                              padding: '0.6rem 0.9rem',
-                              fontSize: '0.85rem',
-                              color: '#334155',
-                              cursor: 'pointer',
-                              borderBottom: '1px solid #f1f5f9',
-                              transition: 'background 0.15s',
-                              textAlign: 'left'
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                          >
-                            <div style={{ fontWeight: 700, color: '#1e293b' }}>
-                              🧑‍🎓 {est.nombre}
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                              Curso: {est.curso_nombre || 'Sin curso'} · ID: #{est.id}
-                            </div>
-                          </div>
-                        ));
-                      })()}
+                      <StudentDropdown
+                        fam={fam}
+                        estudiantes={estudiantes}
+                        searchQueries={searchQueries}
+                        seleccionEstudiante={seleccionEstudiante}
+                        setSeleccionEstudiante={setSeleccionEstudiante}
+                        setSearchQueries={setSearchQueries}
+                        setActiveDropdownFamId={setActiveDropdownFamId}
+                      />
                     </div>
                   )}
                 </div>

@@ -72,6 +72,79 @@ const _validarNotaChange = (valor) => {
   return valor === '' || (!isNaN(valor) && valor >= 0 && valor <= 5);
 };
 
+const _buildColumnas = (handleNotaChange) => [
+  { 
+    key: 'nombre', 
+    label: 'Estudiante',
+    render: (valor, fila) => (
+      <div>
+        <strong>{valor}</strong>
+        <br />
+        <small style={{ color: '#666' }}>{fila.curso_nombre}</small>
+      </div>
+    )
+  },
+  {
+    key: 'nota',
+    label: 'Nota (0.0 - 5.0)',
+    render: (valor, fila) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <CampoNumero
+          value={valor}
+          onChange={(v) => handleNotaChange(fila.id, v)}
+          min={0}
+          max={5}
+          paso={0.1}
+        />
+        {valor !== '' && (
+          <span style={{ 
+            color: valor >= 3.0 ? '#28a745' : '#dc3545',
+            fontSize: '0.8rem',
+            fontWeight: 'bold'
+          }}>
+            {valor >= 3.0 ? '✅' : '❌'}
+          </span>
+        )}
+      </div>
+    )
+  }
+];
+
+function EstadisticasCalificaciones({ totalEstudiantes, estudiantesConNota, promedioGeneral }) {
+  return (
+    <BlurFade delay={0.18} duration={0.4}>
+      <Card>
+        <div className="grid grid-4" style={{ textAlign: 'center', gap: '1rem' }}>
+          <div>
+            <strong style={{ color: 'var(--brand)', fontSize: '1.5rem' }}>{totalEstudiantes}</strong>
+            <br />
+            <small>Total Estudiantes</small>
+          </div>
+          <div>
+            <strong style={{ color: '#007bff', fontSize: '1.5rem' }}>{estudiantesConNota}</strong>
+            <br />
+            <small>Con Calificación</small>
+          </div>
+          <div>
+            <strong style={{ color: estudiantesConNota > 0 ? '#28a745' : '#6c757d', fontSize: '1.5rem' }}>
+              {estudiantesConNota > 0 ? promedioGeneral : '--'}
+            </strong>
+            <br />
+            <small>Promedio General</small>
+          </div>
+          <div>
+            <strong style={{ color: '#ffc107', fontSize: '1.5rem' }}>
+              {totalEstudiantes > 0 ? Math.round((estudiantesConNota / totalEstudiantes) * 100) : 0}%
+            </strong>
+            <br />
+            <small>Progreso</small>
+          </div>
+        </div>
+      </Card>
+    </BlurFade>
+  );
+}
+
 export default function RegistroCalificaciones() {
   const [asignacionAcademica, setAsignacionAcademica] = useState([]);
   const [cursos, setCursos] = useState([]);
@@ -199,43 +272,7 @@ export default function RegistroCalificaciones() {
     }
   };
 
-  const columnas = [
-    { 
-      key: 'nombre', 
-      label: 'Estudiante',
-      render: (valor, fila) => (
-        <div>
-          <strong>{valor}</strong>
-          <br />
-          <small style={{ color: '#666' }}>{fila.curso_nombre}</small>
-        </div>
-      )
-    },
-    {
-      key: 'nota',
-      label: 'Nota (0.0 - 5.0)',
-      render: (valor, fila) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <CampoNumero
-            value={valor}
-            onChange={(v) => handleNotaChange(fila.id, v)}
-            min={0}
-            max={5}
-            paso={0.1}
-          />
-          {valor !== '' && (
-            <span style={{ 
-              color: valor >= 3.0 ? '#28a745' : '#dc3545',
-              fontSize: '0.8rem',
-              fontWeight: 'bold'
-            }}>
-              {valor >= 3.0 ? '✅' : '❌'}
-            </span>
-          )}
-        </div>
-      )
-    }
-  ];
+  const columnas = _buildColumnas(handleNotaChange);
 
   const cursoActual = cursos.find(c => c.id.toString() === cursoSeleccionado);
   const totalEstudiantes = calificaciones.length;
@@ -318,36 +355,11 @@ export default function RegistroCalificaciones() {
 
       {/* Estadísticas */}
       {calificaciones.length > 0 && !loading && (
-        <BlurFade delay={0.18} duration={0.4}>
-          <Card>
-            <div className="grid grid-4" style={{ textAlign: 'center', gap: '1rem' }}>
-              <div>
-                <strong style={{ color: 'var(--brand)', fontSize: '1.5rem' }}>{totalEstudiantes}</strong>
-                <br />
-                <small>Total Estudiantes</small>
-              </div>
-              <div>
-                <strong style={{ color: '#007bff', fontSize: '1.5rem' }}>{estudiantesConNota}</strong>
-                <br />
-                <small>Con Calificación</small>
-              </div>
-              <div>
-                <strong style={{ color: estudiantesConNota > 0 ? '#28a745' : '#6c757d', fontSize: '1.5rem' }}>
-                  {estudiantesConNota > 0 ? promedioGeneral : '--'}
-                </strong>
-                <br />
-                <small>Promedio General</small>
-              </div>
-              <div>
-                <strong style={{ color: '#ffc107', fontSize: '1.5rem' }}>
-                  {totalEstudiantes > 0 ? Math.round((estudiantesConNota / totalEstudiantes) * 100) : 0}%
-                </strong>
-                <br />
-                <small>Progreso</small>
-              </div>
-            </div>
-          </Card>
-        </BlurFade>
+        <EstadisticasCalificaciones 
+          totalEstudiantes={totalEstudiantes}
+          estudiantesConNota={estudiantesConNota}
+          promedioGeneral={promedioGeneral}
+        />
       )}
 
       {/* Tabla de calificaciones */}

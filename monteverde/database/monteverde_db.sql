@@ -91,28 +91,41 @@ CREATE TABLE `calificaciones` (
 -- Volcado de datos para la tabla `calificaciones`
 --
 
+SET @P1 = '2025-P1';
+SET @P2 = '2025-P2';
+
+SET @FECHA_REG_15 = '2025-10-15 05:00:00';
+SET @FECHA_REG_17 = '2025-10-17 05:00:00';
+
+SET @MAT = 'Matematicas';
+SET @LEN = 'Lenguaje';
+SET @CIE = 'Ciencias';
+SET @HIS = 'Historia';
+SET @ING = 'Ingles';
+SET @EDF = 'Educacion_Fisica';
+
 INSERT INTO `calificaciones` (`id`, `estudiante_id`, `asignatura`, `periodo`, `nota`, `fecha_registro`) VALUES
-(10, 3, 'Matematicas', '2025-P1', 4.30, '2025-10-15 05:00:00'),
-(11, 1, 'Matematicas', '2025-P1', 3.40, '2025-10-15 05:00:00'),
-(12, 2, 'Matematicas', '2025-P1', 4.60, '2025-10-15 05:00:00'),
-(13, 3, 'Lenguaje', '2025-P1', 4.00, '2025-10-15 05:00:00'),
-(14, 1, 'Lenguaje', '2025-P1', 3.90, '2025-10-15 05:00:00'),
-(15, 2, 'Lenguaje', '2025-P1', 4.60, '2025-10-15 05:00:00'),
-(16, 3, 'Ciencias', '2025-P1', 4.70, '2025-10-15 05:00:00'),
-(17, 1, 'Ciencias', '2025-P1', 3.60, '2025-10-15 05:00:00'),
-(18, 2, 'Ciencias', '2025-P1', 4.60, '2025-10-15 05:00:00'),
-(19, 3, 'Historia', '2025-P1', 4.50, '2025-10-15 05:00:00'),
-(20, 1, 'Historia', '2025-P1', 3.20, '2025-10-15 05:00:00'),
-(21, 2, 'Historia', '2025-P1', 4.00, '2025-10-15 05:00:00'),
-(22, 3, 'Ingles', '2025-P1', 3.20, '2025-10-15 05:00:00'),
-(23, 1, 'Ingles', '2025-P1', 3.40, '2025-10-15 05:00:00'),
-(24, 2, 'Ingles', '2025-P1', 5.00, '2025-10-15 05:00:00'),
-(25, 3, 'Educacion_Fisica', '2025-P1', 4.00, '2025-10-15 05:00:00'),
-(26, 1, 'Educacion_Fisica', '2025-P1', 4.00, '2025-10-15 05:00:00'),
-(27, 2, 'Educacion_Fisica', '2025-P1', 5.00, '2025-10-15 05:00:00'),
-(28, 3, 'Matematicas', '2025-P2', 3.30, '2025-10-17 05:00:00'),
-(29, 1, 'Matematicas', '2025-P2', 4.00, '2025-10-17 05:00:00'),
-(30, 2, 'Matematicas', '2025-P2', 4.60, '2025-10-17 05:00:00');
+(10, 3, @MAT, @P1, 4.30, @FECHA_REG_15),
+(11, 1, @MAT, @P1, 3.40, @FECHA_REG_15),
+(12, 2, @MAT, @P1, 4.60, @FECHA_REG_15),
+(13, 3, @LEN, @P1, 4.00, @FECHA_REG_15),
+(14, 1, @LEN, @P1, 3.90, @FECHA_REG_15),
+(15, 2, @LEN, @P1, 4.60, @FECHA_REG_15),
+(16, 3, @CIE, @P1, 4.70, @FECHA_REG_15),
+(17, 1, @CIE, @P1, 3.60, @FECHA_REG_15),
+(18, 2, @CIE, @P1, 4.60, @FECHA_REG_15),
+(19, 3, @HIS, @P1, 4.50, @FECHA_REG_15),
+(20, 1, @HIS, @P1, 3.20, @FECHA_REG_15),
+(21, 2, @HIS, @P1, 4.00, @FECHA_REG_15),
+(22, 3, @ING, @P1, 3.20, @FECHA_REG_15),
+(23, 1, @ING, @P1, 3.40, @FECHA_REG_15),
+(24, 2, @ING, @P1, 5.00, @FECHA_REG_15),
+(25, 3, @EDF, @P1, 4.00, @FECHA_REG_15),
+(26, 1, @EDF, @P1, 4.00, @FECHA_REG_15),
+(27, 2, @EDF, @P1, 5.00, @FECHA_REG_15),
+(28, 3, @MAT, @P2, 3.30, @FECHA_REG_17),
+(29, 1, @MAT, @P2, 4.00, @FECHA_REG_17),
+(30, 2, @MAT, @P2, 4.60, @FECHA_REG_17);
 
 -- --------------------------------------------------------
 
@@ -210,12 +223,15 @@ CREATE TABLE `observaciones` (
 -- Volcado de datos para la tabla `observaciones`
 --
 
+SET @POSITIVA = 'POSITIVA';
+SET @NEUTRAL = 'NEUTRAL';
+
 INSERT INTO `observaciones` (`id`, `estudiante_id`, `docente_id`, `fecha`, `tipo`, `detalle`) VALUES
-(1, 1, 2, '2025-10-10', 'POSITIVA', 'Santiago mostró excelente participación en matemáticas.'),
-(2, 1, 2, '2025-10-12', 'POSITIVA', 'Ayudó a sus compañeros durante el trabajo grupal.'),
-(3, 2, 2, '2025-10-11', 'NEUTRAL', 'Valentina necesita mejorar su atención en clase.'),
-(4, 3, 2, '2025-10-08', 'POSITIVA', 'Matías demostró liderazgo en el proyecto de ciencias.'),
-(5, 5, 2, '2025-10-09', 'POSITIVA', 'Lucas mejoró notablemente en lectura.');
+(1, 1, 2, '2025-10-10', @POSITIVA, 'Santiago mostró excelente participación en matemáticas.'),
+(2, 1, 2, '2025-10-12', @POSITIVA, 'Ayudó a sus compañeros durante el trabajo grupal.'),
+(3, 2, 2, '2025-10-11', @NEUTRAL, 'Valentina necesita mejorar su atención en clase.'),
+(4, 3, 2, '2025-10-08', @POSITIVA, 'Matías demostró liderazgo en el proyecto de ciencias.'),
+(5, 5, 2, '2025-10-09', @POSITIVA, 'Lucas mejoró notablemente en lectura.');
 
 -- --------------------------------------------------------
 

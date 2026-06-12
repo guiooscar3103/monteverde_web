@@ -10,6 +10,12 @@ class Curso(db.Model):
     letra = db.Column(db.String(10), nullable=False)
     descripcion = db.Column(db.String(255), nullable=True)
     
+    def __init__(self, nombre, nivel, letra, descripcion=None):
+        self.nombre = nombre
+        self.nivel = nivel
+        self.letra = letra
+        self.descripcion = descripcion
+
     def __repr__(self):
         return f'<Curso {self.nombre}>'
     
