@@ -38,27 +38,39 @@ CREATE TABLE `asistencia` (
 -- Volcado de datos para la tabla `asistencia`
 --
 
+SET @PRESENTE = 'PRESENTE';
+SET @TARDE = 'TARDE';
+SET @AUSENTE = 'AUSENTE';
+SET @JUSTIFICADO = 'JUSTIFICADO';
+
+SET @FECHA_12 = '2025-10-12';
+SET @FECHA_13 = '2025-10-13';
+SET @FECHA_14 = '2025-10-14';
+SET @FECHA_15 = '2025-10-15';
+SET @FECHA_16 = '2025-10-16';
+SET @FECHA_17 = '2025-10-17';
+
 INSERT INTO `asistencia` (`id`, `estudiante_id`, `fecha`, `estado`) VALUES
-(1, 1, '2025-10-14', 'PRESENTE'),
-(2, 1, '2025-10-13', 'PRESENTE'),
-(3, 1, '2025-10-12', 'PRESENTE'),
-(4, 2, '2025-10-14', 'TARDE'),
-(5, 2, '2025-10-13', 'PRESENTE'),
-(6, 2, '2025-10-12', 'AUSENTE'),
-(7, 3, '2025-10-14', 'PRESENTE'),
-(8, 3, '2025-10-13', 'JUSTIFICADO'),
-(9, 3, '2025-10-12', 'PRESENTE'),
-(10, 5, '2025-10-14', 'PRESENTE'),
-(11, 5, '2025-10-13', 'PRESENTE'),
-(12, 3, '2025-10-15', 'TARDE'),
-(13, 1, '2025-10-15', 'PRESENTE'),
-(14, 2, '2025-10-15', 'PRESENTE'),
-(15, 3, '2025-10-16', 'TARDE'),
-(16, 1, '2025-10-16', 'PRESENTE'),
-(17, 2, '2025-10-16', 'PRESENTE'),
-(18, 3, '2025-10-17', 'PRESENTE'),
-(19, 1, '2025-10-17', 'TARDE'),
-(20, 2, '2025-10-17', 'PRESENTE');
+(1, 1, @FECHA_14, @PRESENTE),
+(2, 1, @FECHA_13, @PRESENTE),
+(3, 1, @FECHA_12, @PRESENTE),
+(4, 2, @FECHA_14, @TARDE),
+(5, 2, @FECHA_13, @PRESENTE),
+(6, 2, @FECHA_12, @AUSENTE),
+(7, 3, @FECHA_14, @PRESENTE),
+(8, 3, @FECHA_13, @JUSTIFICADO),
+(9, 3, @FECHA_12, @PRESENTE),
+(10, 5, @FECHA_14, @PRESENTE),
+(11, 5, @FECHA_13, @PRESENTE),
+(12, 3, @FECHA_15, @TARDE),
+(13, 1, @FECHA_15, @PRESENTE),
+(14, 2, @FECHA_15, @PRESENTE),
+(15, 3, @FECHA_16, @TARDE),
+(16, 1, @FECHA_16, @PRESENTE),
+(17, 2, @FECHA_16, @PRESENTE),
+(18, 3, @FECHA_17, @PRESENTE),
+(19, 1, @FECHA_17, @TARDE),
+(20, 2, @FECHA_17, @PRESENTE);
 
 -- --------------------------------------------------------
 

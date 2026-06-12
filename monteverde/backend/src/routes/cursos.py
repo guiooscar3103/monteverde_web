@@ -136,6 +136,37 @@ def create_curso():
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Error al crear curso', 'error': str(e)}), 500
 
+def _update_curso_grado_fields(curso, data):
+    """Auxiliar para actualizar el grado, nivel y letra del curso"""
+    if not any(k in data for k in ('grado', 'nivel', 'letra')):
+        return
+
+    nivel = data.get('nivel')
+    letra = data.get('letra')
+    grado = data.get('grado')
+
+    if grado and (not nivel or not letra):
+        parsed_nivel, parsed_letra = Curso.parse_grado(grado)
+        nivel = nivel or parsed_nivel
+        letra = letra or parsed_letra
+
+    if nivel is not None:
+        curso.nivel = nivel
+    if letra is not None:
+        curso.letra = letra
+
+
+def _update_curso_fields(curso, data):
+    """Auxiliar para actualizar los campos de un curso a partir de los datos provistos"""
+    if 'nombre' in data or 'nombre_curso' in data:
+        curso.nombre = data.get('nombre') or data.get('nombre_curso')
+
+    if 'descripcion' in data:
+        curso.descripcion = data.get('descripcion')
+
+    _update_curso_grado_fields(curso, data)
+
+
 @cursos_bp.route('/<int:curso_id>', methods=['PUT'])
 @role_required('admin')
 def update_curso(curso_id):
@@ -144,26 +175,7 @@ def update_curso(curso_id):
         curso = Curso.query.get_or_404(curso_id)
         data = request.get_json() or {}
 
-        if 'nombre' in data or 'nombre_curso' in data:
-            curso.nombre = data.get('nombre') or data.get('nombre_curso')
-
-        if 'descripcion' in data:
-            curso.descripcion = data.get('descripcion')
-
-        if 'grado' in data or 'nivel' in data or 'letra' in data:
-            nivel = data.get('nivel')
-            letra = data.get('letra')
-            grado = data.get('grado')
-
-            if grado and (not nivel or not letra):
-                parsed_nivel, parsed_letra = Curso.parse_grado(grado)
-                nivel = nivel or parsed_nivel
-                letra = letra or parsed_letra
-
-            if nivel is not None:
-                curso.nivel = nivel
-            if letra is not None:
-                curso.letra = letra
+        _update_curso_fields(curso, data)
 
         db.session.commit()
         

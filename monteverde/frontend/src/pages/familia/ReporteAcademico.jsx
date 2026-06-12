@@ -112,11 +112,6 @@ export default function ReporteAcademico() {
     setCalificacionesFiltradas(_filtrarCalificacionesPorPeriodo(calificaciones, periodoSeleccionado));
   }, [periodoSeleccionado, calificaciones]);
 
-  const primerHijo = dashboardData?.hijos?.[selectedHijoIndex];
-  const estadisticasAsignaturas = _obtenerEstadisticasPorAsignatura(calificacionesFiltradas);
-  const promedioGeneral = parseFloat(_calcularPromedio(calificacionesFiltradas));
-  const colorPromedioGeneral = _obtenerColorPromedio(promedioGeneral);
-
   if (loading) {
     return (
       <div className="grid">
@@ -155,6 +150,7 @@ export default function ReporteAcademico() {
             </button>
           </div>
         </Card>
+      </div>
     );
   }
 

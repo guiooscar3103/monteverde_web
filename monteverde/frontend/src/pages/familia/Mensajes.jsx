@@ -103,6 +103,9 @@ export default function FamiliaMensajes() {
   };
 
   const filtrarDocentes = (lista) => _filtrarDocentes(lista, filtro, conversaciones);
+
+  const abrirConversacion = async (contacto) => {
+    setContactoSeleccionado(contacto);
     setAsunto('');
     try {
       const mensajes = await getConversacion(usuario.id, contacto.id);

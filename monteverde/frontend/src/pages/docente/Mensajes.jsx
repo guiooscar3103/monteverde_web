@@ -98,6 +98,12 @@ export default function MensajesDocente() {
   };
 
   const filtrarContactos = (lista) => _filterContactos(lista, filtro, conversaciones);
+
+  const abrirConversacion = async (contacto) => {
+    setContactoSeleccionado(contacto);
+    setAsunto('');
+    try {
+      const mensajes = await getConversacion(usuario.id, contacto.id);
       setConversacionActual(mensajes);
       // Marcar como leídos
       const mensajesNoLeidos = mensajes.filter(m => m.receptorId == usuario.id && !m.leido);
