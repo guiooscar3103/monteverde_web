@@ -11,6 +11,51 @@ import {
   getTodosLosEstudiantes 
 } from '../../services/api';
 
+// Funciones helper
+const _parseApiResponse = (res, defaultMessage) => {
+  let success = false, message = '';
+  if (res?.success !== undefined) {
+    success = res.success;
+    message = res.message || defaultMessage;
+  } else if (res?.id) {
+    success = true;
+    message = defaultMessage;
+  }
+  return { success, message };
+};
+
+const _validarFormularioUsuario = (nombre, email, password, editandoId) => {
+  if (!nombre || !email) return false;
+  if (editandoId === null && !password) return false;
+  return true;
+};
+
+const _construirPayloadUsuario = (nombre, email, password, rolForm, estudianteId, activoForm) => {
+  const payload = {
+    nombre,
+    email,
+    rol: rolForm,
+    estudiante_id: rolForm === 'familia' && estudianteId ? parseInt(estudianteId) : null,
+    activo: activoForm
+  };
+  if (password) payload.password = password;
+  return payload;
+};
+
+const _resetFormularioUsuario = (setNombre, setEmail, setPassword, setRolForm, setEstudianteId, setActivoForm) => {
+  setNombre('');
+  setEmail('');
+  setPassword('');
+  setRolForm('familia');
+  setEstudianteId('');
+  setActivoForm(true);
+};
+
+const _mostrarMensajeConTimeout = (setter, mensaje, timeout = 3000) => {
+  setter(mensaje);
+  setTimeout(() => setter(''), timeout);
+};
+
 export default function Usuarios() {
   const queryClient = useQueryClient();
 
@@ -33,7 +78,7 @@ export default function Usuarios() {
 
   // Estados para el control del modal de creación y edición
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [editandoId, setEditandoId] = useState(null); // Un valor null indica creación de un nuevo usuario
+  const [editandoId, setEditandoId] = useState(null);
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -101,15 +146,12 @@ export default function Usuarios() {
       const nuevoEstado = !activoActual;
       const res = await cambiarEstadoUsuario(id, nuevoEstado);
       if (res.success) {
-        setSuccessMsg(res.message || 'Estado actualizado con éxito');
+        _mostrarMensajeConTimeout(setSuccessMsg, res.message || 'Estado actualizado con éxito');
         queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
-        // Actualizar el estado localmente para evitar una petición de recarga completa
         setUsuarios(usuarios.map(u => u.id === id ? { ...u, activo: nuevoEstado } : u));
-        setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch (error) {
-      setErrorMsg('Error al cambiar el estado del usuario.');
-      setTimeout(() => setErrorMsg(''), 3000);
+      _mostrarMensajeConTimeout(setErrorMsg, 'Error al cambiar el estado del usuario.');
     }
   };
 
@@ -120,14 +162,12 @@ export default function Usuarios() {
     try {
       const res = await eliminarUsuario(id);
       if (res.success) {
-        setSuccessMsg(res.message || 'Usuario eliminado lógicamente');
+        _mostrarMensajeConTimeout(setSuccessMsg, res.message || 'Usuario eliminado lógicamente');
         queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
         cargarUsuarios();
-        setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch (error) {
-      setErrorMsg(error.message || 'Error al eliminar usuario.');
-      setTimeout(() => setErrorMsg(''), 3000);
+      _mostrarMensajeConTimeout(setErrorMsg, error.message || 'Error al eliminar usuario.');
     }
   };
 
@@ -135,25 +175,18 @@ export default function Usuarios() {
     try {
       const res = await restaurarUsuario(id);
       if (res.success) {
-        setSuccessMsg(res.message || 'Usuario restaurado exitosamente');
+        _mostrarMensajeConTimeout(setSuccessMsg, res.message || 'Usuario restaurado exitosamente');
         queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
         cargarUsuarios();
-        setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch (error) {
-      setErrorMsg(error.message || 'Error al restaurar usuario.');
-      setTimeout(() => setErrorMsg(''), 3000);
+      _mostrarMensajeConTimeout(setErrorMsg, error.message || 'Error al restaurar usuario.');
     }
   };
 
   const abrirModalCrear = () => {
     setEditandoId(null);
-    setNombre('');
-    setEmail('');
-    setPassword('');
-    setRolForm('familia');
-    setEstudianteId('');
-    setActivoForm(true);
+    _resetFormularioUsuario(setNombre, setEmail, setPassword, setRolForm, setEstudianteId, setActivoForm);
     setModalAbierto(true);
   };
 
@@ -178,53 +211,25 @@ export default function Usuarios() {
     e.preventDefault();
     setErrorMsg('');
     
-    if (!nombre || !email || (editandoId === null && !password)) {
+    if (!_validarFormularioUsuario(nombre, email, password, editandoId)) {
       setErrorMsg('Por favor completa todos los campos obligatorios.');
       return;
     }
 
-    const payload = {
-      nombre,
-      email,
-      rol: rolForm,
-      estudiante_id: rolForm === 'familia' && estudianteId !== '' ? parseInt(estudianteId) : null,
-      activo: activoForm
-    };
-
-    if (password) {
-      payload.password = password;
-    }
+    const payload = _construirPayloadUsuario(nombre, email, password, rolForm, estudianteId, activoForm);
 
     try {
-      let res;
-      if (editandoId === null) {
-        // Create
-        res = await crearUsuario(payload);
-      } else {
-        // Edit
-        res = await actualizarUsuario(editandoId, payload);
-      }
+      const res = editandoId === null 
+        ? await crearUsuario(payload)
+        : await actualizarUsuario(editandoId, payload);
 
-      // Compatibilidad: la API a veces devuelve el objeto completo { success, message, data }
-      // y otras veces devuelve directamente el objeto creado (sin success). Soportamos ambos.
-      let success = false;
-      let message = '';
-      if (res) {
-        if (typeof res === 'object' && Object.prototype.hasOwnProperty.call(res, 'success')) {
-          success = res.success;
-          message = res.message;
-        } else if (typeof res === 'object' && Object.prototype.hasOwnProperty.call(res, 'id')) {
-          success = true;
-          message = 'Usuario creado exitosamente';
-        }
-      }
+      const { success, message } = _parseApiResponse(res, 'Operación realizada con éxito');
 
       if (success) {
-        setSuccessMsg(message || 'Operación realizada con éxito');
+        _mostrarMensajeConTimeout(setSuccessMsg, message || 'Operación realizada con éxito');
         setModalAbierto(false);
         queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
         cargarUsuarios();
-        setTimeout(() => setSuccessMsg(''), 3000);
       } else {
         setErrorMsg(message || 'Hubo un problema al guardar el usuario.');
       }
@@ -242,13 +247,11 @@ export default function Usuarios() {
 
     try {
       const res = await restablecerPasswordUsuario(passwordResetId, nuevoPassword);
-      const success = res && (typeof res.success !== 'undefined' ? res.success : true);
-      const message = res && res.message ? res.message : 'Contraseña restablecida exitosamente';
+      const { success, message } = _parseApiResponse(res, 'Contraseña restablecida exitosamente');
 
       if (success) {
-        setSuccessMsg(message);
+        _mostrarMensajeConTimeout(setSuccessMsg, message);
         setModalPasswordAbierto(false);
-        setTimeout(() => setSuccessMsg(''), 3000);
       } else {
         setErrorMsg(message || 'No se pudo restablecer la contraseña.');
       }

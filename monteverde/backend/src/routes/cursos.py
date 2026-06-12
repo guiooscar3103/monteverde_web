@@ -7,6 +7,31 @@ from src.utils.auth_helpers import role_required, get_current_user
 
 cursos_bp = Blueprint('cursos', __name__)
 
+def _get_curso_ids_for_docente(docente_id):
+    """Obtener IDs de cursos asignados a un docente"""
+    from src.models.docente_asignacion import DocenteAsignacion
+    from src.models.docente_curso import DocenteCurso
+    
+    curso_ids = set()
+    
+    asignaciones = DocenteAsignacion.query.filter_by(docente_id=docente_id).all()
+    for a in asignaciones:
+        curso_ids.add(a.curso_id)
+    
+    legacy_asignaciones = DocenteCurso.query.filter_by(docente_id=docente_id).all()
+    for la in legacy_asignaciones:
+        curso_ids.add(la.curso_id)
+    
+    return curso_ids
+
+def _apply_docente_filter(query, current_user):
+    """Aplicar filtro de docente a la query si corresponde"""
+    if current_user and current_user.rol == 'docente':
+        curso_ids = _get_curso_ids_for_docente(current_user.id)
+        if curso_ids:
+            query = query.filter(Curso.id.in_(list(curso_ids)))
+    return query
+
 @cursos_bp.route('', methods=['GET'], strict_slashes=False)
 @cursos_bp.route('/', methods=['GET'], strict_slashes=False)
 @jwt_required(optional=True)
@@ -14,22 +39,8 @@ def list_cursos():
     """Listar todos los cursos (o filtrados por docente)"""
     try:
         current_user = get_current_user()
-        
         query = Curso.query
-        
-        # Si el usuario es docente, filtrar solo sus cursos asignados
-        if current_user and current_user.rol == 'docente':
-            from src.models.docente_asignacion import DocenteAsignacion
-            from src.models.docente_curso import DocenteCurso
-            
-            asignaciones = DocenteAsignacion.query.filter_by(docente_id=current_user.id).all()
-            curso_ids = {a.curso_id for a in asignaciones}
-            
-            legacy_asignaciones = DocenteCurso.query.filter_by(docente_id=current_user.id).all()
-            for la in legacy_asignaciones:
-                curso_ids.add(la.curso_id)
-                
-            query = query.filter(Curso.id.in_(list(curso_ids)))
+        query = _apply_docente_filter(query, current_user)
 
         page = request.args.get('page', type=int)
         per_page = request.args.get('per_page', type=int)

@@ -7,6 +7,71 @@ import BarraTitulo from '../../components/BarraTitulo';
 import BlurFade from '../../components/BlurFade';
 import { getMyCoursesAndSubjects, getEstudiantesPorCurso, getCalificacionesPor, guardarCalificaciones } from '../../services/api';
 
+// Constantes y funciones helper
+const PERIODOS = [
+  { value: '2025-P1', label: '2025 - Primer Período' },
+  { value: '2025-P2', label: '2025 - Segundo Período' },
+  { value: '2025-P3', label: '2025 - Tercer Período' },
+  { value: '2025-P4', label: '2025 - Cuarto Período' }
+];
+
+const MATERIA_MAP = {
+  'Matemáticas': 'Matematicas',
+  'Lenguaje': 'Lenguaje',
+  'Ciencias Naturales': 'Ciencias',
+  'Ciencias Sociales': 'Historia',
+  'Inglés': 'Ingles',
+  'Educación Física': 'Educacion_Fisica'
+};
+
+const mapMateriaALegacy = (materiaNombre) => MATERIA_MAP[materiaNombre] || materiaNombre;
+
+const _procesarAsignacionesAcademicas = (data) => {
+  return data.map(item => ({
+    id: item.curso_id,
+    nombre: item.curso_nombre,
+    nivel: item.curso_nivel,
+    letra: item.curso_letra
+  }));
+};
+
+const _obtenerAsignaturasDelCurso = (cursoSeleccionado, asignacionAcademica) => {
+  const cursoAsig = asignacionAcademica.find(c => c.curso_id.toString() === cursoSeleccionado);
+  if (!cursoAsig?.materias) return [];
+  return cursoAsig.materias.map(m => ({
+    value: mapMateriaALegacy(m.materia_nombre),
+    label: m.materia_nombre
+  }));
+};
+
+const _combinarEstudiantesConCalificaciones = (estudiantes, califs) => {
+  const califMap = {};
+  califs.forEach(c => {
+    califMap[c.estudiante_id] = c;
+  });
+  
+  return estudiantes.map(e => ({
+    ...e,
+    nota: califMap[e.id]?.nota || '',
+    calificacion_id: califMap[e.id]?.id || null
+  }));
+};
+
+const _crearCalificacionesParaGuardar = (calificaciones, asignaturaSeleccionada, periodoSeleccionado) => {
+  return calificaciones
+    .filter(est => est.nota !== '' && est.nota >= 0 && est.nota <= 5)
+    .map(est => ({
+      estudianteId: est.id,
+      asignatura: asignaturaSeleccionada,
+      periodo: periodoSeleccionado,
+      nota: parseFloat(est.nota)
+    }));
+};
+
+const _validarNotaChange = (valor) => {
+  return valor === '' || (!isNaN(valor) && valor >= 0 && valor <= 5);
+};
+
 export default function RegistroCalificaciones() {
   const [asignacionAcademica, setAsignacionAcademica] = useState([]);
   const [cursos, setCursos] = useState([]);
@@ -17,27 +82,7 @@ export default function RegistroCalificaciones() {
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('2025-P3');
   const [loading, setLoading] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState(''); // ← Nuevo estado para mensajes
-
-  const periodos = [
-    { value: '2025-P1', label: '2025 - Primer Período' },
-    { value: '2025-P2', label: '2025 - Segundo Período' },
-    { value: '2025-P3', label: '2025 - Tercer Período' },
-    { value: '2025-P4', label: '2025 - Cuarto Período' }
-  ];
-
-  // Mapear materias limpias a strings legacy esperados por la base de datos de calificaciones
-  const mapMateriaALegacy = (materiaNombre) => {
-    const map = {
-      'Matemáticas': 'Matematicas',
-      'Lenguaje': 'Lenguaje',
-      'Ciencias Naturales': 'Ciencias',
-      'Ciencias Sociales': 'Historia',
-      'Inglés': 'Ingles',
-      'Educación Física': 'Educacion_Fisica'
-    };
-    return map[materiaNombre] || materiaNombre;
-  };
+  const [mensaje, setMensaje] = useState('');
 
   // Cargar carga académica al montar
   useEffect(() => {
@@ -47,13 +92,7 @@ export default function RegistroCalificaciones() {
         console.log('Carga académica cargada:', data);
         setAsignacionAcademica(data);
         
-        const cursosMapeados = data.map(item => ({
-          id: item.curso_id,
-          nombre: item.curso_nombre,
-          nivel: item.curso_nivel,
-          letra: item.curso_letra
-        }));
-        
+        const cursosMapeados = _procesarAsignacionesAcademicas(data);
         setCursos(cursosMapeados);
         if (data.length > 0) {
           setCursoSeleccionado(data[0].curso_id.toString());
@@ -70,24 +109,13 @@ export default function RegistroCalificaciones() {
   useEffect(() => {
     if (!cursoSeleccionado || asignacionAcademica.length === 0) return;
     
-    const cursoAsig = asignacionAcademica.find(c => c.curso_id.toString() === cursoSeleccionado);
-    if (cursoAsig && cursoAsig.materias) {
-      const asignaturasMapeadas = cursoAsig.materias.map(m => ({
-        value: mapMateriaALegacy(m.materia_nombre),
-        label: m.materia_nombre
-      }));
-      
-      setAsignaturas(asignaturasMapeadas);
-      
-      if (asignaturasMapeadas.length > 0) {
-        // Seleccionar la primera asignatura si la actual no está en la nueva lista
-        const existeActual = asignaturasMapeadas.some(a => a.value === asignaturaSeleccionada);
-        if (!existeActual) {
-          setAsignaturaSeleccionada(asignaturasMapeadas[0].value);
-        }
-      } else {
-        setAsignaturas([]);
-        setAsignaturaSeleccionada('');
+    const asignaturasMapeadas = _obtenerAsignaturasDelCurso(cursoSeleccionado, asignacionAcademica);
+    setAsignaturas(asignaturasMapeadas);
+    
+    if (asignaturasMapeadas.length > 0) {
+      const existeActual = asignaturasMapeadas.some(a => a.value === asignaturaSeleccionada);
+      if (!existeActual) {
+        setAsignaturaSeleccionada(asignaturasMapeadas[0].value);
       }
     } else {
       setAsignaturas([]);
@@ -100,16 +128,14 @@ export default function RegistroCalificaciones() {
     if (!cursoSeleccionado || !asignaturaSeleccionada) return;
     
     setLoading(true);
-    setMensaje(''); // Limpiar mensajes anteriores
+    setMensaje('');
     
     try {
       console.log('Cargando estudiantes y calificaciones...');
       
-      // Obtenemos los estudiantes del curso
       const estudiantes = await getEstudiantesPorCurso(parseInt(cursoSeleccionado));
       console.log('Estudiantes del curso:', estudiantes);
 
-      // Obtenemos las calificaciones existentes
       const califs = await getCalificacionesPor({
         cursoId: parseInt(cursoSeleccionado),
         asignatura: asignaturaSeleccionada,
@@ -117,19 +143,7 @@ export default function RegistroCalificaciones() {
       });
       console.log('Calificaciones encontradas:', califs);
 
-      // Crear un mapa de calificaciones por estudianteId
-      const califMap = {};
-      califs.forEach(c => {
-        califMap[c.estudiante_id] = c;
-      });
-
-      // Combinar estudiantes con sus calificaciones
-      const estudiantesConCalif = estudiantes.map(e => ({
-        ...e,
-        nota: califMap[e.id]?.nota || '',
-        calificacion_id: califMap[e.id]?.id || null
-      }));
-
+      const estudiantesConCalif = _combinarEstudiantesConCalificaciones(estudiantes, califs);
       console.log('Estudiantes con calificaciones:', estudiantesConCalif);
       setCalificaciones(estudiantesConCalif);
     } catch (error) {
@@ -146,10 +160,7 @@ export default function RegistroCalificaciones() {
   }, [cursoSeleccionado, asignaturaSeleccionada, periodoSeleccionado]);
 
   const handleNotaChange = (estudianteId, valor) => {
-    // Validar que la nota esté en el rango correcto
-    if (valor !== '' && (isNaN(valor) || valor < 0 || valor > 5)) {
-      return;
-    }
+    if (!_validarNotaChange(valor)) return;
     
     setCalificaciones(prev =>
       prev.map(est =>
@@ -160,17 +171,10 @@ export default function RegistroCalificaciones() {
 
   const handleGuardar = async () => {
     setGuardando(true);
-    setMensaje(''); // Limpiar mensajes anteriores
+    setMensaje('');
     
     try {
-      const nuevas = calificaciones
-        .filter(est => est.nota !== '' && est.nota >= 0 && est.nota <= 5)
-        .map(est => ({
-          estudianteId: est.id,
-          asignatura: asignaturaSeleccionada,
-          periodo: periodoSeleccionado,
-          nota: parseFloat(est.nota)
-        }));
+      const nuevas = _crearCalificacionesParaGuardar(calificaciones, asignaturaSeleccionada, periodoSeleccionado);
 
       if (nuevas.length === 0) {
         setMensaje('⚠️ No hay calificaciones válidas para guardar');
@@ -180,13 +184,11 @@ export default function RegistroCalificaciones() {
       console.log('Guardando calificaciones:', nuevas);
       await guardarCalificaciones(nuevas);
       
-      // ✅ Mostrar mensaje de éxito SIN recargar
       setMensaje('✅ Calificaciones guardadas correctamente');
       
-      // ✅ Recargar SOLO los datos, no toda la página
       setTimeout(() => {
         cargarEstudiantesYCalif();
-        setMensaje(''); // Limpiar mensaje después de recargar datos
+        setMensaje('');
       }, 1500);
       
     } catch (error) {
@@ -308,7 +310,7 @@ export default function RegistroCalificaciones() {
                 console.log('Periodo seleccionado:', valor);
                 setPeriodoSeleccionado(valor);
               }}
-              options={periodos}
+              options={PERIODOS}
             />
           </div>
         </Card>

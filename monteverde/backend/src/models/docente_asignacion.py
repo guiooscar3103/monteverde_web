@@ -1,5 +1,7 @@
 from src.extensions import db
 
+CASCADE_BEHAVIOR = 'all, delete-orphan'
+
 class DocenteAsignacion(db.Model):
     __tablename__ = 'docente_asignacion'
 
@@ -14,15 +16,15 @@ class DocenteAsignacion(db.Model):
 
     docente = db.relationship(
         'Usuario',
-        backref=db.backref('asignaciones_academicas', lazy=True, cascade='all, delete-orphan')
+        backref=db.backref('asignaciones_academicas', lazy=True, cascade=CASCADE_BEHAVIOR)
     )
     curso = db.relationship(
         'Curso',
-        backref=db.backref('docente_asignaciones', lazy=True, cascade='all, delete-orphan')
+        backref=db.backref('docente_asignaciones', lazy=True, cascade=CASCADE_BEHAVIOR)
     )
     materia = db.relationship(
         'Materia',
-        backref=db.backref('docente_asignaciones', lazy=True, cascade='all, delete-orphan')
+        backref=db.backref('docente_asignaciones', lazy=True, cascade=CASCADE_BEHAVIOR)
     )
 
     @property

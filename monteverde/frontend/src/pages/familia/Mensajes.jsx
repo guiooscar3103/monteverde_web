@@ -11,6 +11,58 @@ import {
   getUsuarioPorId
 } from '../../services/api';
 
+// Funciones helper para reducir complejidad
+const _crearMapaConversaciones = (mensajes, usuarioId) => {
+  const map = {};
+  for (const msg of mensajes) {
+    const contactoId = msg.emisor_id === usuarioId ? msg.receptor_id : msg.emisor_id;
+    if (!map[contactoId]) {
+      map[contactoId] = { ultimoMensaje: msg, noLeidos: 0 };
+    }
+    if (msg.receptor_id === usuarioId && !msg.leido) {
+      map[contactoId].noLeidos++;
+    }
+    const fechaActual = new Date(msg.fecha);
+    const fechaUltimo = new Date(map[contactoId].ultimoMensaje.fecha);
+    if (fechaActual > fechaUltimo) {
+      map[contactoId].ultimoMensaje = msg;
+    }
+  }
+  return map;
+};
+
+const _agregarContactosAlMapa = async (mapa, docentes, usuarioId) => {
+  for (const contactoId of Object.keys(mapa)) {
+    try {
+      const contacto = await getUsuarioPorId(parseInt(contactoId));
+      if (contacto.rol === 'docente') {
+        mapa[contactoId].contacto = contacto;
+      }
+    } catch (e) {
+      delete mapa[contactoId];
+    }
+  }
+  return mapa;
+};
+
+const _formatearConversaciones = (mapa) => {
+  return Object.values(mapa)
+    .filter(c => c.contacto)
+    .sort((a, b) => new Date(b.ultimoMensaje.fecha) - new Date(a.ultimoMensaje.fecha));
+};
+
+const _filtrarDocentes = (lista, filtro, conversaciones) => {
+  if (!filtro.trim()) return lista;
+  const q = filtro.trim().toLowerCase();
+  return lista.filter(docente => {
+    if (docente.nombre?.toLowerCase().includes(q) || docente.email?.toLowerCase().includes(q)) return true;
+    const conv = conversaciones.find(c => c.contacto.id === docente.id);
+    if (conv?.ultimoMensaje?.asunto?.toLowerCase().includes(q)) return true;
+    if (conv?.ultimoMensaje?.cuerpo?.toLowerCase().includes(q)) return true;
+    return false;
+  });
+};
+
 export default function FamiliaMensajes() {
   const { usuario } = useAuth();
   const [conversaciones, setConversaciones] = useState([]);
@@ -44,60 +96,13 @@ export default function FamiliaMensajes() {
   }, [usuario]);
 
   const procesarConversaciones = async (mensajes) => {
-    const conversacionesMap = {};
-    for (const mensajeItem of mensajes) {
-      const contactoId = mensajeItem.emisor_id == usuario.id ? mensajeItem.receptor_id : mensajeItem.emisor_id;
-      if (!conversacionesMap[contactoId]) {
-        try {
-          const contacto = await getUsuarioPorId(contactoId);
-          if (contacto.rol === 'docente') {
-            conversacionesMap[contactoId] = {
-              contacto,
-              ultimoMensaje: mensajeItem,
-              noLeidos: 0
-            };
-          }
-        } catch {
-          continue;
-        }
-      }
-      if (mensajeItem.receptor_id == usuario.id && !mensajeItem.leido && conversacionesMap[contactoId]) {
-        conversacionesMap[contactoId].noLeidos++;
-      }
-      if (conversacionesMap[contactoId]) {
-        const fechaActual = new Date(mensajeItem.fecha);
-        const fechaUltimo = new Date(conversacionesMap[contactoId].ultimoMensaje.fecha);
-        if (fechaActual > fechaUltimo) {
-          conversacionesMap[contactoId].ultimoMensaje = mensajeItem;
-        }
-      }
-    }
-    const conversacionesArray = Object.values(conversacionesMap).sort((a, b) =>
-      new Date(b.ultimoMensaje.fecha) - new Date(a.ultimoMensaje.fecha)
-    );
+    let mapa = _crearMapaConversaciones(mensajes, usuario.id);
+    mapa = await _agregarContactosAlMapa(mapa, docentes, usuario.id);
+    const conversacionesArray = _formatearConversaciones(mapa);
     setConversaciones(conversacionesArray);
   };
 
-  // Filtro por nombre/asunto/mensaje
-  const filtrarDocentes = (lista) => {
-    if (!filtro.trim()) return lista;
-    const filtroLower = filtro.trim().toLowerCase();
-    return lista.filter(docente => {
-      if (
-        (docente.nombre && docente.nombre.toLowerCase().includes(filtroLower)) ||
-        (docente.email && docente.email.toLowerCase().includes(filtroLower))
-      ) return true;
-      const conv = conversaciones.find(c => c.contacto.id === docente.id);
-      if (conv && (
-        (conv.ultimoMensaje?.asunto && conv.ultimoMensaje.asunto.toLowerCase().includes(filtroLower)) ||
-        (conv.ultimoMensaje?.cuerpo && conv.ultimoMensaje.cuerpo.toLowerCase().includes(filtroLower))
-      )) return true;
-      return false;
-    });
-  };
-
-  const abrirConversacion = async (contacto) => {
-    setContactoSeleccionado(contacto);
+  const filtrarDocentes = (lista) => _filtrarDocentes(lista, filtro, conversaciones);
     setAsunto('');
     try {
       const mensajes = await getConversacion(usuario.id, contacto.id);

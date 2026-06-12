@@ -7,6 +7,54 @@ import {
 } from '../../services/api';
 import iconoFamilia from '../../assets/img/icono familia.png';
 
+// Constantes de estilos
+const CARD_STYLES = {
+  container: {
+    background: '#ffffff',
+    border: '1px solid #e2e8f0',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+    minHeight: '230px'
+  },
+  studentButton: {
+    background: '#fee2e2',
+    color: '#dc2626',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '0.35rem 0.6rem',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    transition: 'all 0.15s'
+  }
+};
+
+const getEstudianteGrado = (estudiante) => {
+  if (!estudiante.curso) return 'Sin Curso';
+  return `${estudiante.curso.nivel}°${estudiante.curso.letra} - ${estudiante.curso.nombre}`;
+};
+
+const filterEstudiantes = (estudiantes, query, linkedIds) => {
+  if (!query.trim()) return estudiantes.filter(e => !linkedIds.includes(e.id));
+  
+  const q = query.toLowerCase().trim();
+  return estudiantes.filter(est => {
+    if (linkedIds.includes(est.id)) return false;
+    const matchNombre = est.nombre?.toLowerCase().includes(q);
+    const matchCurso = est.curso_nombre?.toLowerCase().includes(q) || 
+                      (est.curso && `${est.curso.nivel}°${est.curso.letra}`.toLowerCase().includes(q));
+    const matchId = est.id?.toString().includes(q);
+    return matchNombre || matchCurso || matchId;
+  });
+};
+
 export default function Familias() {
   const [familias, setFamilias] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
@@ -14,12 +62,8 @@ export default function Familias() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Estado de selección del estudiante asociado por cada tarjeta de familia
   const [seleccionEstudiante, setSeleccionEstudiante] = useState({});
-  // Texto de búsqueda para filtrar el listado de familias
   const [busqueda, setBusqueda] = useState('');
-
-  // Estados para búsqueda de estudiantes por autocompletado en tarjetas
   const [searchQueries, setSearchQueries] = useState({});
   const [activeDropdownFamId, setActiveDropdownFamId] = useState(null);
 

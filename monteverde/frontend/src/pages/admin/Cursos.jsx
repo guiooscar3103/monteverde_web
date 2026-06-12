@@ -2,6 +2,23 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCursos, createCurso, updateCurso, deleteCurso } from '../../services/api';
 
+// Funciones helper
+const _parseCursoResponse = (respuesta, defaultMessage) => {
+  const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
+  const mensaje = respuesta?.message || defaultMessage;
+  return { exito, mensaje };
+};
+
+const _crearPayloadCurso = (nombre, grado, descripcion) => ({
+  nombre: nombre.trim(),
+  grado: grado.trim(),
+  descripcion: descripcion.trim()
+});
+
+const _validarFormularioCurso = (nombre, grado) => {
+  return nombre.trim() && grado.trim();
+};
+
 export default function Cursos() {
   const queryClient = useQueryClient();
 
@@ -23,15 +40,14 @@ export default function Cursos() {
   const createMutation = useMutation({
     mutationFn: createCurso,
     onSuccess: (respuesta) => {
-      const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
-      const mensaje = respuesta?.message || 'Curso creado';
+      const { exito, mensaje } = _parseCursoResponse(respuesta, 'Curso creado');
       if (exito) {
         setSuccessMsg(mensaje);
         queryClient.invalidateQueries({ queryKey: ['cursos'] });
         cerrarModal();
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        setErrorMsg(respuesta?.message || 'No se pudo crear el curso.');
+        setErrorMsg(mensaje);
       }
     },
     onError: (error) => {
@@ -42,15 +58,14 @@ export default function Cursos() {
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }) => updateCurso(id, payload),
     onSuccess: (respuesta) => {
-      const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
-      const mensaje = respuesta?.message || 'Curso actualizado';
+      const { exito, mensaje } = _parseCursoResponse(respuesta, 'Curso actualizado');
       if (exito) {
         setSuccessMsg(mensaje);
         queryClient.invalidateQueries({ queryKey: ['cursos'] });
         cerrarModal();
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        setErrorMsg(respuesta?.message || 'No se pudo guardar el curso.');
+        setErrorMsg(mensaje);
       }
     },
     onError: (error) => {
@@ -61,14 +76,13 @@ export default function Cursos() {
   const deleteMutation = useMutation({
     mutationFn: deleteCurso,
     onSuccess: (respuesta) => {
-      const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
-      const mensaje = respuesta?.message || 'Curso eliminado exitosamente';
+      const { exito, mensaje } = _parseCursoResponse(respuesta, 'Curso eliminado exitosamente');
       if (exito) {
         setSuccessMsg(mensaje);
         queryClient.invalidateQueries({ queryKey: ['cursos'] });
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        setErrorMsg(respuesta?.message || 'No se pudo eliminar el curso.');
+        setErrorMsg(mensaje);
       }
     },
     onError: (error) => {
@@ -105,7 +119,7 @@ export default function Cursos() {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!nombreCurso.trim() || !grado.trim()) {
+    if (!_validarFormularioCurso(nombreCurso, grado)) {
       setErrorMsg('Por favor completa el nombre del curso y el grado.');
       return;
     }

@@ -3,6 +3,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDocentesConCursos, getCursos, getMaterias, asignarCursoADocente, desasignarCursoDeDocente } from '../../services/api';
 import iconoDocente from '../../assets/img/docente.png';
 
+// Funciones helper
+const _validarSeleccionAsignacion = (cursoId, materiaId) => {
+  return cursoId && materiaId;
+};
+
+const _crearPayloadAsignacion = (docenteId, cursoId, materiaId) => ({
+  docente_id: docenteId,
+  curso_id: parseInt(cursoId),
+  materia_id: parseInt(materiaId)
+});
+
+const _crearPayloadDesasignacion = (docenteId, asignacion) => {
+  return asignacion.legacy
+    ? { docente_id: docenteId, curso_id: asignacion.curso_id }
+    : { assignment_id: asignacion.id };
+};
+
 export default function Docentes() {
   const queryClient = useQueryClient();
 
@@ -66,16 +83,13 @@ export default function Docentes() {
   const handleAsignar = (docenteId) => {
     const cursoId = seleccionCurso[docenteId];
     const materiaId = seleccionMateria[docenteId];
-    if (!cursoId || !materiaId) {
+    
+    if (!_validarSeleccionAsignacion(cursoId, materiaId)) {
       alert('Por favor selecciona un curso y una materia para asignar.');
       return;
     }
 
-    assignMutation.mutate({
-      docente_id: docenteId,
-      curso_id: parseInt(cursoId),
-      materia_id: parseInt(materiaId)
-    }, {
+    assignMutation.mutate(_crearPayloadAsignacion(docenteId, cursoId, materiaId), {
       onSuccess: () => {
         setSeleccionCurso({ ...seleccionCurso, [docenteId]: '' });
         setSeleccionMateria({ ...seleccionMateria, [docenteId]: '' });
@@ -88,10 +102,7 @@ export default function Docentes() {
       return;
     }
 
-    const payload = asignacion.legacy
-      ? { docente_id: docenteId, curso_id: asignacion.curso_id }
-      : { assignment_id: asignacion.id };
-
+    const payload = _crearPayloadDesasignacion(docenteId, asignacion);
     desassignMutation.mutate(payload);
   };
 

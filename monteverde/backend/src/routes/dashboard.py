@@ -13,6 +13,47 @@ from src.utils.auth_helpers import role_required
 
 dashboard_bp = Blueprint('dashboard_custom', __name__)
 
+def _calcular_estadisticas_estudiante(estudiante):
+    """Calcular estadísticas de un estudiante"""
+    curso = Curso.query.get(estudiante.curso_id)
+    
+    # Calificaciones
+    calificaciones = Calificacion.query.filter_by(estudiante_id=estudiante.id).all()
+    promedio = sum(c.nota for c in calificaciones) / len(calificaciones) if calificaciones else 0
+    
+    # Asistencia del mes actual
+    asistencias_mes = Asistencia.query.filter(
+        Asistencia.estudiante_id == estudiante.id,
+        extract('month', Asistencia.fecha) == datetime.now().month,
+        extract('year', Asistencia.fecha) == datetime.now().year
+    ).all()
+    
+    dias_presentes = len([a for a in asistencias_mes if a.estado.upper() == 'PRESENTE'])
+    total_dias = len(asistencias_mes)
+    asistencia_porcentaje = (dias_presentes / total_dias * 100) if total_dias > 0 else 100
+    
+    # Observaciones recientes
+    observaciones_mes = Observacion.query.filter(
+        and_(
+            Observacion.estudiante_id == estudiante.id,
+            Observacion.fecha >= datetime.now().date() - timedelta(days=30)
+        )
+    ).count()
+    
+    return {
+        'id': estudiante.id,
+        'nombre': estudiante.nombre,
+        'grado': f"{curso.nivel}{curso.letra}" if curso and curso.nivel and curso.letra else 'Sin grado',
+        'curso': curso.nombre if curso else 'Sin curso',
+        'curso_id': estudiante.curso_id,
+        'promedio': float(promedio),
+        'total_notas': len(calificaciones),
+        'asistencia_porcentaje': asistencia_porcentaje,
+        'dias_presentes': dias_presentes,
+        'total_dias': total_dias,
+        'observaciones_mes': observaciones_mes
+    }
+
 @dashboard_bp.route('/docente/dashboard/<int:docente_id>', methods=['GET'])
 @role_required('docente', 'admin')
 def get_docente_dashboard(docente_id):
@@ -83,46 +124,7 @@ def get_familia_dashboard(familia_id):
             else:
                 return jsonify({'success': True, 'data': {'hijos': [], 'total_hijos': 0}})
                 
-        hijos_data = []
-        for estudiante in familia.estudiantes:
-            curso = Curso.query.get(estudiante.curso_id)
-            
-            # Calcular calificaciones
-            calificaciones = Calificacion.query.filter_by(estudiante_id=estudiante.id).all()
-            promedio = sum(c.nota for c in calificaciones) / len(calificaciones) if calificaciones else 0
-            
-            # Asistencia del mes actual
-            asistencias_mes = Asistencia.query.filter(
-                Asistencia.estudiante_id == estudiante.id,
-                extract('month', Asistencia.fecha) == datetime.now().month,
-                extract('year', Asistencia.fecha) == datetime.now().year
-            ).all()
-            
-            dias_presentes = len([a for a in asistencias_mes if a.estado.upper() == 'PRESENTE'])
-            total_dias = len(asistencias_mes)
-            asistencia_porcentaje = (dias_presentes / total_dias * 100) if total_dias > 0 else 100
-            
-            # Observaciones recientes (último mes)
-            observaciones_mes = Observacion.query.filter(
-                and_(
-                    Observacion.estudiante_id == estudiante.id,
-                    Observacion.fecha >= datetime.now().date() - timedelta(days=30)
-                )
-            ).count()
-            
-            hijos_data.append({
-                'id': estudiante.id,
-                'nombre': estudiante.nombre,
-                'grado': f"{curso.nivel}{curso.letra}" if curso and curso.nivel and curso.letra else 'Sin grado',
-                'curso': curso.nombre if curso else 'Sin curso',
-                'curso_id': estudiante.curso_id,
-                'promedio': float(promedio),
-                'total_notas': len(calificaciones),
-                'asistencia_porcentaje': asistencia_porcentaje,
-                'dias_presentes': dias_presentes,
-                'total_dias': total_dias,
-                'observaciones_mes': observaciones_mes
-            })
+        hijos_data = [_calcular_estadisticas_estudiante(est) for est in familia.estudiantes]
             
         print(f"🏠 Estudiantes encontrados para familia {familia_id}: {len(hijos_data)}")
         return jsonify({

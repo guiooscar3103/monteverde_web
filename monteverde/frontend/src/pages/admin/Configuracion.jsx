@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { getConfiguracion, guardarConfiguracion } from '../../services/api';
 
+// Funciones helper
+const _extraerConfiguracionDelResponse = (res) => {
+  if (res?.data) return res.data;
+  if (res) return res;
+  return {};
+};
+
+const _parseConfigResponse = (res, defaultMessage) => {
+  const exito = res?.success || res;
+  const mensaje = res?.message || defaultMessage;
+  return { exito, mensaje };
+};
+
 export default function Configuracion() {
   const [config, setConfig] = useState({
     nombre_institucion: '',
@@ -25,12 +38,7 @@ export default function Configuracion() {
     setErrorMsg('');
     try {
       const res = await getConfiguracion();
-      // Garantizar el establecimiento correcto de los datos según el formato devuelto por la API
-      if (res && res.data) {
-        setConfig(res.data);
-      } else if (res) {
-        setConfig(res);
-      }
+      setConfig(_extraerConfiguracionDelResponse(res));
     } catch (error) {
       console.error('Error al obtener la configuración:', error);
       setErrorMsg('No se pudo cargar la configuración del sistema.');
@@ -55,8 +63,10 @@ export default function Configuracion() {
     
     try {
       const res = await guardarConfiguracion(config);
-      if (res.success || res) {
-        setSuccessMsg(res.message || 'Configuración institucional guardada exitosamente');
+      const { exito, mensaje } = _parseConfigResponse(res, 'Configuración institucional guardada exitosamente');
+      
+      if (exito) {
+        setSuccessMsg(mensaje);
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {
         setErrorMsg('Error al guardar la configuración institucional.');

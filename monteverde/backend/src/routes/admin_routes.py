@@ -28,6 +28,66 @@ def get_current_admin_id():
         print(f"⚠️ Error decoding token: {e}")
         return None
 
+def _get_cursos_asignados_docente(docente):
+    """Obtener cursos asignados a un docente (legacy + nuevos)"""
+    cursos_asignados = []
+    
+    # Legacy course-only assignments
+    curso_legacy = DocenteCurso.query.filter_by(docente_id=docente.id).all()
+    for item in curso_legacy:
+        if item.curso:
+            cursos_asignados.append({
+                'id': f'legacy-{item.id}',
+                'docente_id': docente.id,
+                'curso_id': item.curso_id,
+                'curso_nombre': item.curso.nombre,
+                'curso_nivel': item.curso.nivel,
+                'curso_letra': item.curso.letra,
+                'materia_id': None,
+                'materia_nombre': 'Sin materia asignada',
+                'legacy': True
+            })
+    
+    # Course + subject assignments
+    asignaciones = DocenteAsignacion.query.filter_by(docente_id=docente.id).all()
+    for a in asignaciones:
+        cursos_asignados.append({
+            'id': a.id,
+            'docente_id': docente.id,
+            'curso_id': a.curso_id,
+            'curso_nombre': a.curso_nombre,
+            'curso_nivel': a.curso_nivel,
+            'curso_letra': a.curso_letra,
+            'materia_id': a.materia_id,
+            'materia_nombre': a.materia_nombre,
+            'materia_descripcion': a.materia_descripcion,
+            'legacy': False
+        })
+    
+    return cursos_asignados
+
+def _find_assignment(assignment_id, docente_id, curso_id, materia_id):
+    """Buscar asignación por ID o combinación de parámetros"""
+    if assignment_id:
+        return DocenteAsignacion.query.get(assignment_id)
+    if docente_id and curso_id and materia_id is not None:
+        return DocenteAsignacion.query.filter_by(docente_id=docente_id, curso_id=curso_id, materia_id=materia_id).first()
+    if docente_id and curso_id:
+        return DocenteCurso.query.filter_by(docente_id=docente_id, curso_id=curso_id).first()
+    return None
+
+def _get_detalles_desasignacion(asignacion, docente_id):
+    """Generar detalles de la desasignación para el log"""
+    if isinstance(asignacion, DocenteCurso):
+        curso = Curso.query.get(asignacion.curso_id)
+        docente = Usuario.query.get(asignacion.docente_id)
+        return f"Se desasignó el curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) del docente {docente.nombre if docente else docente_id}"
+    
+    curso = Curso.query.get(asignacion.curso_id)
+    docente = Usuario.query.get(asignacion.docente_id)
+    materia = Materia.query.get(asignacion.materia_id)
+    return f"Se desasignó '{materia.nombre if materia else 'una materia'}' del curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) del docente {docente.nombre if docente else docente_id}"
+
 @admin_bp.route('/estadisticas', methods=['GET'])
 def get_estadisticas():
     """Obtener estadísticas y KPIs generales del sistema"""
@@ -61,42 +121,8 @@ def get_docentes_asignaciones():
         docentes_data = []
         
         for d in docentes:
-            cursos_asignados = []
-
-            # Legacy course-only assignments
-            curso_legacy = DocenteCurso.query.filter_by(docente_id=d.id).all()
-            for item in curso_legacy:
-                if item.curso:
-                    cursos_asignados.append({
-                        'id': f'legacy-{item.id}',
-                        'docente_id': d.id,
-                        'curso_id': item.curso_id,
-                        'curso_nombre': item.curso.nombre,
-                        'curso_nivel': item.curso.nivel,
-                        'curso_letra': item.curso.letra,
-                        'materia_id': None,
-                        'materia_nombre': 'Sin materia asignada',
-                        'legacy': True
-                    })
-
-            # Course + subject assignments
-            asignaciones = DocenteAsignacion.query.filter_by(docente_id=d.id).all()
-            for a in asignaciones:
-                cursos_asignados.append({
-                    'id': a.id,
-                    'docente_id': d.id,
-                    'curso_id': a.curso_id,
-                    'curso_nombre': a.curso_nombre,
-                    'curso_nivel': a.curso_nivel,
-                    'curso_letra': a.curso_letra,
-                    'materia_id': a.materia_id,
-                    'materia_nombre': a.materia_nombre,
-                    'materia_descripcion': a.materia_descripcion,
-                    'legacy': False
-                })
-
             d_dict = d.to_dict()
-            d_dict['cursos_asignados'] = cursos_asignados
+            d_dict['cursos_asignados'] = _get_cursos_asignados_docente(d)
             docentes_data.append(d_dict)
             
         return jsonify({
@@ -163,33 +189,14 @@ def desasignar_curso():
         curso_id = data.get('curso_id')
         materia_id = data.get('materia_id')
 
-        asignacion = None
-        if assignment_id:
-            asignacion = DocenteAsignacion.query.get(assignment_id)
-        elif docente_id and curso_id and materia_id is not None:
-            asignacion = DocenteAsignacion.query.filter_by(docente_id=docente_id, curso_id=curso_id, materia_id=materia_id).first()
-        elif docente_id and curso_id:
-            # Fallback for legacy course-only assignment
-            asignacion = DocenteCurso.query.filter_by(docente_id=docente_id, curso_id=curso_id).first()
-
+        asignacion = _find_assignment(assignment_id, docente_id, curso_id, materia_id)
         if not asignacion:
             return jsonify({'success': False, 'message': 'La asignación no existe'}), 404
 
-        # Delete legacy or new assignment
-        if isinstance(asignacion, DocenteCurso):
-            curso = Curso.query.get(asignacion.curso_id)
-            docente = Usuario.query.get(asignacion.docente_id)
-            db.session.delete(asignacion)
-            detalles = f"Se desasignó el curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) del docente {docente.nombre if docente else docente_id}"
-        else:
-            curso = Curso.query.get(asignacion.curso_id)
-            docente = Usuario.query.get(asignacion.docente_id)
-            materia = Materia.query.get(asignacion.materia_id)
-            db.session.delete(asignacion)
-            detalles = f"Se desasignó '{materia.nombre if materia else 'una materia'}' del curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) del docente {docente.nombre if docente else docente_id}"
-
+        db.session.delete(asignacion)
         db.session.commit()
         
+        detalles = _get_detalles_desasignacion(asignacion, docente_id)
         AdminService.log_actividad(
             usuario_id=admin_id,
             accion='DESASIGNAR_ASIGNACION',

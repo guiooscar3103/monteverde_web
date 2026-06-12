@@ -21,7 +21,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    return Promise.reject(error);
+    throw error;
   }
 );
 
@@ -59,7 +59,7 @@ api.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error);
+    throw error;
   }
 );
 

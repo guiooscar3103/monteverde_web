@@ -19,6 +19,45 @@ const TIPOS_OBSERVACION = [
   { value: 'DISCIPLINARIA', label: 'Disciplinaria' }
 ];
 
+const COLORES_TIPO = {
+  'POSITIVA': '#28a745',
+  'NEGATIVA': '#dc3545', 
+  'NEUTRAL': '#6c757d',
+  'DISCIPLINARIA': '#fd7e14'
+};
+
+// Funciones helper
+const _construirOpcionesEstudiantes = (estudiantes) => {
+  return estudiantes.map(e => ({ 
+    value: e.id.toString(), 
+    label: e.nombre 
+  }));
+};
+
+const _construirFilasObservaciones = (anotaciones) => {
+  return anotaciones.map(a => ({
+    id: a.id,
+    fecha: a.fecha,
+    estudiante: a.estudiante_nombre || `ID: ${a.estudianteId}`,
+    tipo: a.tipo,
+    detalle: a.detalle
+  }));
+};
+
+const _validarFormAnotacion = (form) => {
+  return form.estudianteId && form.detalle.trim();
+};
+
+const _crearDatosAnotacion = (form, usuarioId, cursoId) => {
+  return {
+    estudianteId: parseInt(form.estudianteId),
+    docenteId: usuarioId || 2,
+    fecha: form.fecha,
+    tipo: form.tipo,
+    detalle: form.detalle.trim()
+  };
+};
+
 export default function ObservadorAlumno() {
   const { usuario } = useAuth();
   const [cursoId, setCursoId] = useState('');
@@ -32,7 +71,7 @@ export default function ObservadorAlumno() {
   });
 
   const [cursosOptions, setCursosOptions] = useState([]);
-  const [loading, setLoading] = useState(false); // Ahora SÍ se usa en el JSX
+  const [loading, setLoading] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
 
@@ -104,26 +143,9 @@ export default function ObservadorAlumno() {
     cargarDatos();
   }, [cursoId]);
 
-  const estOptions = useMemo(() => {
-    const options = estudiantes.map(e => ({ 
-      value: e.id.toString(), 
-      label: e.nombre 
-    }));
-    console.log('📋 Opciones de estudiantes generadas:', options);
-    return options;
-  }, [estudiantes]);
+  const estOptions = useMemo(() => _construirOpcionesEstudiantes(estudiantes), [estudiantes]);
 
-  const filas = useMemo(() => {
-    const filasGeneradas = anotaciones.map(a => ({
-      id: a.id,
-      fecha: a.fecha,
-      estudiante: a.estudiante_nombre || `ID: ${a.estudianteId}`,
-      tipo: a.tipo,
-      detalle: a.detalle
-    }));
-    console.log('📊 Filas para tabla:', filasGeneradas);
-    return filasGeneradas;
-  }, [anotaciones]);
+  const filas = useMemo(() => _construirFilasObservaciones(anotaciones), [anotaciones]);
 
   const columnas = [
     { key: 'fecha', header: 'Fecha' },
@@ -131,19 +153,11 @@ export default function ObservadorAlumno() {
     { 
       key: 'tipo', 
       header: 'Tipo',
-      render: (valor) => {
-        const colores = {
-          'POSITIVA': '#28a745',
-          'NEGATIVA': '#dc3545', 
-          'NEUTRAL': '#6c757d',
-          'DISCIPLINARIA': '#fd7e14'
-        };
-        return (
-          <span style={{ color: colores[valor] || '#666', fontWeight: 'bold' }}>
-            {valor}
-          </span>
-        );
-      }
+      render: (valor) => (
+        <span style={{ color: COLORES_TIPO[valor] || '#666', fontWeight: 'bold' }}>
+          {valor}
+        </span>
+      )
     },
     { 
       key: 'detalle', 
@@ -157,34 +171,15 @@ export default function ObservadorAlumno() {
   ];
 
   const agregar = async () => {
-    console.log('🔴🔴🔴 BOTÓN PRESIONADO!!! 🔴🔴🔴');
-    console.log('📝 Form completo:', form);
-    console.log('👤 Usuario:', usuario);
-    
-    if (!form.estudianteId || !form.detalle.trim()) {
-      console.log('❌ Validación falló');
+    if (!_validarFormAnotacion(form)) {
       alert('Por favor selecciona un estudiante y escribe un detalle');
       return;
     }
 
-    console.log('✅ Validación OK, enviando...');
-    
     try {
       setGuardando(true);
-      
-      const datosAEnviar = {
-        estudianteId: parseInt(form.estudianteId),
-        docenteId: usuario?.id || 2,
-        fecha: form.fecha,
-        tipo: form.tipo,
-        detalle: form.detalle.trim()
-      };
-      
-      console.log('📤 Enviando:', datosAEnviar);
-
+      const datosAEnviar = _crearDatosAnotacion(form, usuario?.id, cursoId);
       await agregarAnotacion(datosAEnviar);
-      console.log('✅ Observación enviada exitosamente');
-
       alert('✅ Observación agregada correctamente');
       
       setForm(prev => ({ 

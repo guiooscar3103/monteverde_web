@@ -4,6 +4,53 @@ import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
 import { getFamiliaDashboard, getCalificacionesHijo } from '../../services/api';
 
+// Funciones helper
+const _extraerPeriodosUnicos = (calificaciones) => {
+  const periodosUnicos = [...new Set(calificaciones.map(cal => cal.periodo))].filter(Boolean);
+  return periodosUnicos.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+};
+
+const _calcularPromedio = (calificaciones) => {
+  if (calificaciones.length === 0) return '0.0';
+  const suma = calificaciones.reduce((acc, cal) => acc + (parseFloat(cal.nota) || 0), 0);
+  return (suma / calificaciones.length).toFixed(1);
+};
+
+const _obtenerEstadisticasPorAsignatura = (calificaciones) => {
+  const asignaturas = {};
+  
+  calificaciones.forEach(cal => {
+    if (!asignaturas[cal.asignatura]) {
+      asignaturas[cal.asignatura] = {
+        notas: [],
+        promedio: 0,
+        total: 0
+      };
+    }
+    asignaturas[cal.asignatura].notas.push(parseFloat(cal.nota) || 0);
+    asignaturas[cal.asignatura].total++;
+  });
+  
+  Object.keys(asignaturas).forEach(asignatura => {
+    const notas = asignaturas[asignatura].notas;
+    asignaturas[asignatura].promedio = (notas.reduce((sum, nota) => sum + nota, 0) / notas.length).toFixed(1);
+  });
+  
+  return asignaturas;
+};
+
+const _obtenerColorPromedio = (promedio) => {
+  if (promedio >= 3.5) return '#27ae60';
+  if (promedio >= 3) return '#f39c12';
+  return '#e74c3c';
+};
+
+const _filtrarCalificacionesPorPeriodo = (calificaciones, periodoSeleccionado) => {
+  return periodoSeleccionado === 'todos' 
+    ? calificaciones 
+    : calificaciones.filter(cal => cal.periodo === periodoSeleccionado);
+};
+
 export default function ReporteAcademico() {
   const { usuario } = useAuth();
   const [calificaciones, setCalificaciones] = useState([]);
@@ -27,7 +74,6 @@ export default function ReporteAcademico() {
       try {
         console.log('📊 Cargando reporte académico para usuario:', usuario.id);
         
-        // Primero obtener info de la familia para saber qué hijo mostrar
         const dashboard = await getFamiliaDashboard(usuario.id).catch(() => null);
         
         if (dashboard?.hijos?.[selectedHijoIndex]) {
@@ -36,18 +82,15 @@ export default function ReporteAcademico() {
           
           console.log('📊 Cargando calificaciones para estudiante:', primerHijo.id);
           
-          // Cargar calificaciones del hijo seleccionado
           const calificacionesData = await getCalificacionesHijo(primerHijo.id);
           setCalificaciones(calificacionesData || []);
           setCalificacionesFiltradas(calificacionesData || []);
           
-          // Extraer períodos únicos
-          const periodosUnicos = [...new Set((calificacionesData || []).map(cal => cal.periodo))].filter(Boolean);
-          const periodosOrdenados = periodosUnicos.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+          const periodosOrdenados = _extraerPeriodosUnicos(calificacionesData || []);
           setPeriodosDisponibles(periodosOrdenados);
           
           console.log('📊 Calificaciones cargadas:', calificacionesData);
-          console.log('📊 Períodos disponibles:', periodosUnicos);
+          console.log('📊 Períodos disponibles:', periodosOrdenados);
         } else {
           setError('No se encontraron estudiantes asociados');
         }
@@ -66,42 +109,13 @@ export default function ReporteAcademico() {
 
   // Filtrar calificaciones cuando cambie el período
   useEffect(() => {
-    if (periodoSeleccionado === 'todos') {
-      setCalificacionesFiltradas(calificaciones);
-    } else {
-      setCalificacionesFiltradas(calificaciones.filter(cal => cal.periodo === periodoSeleccionado));
-    }
+    setCalificacionesFiltradas(_filtrarCalificacionesPorPeriodo(calificaciones, periodoSeleccionado));
   }, [periodoSeleccionado, calificaciones]);
 
-  const calcularPromedio = (calificacionesParaCalcular = calificacionesFiltradas) => {
-    if (calificacionesParaCalcular.length === 0) return '0.0';
-    const suma = calificacionesParaCalcular.reduce((acc, cal) => acc + (Number.parseFloat(cal.nota) || 0), 0);
-    return (suma / calificacionesParaCalcular.length).toFixed(1);
-  };
-
-  const obtenerEstadisticasPorAsignatura = (calificacionesParaCalcular = calificacionesFiltradas) => {
-    const asignaturas = {};
-    
-    calificacionesParaCalcular.forEach(cal => {
-      if (!asignaturas[cal.asignatura]) {
-        asignaturas[cal.asignatura] = {
-          notas: [],
-          promedio: 0,
-          total: 0
-        };
-      }
-      asignaturas[cal.asignatura].notas.push(Number.parseFloat(cal.nota) || 0);
-      asignaturas[cal.asignatura].total++;
-    });
-    
-    // Calcular promedios
-    Object.keys(asignaturas).forEach(asignatura => {
-      const notas = asignaturas[asignatura].notas;
-      asignaturas[asignatura].promedio = (notas.reduce((sum, nota) => sum + nota, 0) / notas.length).toFixed(1);
-    });
-    
-    return asignaturas;
-  };
+  const primerHijo = dashboardData?.hijos?.[selectedHijoIndex];
+  const estadisticasAsignaturas = _obtenerEstadisticasPorAsignatura(calificacionesFiltradas);
+  const promedioGeneral = parseFloat(_calcularPromedio(calificacionesFiltradas));
+  const colorPromedioGeneral = _obtenerColorPromedio(promedioGeneral);
 
   if (loading) {
     return (
@@ -141,20 +155,13 @@ export default function ReporteAcademico() {
             </button>
           </div>
         </Card>
-      </div>
     );
   }
 
   const primerHijo = dashboardData?.hijos?.[selectedHijoIndex];
-  const estadisticasAsignaturas = obtenerEstadisticasPorAsignatura();
-
-  const promedioGeneral = Number.parseFloat(calcularPromedio());
-  let colorPromedioGeneral = '#e74c3c';
-  if (promedioGeneral >= 3.5) {
-    colorPromedioGeneral = '#27ae60';
-  } else if (promedioGeneral >= 3) {
-    colorPromedioGeneral = '#f39c12';
-  }
+  const estadisticasAsignaturas = _obtenerEstadisticasPorAsignatura(calificacionesFiltradas);
+  const promedioGeneral = parseFloat(_calcularPromedio(calificacionesFiltradas));
+  const colorPromedioGeneral = _obtenerColorPromedio(promedioGeneral);
 
   return (
     <div className="grid">
@@ -166,7 +173,7 @@ export default function ReporteAcademico() {
             {primerHijo && (
               <>
                 <div><strong>{primerHijo.curso}</strong> - {primerHijo.grado}</div>
-                <div>Promedio: <strong>{calcularPromedio()}</strong></div>
+                <div>Promedio: <strong>{_calcularPromedio(calificacionesFiltradas)}</strong></div>
                 <div>Total evaluaciones: <strong>{calificacionesFiltradas.length}</strong></div>
               </>
             )}
@@ -445,7 +452,7 @@ export default function ReporteAcademico() {
                   fontWeight: 'bold', 
                   color: colorPromedioGeneral
                 }}>
-                  {calcularPromedio()}
+                  {_calcularPromedio(calificacionesFiltradas)}
                 </div>
                 <div style={{ fontSize: '0.9rem', color: '#666' }}>
                   Promedio {periodoSeleccionado === 'todos' ? 'General' : periodoSeleccionado}

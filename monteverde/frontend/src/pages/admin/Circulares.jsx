@@ -2,6 +2,22 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCirculares, crearCircular, formatearFecha, formatearFechaHora } from '../../services/api';
 
+// Funciones helper
+const _validarFormCircular = (titulo, contenido) => {
+  return titulo.trim() && contenido.trim();
+};
+
+const _crearPayloadCircular = (titulo, contenido) => ({
+  titulo: titulo.trim(),
+  contenido: contenido.trim()
+});
+
+const _parseCircularResponse = (respuesta, defaultMessage = 'Circular publicada con éxito') => {
+  const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
+  const mensaje = respuesta?.message || defaultMessage;
+  return { exito, mensaje };
+};
+
 export default function Circulares() {
   const queryClient = useQueryClient();
 
@@ -16,11 +32,7 @@ export default function Circulares() {
     queryKey: ['circulares'],
     queryFn: async () => {
       const response = await getCirculares();
-      // Si la API retorna un objeto que contiene una lista en .data o similar, resolverlo
-      if (response && response.data) {
-        return response.data;
-      }
-      return response || [];
+      return response?.data || response || [];
     },
   });
 
@@ -28,8 +40,7 @@ export default function Circulares() {
   const createMutation = useMutation({
     mutationFn: crearCircular,
     onSuccess: (respuesta) => {
-      const exito = respuesta && (typeof respuesta.success !== 'undefined' ? respuesta.success : true);
-      const mensaje = respuesta?.message || 'Circular publicada con éxito';
+      const { exito, mensaje } = _parseCircularResponse(respuesta);
       
       if (exito) {
         setSuccessMsg(mensaje);
@@ -38,7 +49,7 @@ export default function Circulares() {
         queryClient.invalidateQueries({ queryKey: ['circulares'] });
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {
-        setErrorMsg(respuesta?.message || 'No se pudo publicar la circular.');
+        setErrorMsg(mensaje);
       }
     },
     onError: (error) => {
@@ -51,15 +62,12 @@ export default function Circulares() {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!titulo.trim() || !contenido.trim()) {
+    if (!_validarFormCircular(titulo, contenido)) {
       setErrorMsg('Por favor completa tanto el título como el contenido de la circular.');
       return;
     }
 
-    createMutation.mutate({
-      titulo: titulo.trim(),
-      contenido: contenido.trim()
-    });
+    createMutation.mutate(_crearPayloadCircular(titulo, contenido));
   };
 
   return (
