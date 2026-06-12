@@ -145,6 +145,125 @@ function EstadisticasCalificaciones({ totalEstudiantes, estudiantesConNota, prom
   );
 }
 
+function CalificacionesFiltros({
+  cursoSeleccionado,
+  setCursoSeleccionado,
+  cursos,
+  asignaturaSeleccionada,
+  setAsignaturaSeleccionada,
+  asignaturas,
+  periodoSeleccionado,
+  setPeriodoSeleccionado
+}) {
+  return (
+    <BlurFade delay={0.12} duration={0.35}>
+      <Card title="Filtros">
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <SelectSimple
+            etiqueta="Curso"
+            value={cursoSeleccionado}
+            onChange={(valor) => {
+              console.log('Curso seleccionado:', valor);
+              setCursoSeleccionado(valor);
+            }}
+            options={cursos.map(c => ({ value: c.id.toString(), label: c.nombre }))}
+          />
+          <SelectSimple
+            etiqueta="Asignatura"
+            value={asignaturaSeleccionada}
+            onChange={(valor) => {
+              console.log('Asignatura seleccionada:', valor);
+              setAsignaturaSeleccionada(valor);
+            }}
+            options={asignaturas}
+          />
+          <SelectSimple
+            etiqueta="Período"
+            value={periodoSeleccionado}
+            onChange={(valor) => {
+              console.log('Periodo seleccionado:', valor);
+              setPeriodoSeleccionado(valor);
+            }}
+            options={PERIODOS}
+          />
+        </div>
+      </Card>
+    </BlurFade>
+  );
+}
+
+function CalificacionesContenido({
+  loading,
+  calificaciones,
+  cursoActual,
+  columnas,
+  guardando,
+  handleGuardar
+}) {
+  const calificacionesConNota = calificaciones.filter(e => e.nota !== '').length;
+
+  if (loading) {
+    return (
+      <BlurFade delay={0.2} duration={0.3}>
+        <Card>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
+            <p>Cargando estudiantes...</p>
+          </div>
+        </Card>
+      </BlurFade>
+    );
+  }
+
+  if (calificaciones.length > 0) {
+    return (
+      <BlurFade delay={0.24} duration={0.45}>
+        <Card title={`Estudiantes de ${cursoActual?.nombre || 'Curso'}`}>
+          <Tabla
+            columns={columnas}
+            rows={calificaciones}
+          />
+        </Card>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+          <div style={{ fontSize: '0.9rem', color: '#666' }}>
+            💡 Rango de notas: 0.0 a 5.0 | Nota mínima aprobatoria: 3.0
+          </div>
+          <button
+            onClick={handleGuardar}
+            disabled={guardando || calificacionesConNota === 0}
+            style={{
+              padding: '0.75rem 2rem',
+              backgroundColor: guardando ? '#6c757d' : '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              opacity: guardando ? 0.7 : 1
+            }}
+          >
+            {guardando ? '💾 Guardando...' : `💾 Guardar ${calificacionesConNota} Calificaciones`}
+          </button>
+        </div>
+      </BlurFade>
+    );
+  }
+
+  return (
+    <BlurFade delay={0.2} duration={0.3}>
+      <Card>
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📚</div>
+          <p>No hay estudiantes en este curso</p>
+          <small>Selecciona un curso diferente o verifica que tenga estudiantes asignados</small>
+        </div>
+      </Card>
+    </BlurFade>
+  );
+}
+
 export default function RegistroCalificaciones() {
   const [asignacionAcademica, setAsignacionAcademica] = useState([]);
   const [cursos, setCursos] = useState([]);
@@ -319,39 +438,16 @@ export default function RegistroCalificaciones() {
       )}
 
       {/* Filtros */}
-      <BlurFade delay={0.12} duration={0.35}>
-        <Card title="Filtros">
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            <SelectSimple
-              etiqueta="Curso"
-              value={cursoSeleccionado}
-              onChange={(valor) => {
-                console.log('Curso seleccionado:', valor);
-                setCursoSeleccionado(valor);
-              }}
-              options={cursos.map(c => ({ value: c.id.toString(), label: c.nombre }))}
-            />
-            <SelectSimple
-              etiqueta="Asignatura"
-              value={asignaturaSeleccionada}
-              onChange={(valor) => {
-                console.log('Asignatura seleccionada:', valor);
-                setAsignaturaSeleccionada(valor);
-              }}
-              options={asignaturas}
-            />
-            <SelectSimple
-              etiqueta="Período"
-              value={periodoSeleccionado}
-              onChange={(valor) => {
-                console.log('Periodo seleccionado:', valor);
-                setPeriodoSeleccionado(valor);
-              }}
-              options={PERIODOS}
-            />
-          </div>
-        </Card>
-      </BlurFade>
+      <CalificacionesFiltros
+        cursoSeleccionado={cursoSeleccionado}
+        setCursoSeleccionado={setCursoSeleccionado}
+        cursos={cursos}
+        asignaturaSeleccionada={asignaturaSeleccionada}
+        setAsignaturaSeleccionada={setAsignaturaSeleccionada}
+        asignaturas={asignaturas}
+        periodoSeleccionado={periodoSeleccionado}
+        setPeriodoSeleccionado={setPeriodoSeleccionado}
+      />
 
       {/* Estadísticas */}
       {calificaciones.length > 0 && !loading && (
@@ -363,58 +459,14 @@ export default function RegistroCalificaciones() {
       )}
 
       {/* Tabla de calificaciones */}
-      {loading ? (
-        <BlurFade delay={0.2} duration={0.3}>
-          <Card>
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
-              <p>Cargando estudiantes...</p>
-            </div>
-          </Card>
-        </BlurFade>
-      ) : calificaciones.length > 0 ? (
-        <BlurFade delay={0.24} duration={0.45}>
-          <Card title={`Estudiantes de ${cursoActual?.nombre || 'Curso'}`}>
-            <Tabla
-              columns={columnas}
-              rows={calificaciones}
-            />
-          </Card>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-            <div style={{ fontSize: '0.9rem', color: '#666' }}>
-              💡 Rango de notas: 0.0 a 5.0 | Nota mínima aprobatoria: 3.0
-            </div>
-            <button
-              onClick={handleGuardar}
-              disabled={guardando || calificaciones.filter(e => e.nota !== '').length === 0}
-              style={{
-                padding: '0.75rem 2rem',
-                backgroundColor: guardando ? '#6c757d' : '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                cursor: guardando ? 'not-allowed' : 'pointer',
-                opacity: guardando ? 0.7 : 1
-              }}
-            >
-              {guardando ? '💾 Guardando...' : `💾 Guardar ${calificaciones.filter(e => e.nota !== '').length} Calificaciones`}
-            </button>
-          </div>
-        </BlurFade>
-      ) : (
-        <BlurFade delay={0.2} duration={0.3}>
-          <Card>
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📚</div>
-              <p>No hay estudiantes en este curso</p>
-              <small>Selecciona un curso diferente o verifica que tenga estudiantes asignados</small>
-            </div>
-          </Card>
-        </BlurFade>
-      )}
+      <CalificacionesContenido
+        loading={loading}
+        calificaciones={calificaciones}
+        cursoActual={cursoActual}
+        columnas={columnas}
+        guardando={guardando}
+        handleGuardar={handleGuardar}
+      />
     </div>
   );
 }

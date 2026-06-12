@@ -591,6 +591,272 @@ function PasswordModal({
   );
 }
 
+function UsuarioHeader({ abrirModalCrear }) {
+  return (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      marginBottom: '2rem',
+      background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+      padding: '1.5rem 2rem',
+      borderRadius: '16px',
+      color: '#ffffff',
+      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+    }}>
+      <div>
+        <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#ffffff', fontWeight: 700 }}>
+          Administración de Usuarios
+        </h1>
+        <p style={{ margin: '5px 0 0', color: '#c7d2fe', fontSize: '0.9rem' }}>
+          Crea, edita, cambia de estado o realiza restablecimiento de contraseñas de las cuentas.
+        </p>
+      </div>
+      <button 
+        onClick={abrirModalCrear}
+        style={{
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          color: '#ffffff',
+          border: 'none',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '10px',
+          fontWeight: 600,
+          fontSize: '0.9rem',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Nuevo Usuario
+      </button>
+    </div>
+  );
+}
+
+function UsuarioFiltros({
+  search,
+  setSearch,
+  rol,
+  setRol,
+  activo,
+  setActivo,
+  limite,
+  setLimite,
+  setPagina
+}) {
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1px solid #e2e8f0',
+      borderRadius: '12px',
+      padding: '1.25rem',
+      marginBottom: '1.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+    }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Buscar</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPagina(1); }}
+              placeholder="Nombre o correo electrónico..."
+              style={{
+                paddingLeft: '2rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc'
+              }}
+            />
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)'
+            }}>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Rol</label>
+          <select 
+            value={rol} 
+            onChange={(e) => { setRol(e.target.value); setPagina(1); }}
+            style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
+          >
+            <option value="">Todos los Roles</option>
+            <option value="admin">Administradores</option>
+            <option value="docente">Docentes</option>
+            <option value="familia">Familias</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Estado</label>
+          <select 
+            value={activo} 
+            onChange={(e) => { setActivo(e.target.value); setPagina(1); }}
+            style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
+          >
+            <option value="">Todos los Estados</option>
+            <option value="true">Activos</option>
+            <option value="false">Inactivos</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Elementos por Página</label>
+          <select 
+            value={limite} 
+            onChange={(e) => { setLimite(parseInt(e.target.value)); setPagina(1); }}
+            style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
+          >
+            <option value={5}>5 por página</option>
+            <option value={10}>10 por página</option>
+            <option value={20}>20 por página</option>
+            <option value={50}>50 por página</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UsuarioTable({
+  usuarios,
+  orderBy,
+  orderDirection,
+  handleSort,
+  handleToggleEstado,
+  abrirModalEditar,
+  abrirModalPassword,
+  handleRestore,
+  handleSoftDelete
+}) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <thead>
+          <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+            <th onClick={() => handleSort('id')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
+              ID {orderBy === 'id' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+            </th>
+            <th onClick={() => handleSort('nombre')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
+              Nombre {orderBy === 'nombre' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+            </th>
+            <th onClick={() => handleSort('email')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
+              Email {orderBy === 'email' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+            </th>
+            <th onClick={() => handleSort('rol')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
+              Rol {orderBy === 'rol' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+            </th>
+            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700 }}>
+              Vinculación
+            </th>
+            <th onClick={() => handleSort('activo')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
+              Estado {orderBy === 'activo' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+            </th>
+            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700 }}>
+              Acciones
+            </th>
+          </tr>
+        </thead>
+        <tbody style={{ divideY: '1px solid #e2e8f0' }}>
+          {usuarios.map((u) => (
+            <UsuarioRow
+              key={u.id}
+              u={u}
+              handleToggleEstado={handleToggleEstado}
+              abrirModalEditar={abrirModalEditar}
+              abrirModalPassword={abrirModalPassword}
+              handleRestore={handleRestore}
+              handleSoftDelete={handleSoftDelete}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function UsuarioPaginacion({
+  pagina,
+  setPagina,
+  paginasTotales,
+  usuariosCount,
+  total
+}) {
+  return (
+    <div style={{
+      padding: '1rem 1.5rem',
+      borderTop: '1px solid #e2e8f0',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      background: '#f8fafc'
+    }}>
+      <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+        Mostrando <strong>{usuariosCount}</strong> de <strong>{total}</strong> usuarios registrados.
+      </span>
+
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <button
+          disabled={pagina === 1}
+          onClick={() => setPagina(pagina - 1)}
+          style={{
+            padding: '0.4rem 0.8rem',
+            borderRadius: '6px',
+            border: '1px solid #cbd5e1',
+            background: '#ffffff',
+            color: '#475569',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            cursor: pagina === 1 ? 'not-allowed' : 'pointer',
+            opacity: pagina === 1 ? 0.5 : 1
+          }}
+        >
+          Anterior
+        </button>
+
+        <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>
+          Página {pagina} de {paginasTotales}
+        </span>
+
+        <button
+          disabled={pagina >= paginasTotales}
+          onClick={() => setPagina(pagina + 1)}
+          style={{
+            padding: '0.4rem 0.8rem',
+            borderRadius: '6px',
+            border: '1px solid #cbd5e1',
+            background: '#ffffff',
+            color: '#475569',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            cursor: pagina >= paginasTotales ? 'not-allowed' : 'pointer',
+            opacity: pagina >= paginasTotales ? 0.5 : 1
+          }}
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Usuarios() {
   const queryClient = useQueryClient();
 
@@ -808,53 +1074,7 @@ export default function Usuarios() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Encabezado del título principal con botón de acción */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '2rem',
-        background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
-        padding: '1.5rem 2rem',
-        borderRadius: '16px',
-        color: '#ffffff',
-        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
-      }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#ffffff', fontWeight: 700 }}>
-            Administración de Usuarios
-          </h1>
-          <p style={{ margin: '5px 0 0', color: '#c7d2fe', fontSize: '0.9rem' }}>
-            Crea, edita, cambia de estado o realiza restablecimiento de contraseñas de las cuentas.
-          </p>
-        </div>
-        <button 
-          onClick={abrirModalCrear}
-          style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: '#ffffff',
-            border: 'none',
-            padding: '0.75rem 1.25rem',
-            borderRadius: '10px',
-            fontWeight: 600,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Nuevo Usuario
-        </button>
-      </div>
+      <UsuarioHeader abrirModalCrear={abrirModalCrear} />
 
       {/* Notificaciones flotantes del sistema */}
       {successMsg && (
@@ -897,89 +1117,17 @@ export default function Usuarios() {
         </div>
       )}
 
-      {/* Tarjeta contenedora de filtros */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '12px',
-        padding: '1.25rem',
-        marginBottom: '1.5rem',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem' }}>
-          {/* Barra de búsqueda por texto */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Buscar</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPagina(1); }}
-                placeholder="Nombre o correo electrónico..."
-                style={{
-                  paddingLeft: '2rem',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: '#f8fafc'
-                }}
-              />
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{
-                position: 'absolute',
-                left: '0.75rem',
-                top: '50%',
-                transform: 'translateY(-50%)'
-              }}>
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </div>
-          </div>
-
-          {/* Selector de filtro por rol */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Rol</label>
-            <select 
-              value={rol} 
-              onChange={(e) => { setRol(e.target.value); setPagina(1); }}
-              style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
-            >
-              <option value="">Todos los Roles</option>
-              <option value="admin">Administradores</option>
-              <option value="docente">Docentes</option>
-              <option value="familia">Familias</option>
-            </select>
-          </div>
-
-          {/* Selector de filtro por estado de cuenta */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Estado</label>
-            <select 
-              value={activo} 
-              onChange={(e) => { setActivo(e.target.value); setPagina(1); }}
-              style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
-            >
-              <option value="">Todos los Estados</option>
-              <option value="true">Activos</option>
-              <option value="false">Inactivos</option>
-            </select>
-          </div>
-
-          {/* Elementos mostrados por página */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Elementos por Página</label>
-            <select 
-              value={limite} 
-              onChange={(e) => { setLimite(parseInt(e.target.value)); setPagina(1); }}
-              style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
-            >
-              <option value={5}>5 por página</option>
-              <option value={10}>10 por página</option>
-              <option value={20}>20 por página</option>
-              <option value={50}>50 por página</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <UsuarioFiltros
+        search={search}
+        setSearch={setSearch}
+        rol={rol}
+        setRol={setRol}
+        activo={activo}
+        setActivo={setActivo}
+        limite={limite}
+        setLimite={setLimite}
+        setPagina={setPagina}
+      />
 
       {/* Tarjeta que contiene la tabla principal de datos */}
       <div style={{
@@ -1022,134 +1170,55 @@ export default function Usuarios() {
             <p style={{ margin: 0, fontSize: '0.9rem' }}>Intente cambiar los filtros o busque otro nombre.</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                  <th onClick={() => handleSort('id')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-                    ID {orderBy === 'id' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
-                  </th>
-                  <th onClick={() => handleSort('nombre')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-                    Nombre {orderBy === 'nombre' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
-                  </th>
-                  <th onClick={() => handleSort('email')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-                    Email {orderBy === 'email' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
-                  </th>
-                  <th onClick={() => handleSort('rol')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-                    Rol {orderBy === 'rol' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
-                  </th>
-                  <th style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700 }}>
-                    Vinculación
-                  </th>
-                  <th onClick={() => handleSort('activo')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-                    Estado {orderBy === 'activo' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
-                  </th>
-                  <th style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700 }}>
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody style={{ divideY: '1px solid #e2e8f0' }}>
-                {usuarios.map((u) => (
-                  <UsuarioRow
-                    key={u.id}
-                    u={u}
-                    handleToggleEstado={handleToggleEstado}
-                    abrirModalEditar={abrirModalEditar}
-                    abrirModalPassword={abrirModalPassword}
-                    handleRestore={handleRestore}
-                    handleSoftDelete={handleSoftDelete}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <UsuarioTable
+            usuarios={usuarios}
+            orderBy={orderBy}
+            orderDirection={orderDirection}
+            handleSort={handleSort}
+            handleToggleEstado={handleToggleEstado}
+            abrirModalEditar={abrirModalEditar}
+            abrirModalPassword={abrirModalPassword}
+            handleRestore={handleRestore}
+            handleSoftDelete={handleSoftDelete}
+          />
         )}
 
-        {/* Pie de página con controles de paginación */}
-        <div style={{
-          padding: '1rem 1.5rem',
-          borderTop: '1px solid #e2e8f0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: '#f8fafc'
-        }}>
-          <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-            Mostrando <strong>{usuarios.length}</strong> de <strong>{total}</strong> usuarios registrados.
-          </span>
-
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <button
-              disabled={pagina === 1}
-              onClick={() => setPagina(pagina - 1)}
-              style={{
-                padding: '0.4rem 0.8rem',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                color: '#475569',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                cursor: pagina === 1 ? 'not-allowed' : 'pointer',
-                opacity: pagina === 1 ? 0.5 : 1
-              }}
-            >
-              Anterior
-            </button>
-
-            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>
-              Página {pagina} de {paginasTotales}
-            </span>
-
-            <button
-              disabled={pagina >= paginasTotales}
-              onClick={() => setPagina(pagina + 1)}
-              style={{
-                padding: '0.4rem 0.8rem',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                color: '#475569',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                cursor: pagina >= paginasTotales ? 'not-allowed' : 'pointer',
-                opacity: pagina >= paginasTotales ? 0.5 : 1
-              }}
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
+        <UsuarioPaginacion
+          pagina={pagina}
+          setPagina={setPagina}
+          paginasTotales={paginasTotales}
+          usuariosCount={usuarios.length}
+          total={total}
+        />
       </div>
 
-        <UsuarioFormModal
-          abierto={modalAbierto}
-          onClose={() => setModalAbierto(false)}
-          onSubmit={guardarUsuario}
-          editandoId={editandoId}
-          nombre={nombre}
-          setNombre={setNombre}
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          rolForm={rolForm}
-          setRolForm={setRolForm}
-          estudianteId={estudianteId}
-          setEstudianteId={setEstudianteId}
-          activoForm={activoForm}
-          setActivoForm={setActivoForm}
-          estudiantes={estudiantes}
-        />
+      <UsuarioFormModal
+        abierto={modalAbierto}
+        onClose={() => setModalAbierto(false)}
+        onSubmit={guardarUsuario}
+        editandoId={editandoId}
+        nombre={nombre}
+        setNombre={setNombre}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        rolForm={rolForm}
+        setRolForm={setRolForm}
+        estudianteId={estudianteId}
+        setEstudianteId={setEstudianteId}
+        activoForm={activoForm}
+        setActivoForm={setActivoForm}
+        estudiantes={estudiantes}
+      />
 
-        <PasswordModal
-          abierto={modalPasswordAbierto}
-          onClose={() => setModalPasswordAbierto(false)}
-          onSubmit={guardarPassword}
-          nuevoPassword={nuevoPassword}
-          setNuevoPassword={setNuevoPassword}
-        />
+      <PasswordModal
+        abierto={modalPasswordAbierto}
+        onClose={() => setModalPasswordAbierto(false)}
+        onSubmit={guardarPassword}
+        nuevoPassword={nuevoPassword}
+        setNuevoPassword={setNuevoPassword}
+      />
     </div>
   );
 }
