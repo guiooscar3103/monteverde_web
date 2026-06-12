@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import or_
 from src.extensions import db
 from src.models.usuario import Usuario
@@ -148,7 +148,7 @@ class UsuarioService:
             return {'success': False, 'message': 'Usuario no encontrado'}, 404
             
         usuario.eliminado = True
-        usuario.fecha_eliminacion = datetime.utcnow()
+        usuario.fecha_eliminacion = datetime.now(timezone.utc)
         
         try:
             db.session.commit()
