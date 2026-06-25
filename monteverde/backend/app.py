@@ -68,27 +68,28 @@ def create_app():
         except Exception as exc:
             print(f"[WARN] No se pudo actualizar la tabla cursos: {exc}")
 
-        try:
-            # Crear y verificar la tabla familia_estudiante, migrando datos legacy de usuarios.estudiante_id
-            with db.engine.begin() as conn:
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS familia_estudiante (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        familia_id INT NOT NULL,
-                        estudiante_id INT NOT NULL,
-                        FOREIGN KEY (familia_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-                        FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id) ON DELETE CASCADE,
-                        UNIQUE KEY uq_familia_estudiante (familia_id, estudiante_id)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-                """))
-                conn.execute(text("""
-                    INSERT IGNORE INTO familia_estudiante (familia_id, estudiante_id)
-                    SELECT id, estudiante_id FROM usuarios 
-                    WHERE rol = 'familia' AND estudiante_id IS NOT NULL AND eliminado = 0;
-                """))
-            print('[INFO] Tabla familia_estudiante y migración de datos legacy verificadas/creadas con éxito')
-        except Exception as exc:
-            print(f"[WARN] No se pudo verificar/migrar la tabla asociativa familia_estudiante: {exc}")
+        if db.engine.name != 'sqlite':
+            try:
+                # Crear y verificar la tabla familia_estudiante, migrando datos legacy de usuarios.estudiante_id
+                with db.engine.begin() as conn:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS familia_estudiante (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            familia_id INT NOT NULL,
+                            estudiante_id INT NOT NULL,
+                            FOREIGN KEY (familia_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                            FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id) ON DELETE CASCADE,
+                            UNIQUE KEY uq_familia_estudiante (familia_id, estudiante_id)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+                    """))
+                    conn.execute(text("""
+                        INSERT IGNORE INTO familia_estudiante (familia_id, estudiante_id)
+                        SELECT id, estudiante_id FROM usuarios 
+                        WHERE rol = 'familia' AND estudiante_id IS NOT NULL AND eliminado = 0;
+                    """))
+                print('[INFO] Tabla familia_estudiante y migración de datos legacy verificadas/creadas con éxito')
+            except Exception as exc:
+                print(f"[WARN] No se pudo verificar/migrar la tabla asociativa familia_estudiante: {exc}")
 
     from src.routes.auth_routes import auth_bp
     from src.routes.usuario_routes import usuario_bp

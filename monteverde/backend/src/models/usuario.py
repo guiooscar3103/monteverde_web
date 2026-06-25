@@ -36,7 +36,9 @@ class Usuario(db.Model):
         secondary=familia_estudiante,
         backref=db.backref('familias', lazy='dynamic')
     )
-    
+    def __init__(self, **kwargs):
+        super(Usuario, self).__init__(**kwargs)
+
     def __repr__(self):
         return f'<Usuario {self.email}>'
     
