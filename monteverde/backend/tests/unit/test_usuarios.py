@@ -7,7 +7,6 @@ class TestUsuarioUnit(unittest.TestCase):
         """[REQ-03 / CU-002] Verifica que set_password encripte la contraseña usando hashes seguros en lugar de texto plano"""
         usuario = Usuario(nombre="Docente Test", email="docente@monteverde.com", rol="docente")
         usuario.set_password("mi_clave_secreta_123")
-        
         self.assertNotEqual(usuario.password, "mi_clave_secreta_123")
         self.assertTrue(usuario.password.startswith(('scrypt:', 'pbkdf2:sha256:')))
 

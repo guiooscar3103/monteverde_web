@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { 
   getUsuariosPaginados, 
@@ -35,7 +35,7 @@ const _construirPayloadUsuario = (nombre, email, password, rolForm, estudianteId
     nombre,
     email,
     rol: rolForm,
-    estudiante_id: rolForm === 'familia' && estudianteId ? parseInt(estudianteId) : null,
+    estudiante_id: rolForm === 'familia' && estudianteId ? Number.parseInt(estudianteId) : null,
     activo: activoForm
   };
   if (password) payload.password = password;
@@ -54,6 +54,11 @@ const _resetFormularioUsuario = (setNombre, setEmail, setPassword, setRolForm, s
 const _mostrarMensajeConTimeout = (setter, mensaje, timeout = 3000) => {
   setter(mensaje);
   setTimeout(() => setter(''), timeout);
+};
+
+const _mostrarIndicadorOrden = (col, orderBy, orderDirection) => {
+  if (orderBy !== col) return '';
+  return orderDirection === 'ASC' ? '▲' : '▼';
 };
 
 function UsuarioRow({
@@ -80,6 +85,24 @@ function UsuarioRow({
       return <span style={{ ...badgeStyles, background: '#dbeafe', color: '#1e40af' }}>Docente</span>;
     }
     return <span style={{ ...badgeStyles, background: '#d1fae5', color: '#065f46' }}>Familia</span>;
+  };
+
+  const renderEstudianteInfo = () => {
+    if (u.rol !== 'familia') {
+      return <span style={{ color: '#94a3b8' }}>-</span>;
+    }
+    if (u.estudiante_nombre || u.estudiante?.nombre) {
+      return (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}>
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <strong>{u.estudiante_nombre || u.estudiante?.nombre}</strong>
+        </span>
+      );
+    }
+    return <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Sin estudiante</span>;
   };
 
   return (
@@ -114,19 +137,7 @@ function UsuarioRow({
         {renderRolBadge(u.rol)}
       </td>
       <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569' }}>
-        {u.rol === 'familia' && (u.estudiante_nombre || u.estudiante?.nombre) ? (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}>
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <strong>{u.estudiante_nombre || u.estudiante?.nombre}</strong>
-          </span>
-        ) : u.rol === 'familia' ? (
-          <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Sin estudiante</span>
-        ) : (
-          <span style={{ color: '#94a3b8' }}>-</span>
-        )}
+        {renderEstudianteInfo()}
       </td>
       <td style={{ padding: '1rem' }}>
         <button
@@ -326,10 +337,11 @@ function UsuarioFormModal({
         <form onSubmit={onSubmit} style={{ padding: '1.5rem' }}>
           <div style={{ display: 'grid', gap: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              <label htmlFor="usuarioNombre" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                 Nombre Completo <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
+                id="usuarioNombre"
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
@@ -340,10 +352,11 @@ function UsuarioFormModal({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              <label htmlFor="usuarioEmail" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                 Correo Electrónico <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
+                id="usuarioEmail"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -355,10 +368,11 @@ function UsuarioFormModal({
 
             {editandoId === null && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                <label htmlFor="usuarioPassword" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                   Contraseña Temporal <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
+                  id="usuarioPassword"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -370,10 +384,11 @@ function UsuarioFormModal({
             )}
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              <label htmlFor="usuarioRol" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                 Rol del Sistema <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <select
+                id="usuarioRol"
                 value={rolForm}
                 onChange={(e) => setRolForm(e.target.value)}
                 style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }}
@@ -386,10 +401,11 @@ function UsuarioFormModal({
 
             {rolForm === 'familia' && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                <label htmlFor="usuarioEstudiante" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                   Vincular Estudiante Asociado
                 </label>
                 <select
+                  id="usuarioEstudiante"
                   value={estudianteId}
                   onChange={(e) => setEstudianteId(e.target.value)}
                   style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }}
@@ -532,10 +548,11 @@ function PasswordModal({
             </p>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              <label htmlFor="nuevaPassword" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                 Nueva Contraseña
               </label>
               <input
+                id="nuevaPassword"
                 type="password"
                 value={nuevoPassword}
                 onChange={(e) => setNuevoPassword(e.target.value)}
@@ -664,9 +681,10 @@ function UsuarioFiltros({
     }}>
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem' }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Buscar</label>
+          <label htmlFor="filtroBuscar" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Buscar</label>
           <div style={{ position: 'relative' }}>
             <input
+              id="filtroBuscar"
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPagina(1); }}
@@ -691,8 +709,9 @@ function UsuarioFiltros({
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Rol</label>
+          <label htmlFor="filtroRol" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Rol</label>
           <select 
+            id="filtroRol"
             value={rol} 
             onChange={(e) => { setRol(e.target.value); setPagina(1); }}
             style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
@@ -705,8 +724,9 @@ function UsuarioFiltros({
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Estado</label>
+          <label htmlFor="filtroEstado" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Estado</label>
           <select 
+            id="filtroEstado"
             value={activo} 
             onChange={(e) => { setActivo(e.target.value); setPagina(1); }}
             style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
@@ -718,10 +738,11 @@ function UsuarioFiltros({
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Elementos por Página</label>
+          <label htmlFor="filtroLimite" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Elementos por Página</label>
           <select 
+            id="filtroLimite"
             value={limite} 
-            onChange={(e) => { setLimite(parseInt(e.target.value)); setPagina(1); }}
+            onChange={(e) => { setLimite(Number.parseInt(e.target.value)); setPagina(1); }}
             style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
           >
             <option value={5}>5 por página</option>
@@ -752,22 +773,22 @@ function UsuarioTable({
         <thead>
           <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
             <th onClick={() => handleSort('id')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              ID {orderBy === 'id' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+              ID {_mostrarIndicadorOrden('id', orderBy, orderDirection)}
             </th>
             <th onClick={() => handleSort('nombre')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              Nombre {orderBy === 'nombre' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+              Nombre {_mostrarIndicadorOrden('nombre', orderBy, orderDirection)}
             </th>
             <th onClick={() => handleSort('email')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              Email {orderBy === 'email' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+              Email {_mostrarIndicadorOrden('email', orderBy, orderDirection)}
             </th>
             <th onClick={() => handleSort('rol')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              Rol {orderBy === 'rol' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+              Rol {_mostrarIndicadorOrden('rol', orderBy, orderDirection)}
             </th>
             <th style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700 }}>
               Vinculación
             </th>
             <th onClick={() => handleSort('activo')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              Estado {orderBy === 'activo' ? (orderDirection === 'ASC' ? '▲' : '▼') : ''}
+              Estado {_mostrarIndicadorOrden('activo', orderBy, orderDirection)}
             </th>
             <th style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700 }}>
               Acciones
@@ -895,17 +916,7 @@ export default function Usuarios() {
   // Lista de todos los estudiantes para la vinculación con el rol de Familia
   const [estudiantes, setEstudiantes] = useState([]);
 
-  // Obtener la lista de usuarios al cambiar filtros o de página
-  useEffect(() => {
-    cargarUsuarios();
-  }, [pagina, search, rol, activo, orderBy, orderDirection, limite]);
-
-  // Obtener la lista completa de estudiantes una sola vez al montar el componente
-  useEffect(() => {
-    cargarEstudiantes();
-  }, []);
-
-  const cargarUsuarios = async () => {
+  const cargarUsuarios = useCallback(async () => {
     setCargando(true);
     setErrorMsg('');
     try {
@@ -929,7 +940,7 @@ export default function Usuarios() {
     } finally {
       setCargando(false);
     }
-  };
+  }, [pagina, limite, search, rol, activo, orderBy, orderDirection]);
 
   const cargarEstudiantes = async () => {
     try {
@@ -942,6 +953,16 @@ export default function Usuarios() {
     }
   };
 
+  // Obtener la lista de usuarios al cambiar filtros o de página
+  useEffect(() => {
+    cargarUsuarios();
+  }, [cargarUsuarios]);
+
+  // Obtener la lista completa de estudiantes una sola vez al montar el componente
+  useEffect(() => {
+    cargarEstudiantes();
+  }, []);
+
   const handleToggleEstado = async (id, activoActual) => {
     try {
       const nuevoEstado = !activoActual;
@@ -952,7 +973,8 @@ export default function Usuarios() {
         setUsuarios(usuarios.map(u => u.id === id ? { ...u, activo: nuevoEstado } : u));
       }
     } catch (error) {
-      _mostrarMensajeConTimeout(setErrorMsg, 'Error al cambiar el estado del usuario.');
+      console.error('Error al cambiar el estado del usuario:', error);
+      _mostrarMensajeConTimeout(setErrorMsg, error?.message || 'Error al cambiar el estado del usuario.');
     }
   };
 
@@ -1072,6 +1094,60 @@ export default function Usuarios() {
     setPagina(1);
   };
 
+  const renderTabla = () => {
+    if (cargando) {
+      return (
+        <div style={{ padding: '4rem 0', textAlign: 'center', color: '#64748b' }}>
+          <div style={{
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #4f46e5',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem'
+          }}></div>
+          <span>Cargando listado de usuarios...</span>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      );
+    }
+    if (usuarios.length === 0) {
+      return (
+        <div style={{ padding: '4rem 0', textAlign: 'center', color: '#64748b' }}>
+          <div style={{ color: '#94a3b8', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <h3 style={{ margin: '1rem 0 0.5rem', color: '#334155' }}>No se encontraron usuarios</h3>
+          <p style={{ margin: 0, fontSize: '0.9rem' }}>Intente cambiar los filtros o busque otro nombre.</p>
+        </div>
+      );
+    }
+    return (
+      <UsuarioTable
+        usuarios={usuarios}
+        orderBy={orderBy}
+        orderDirection={orderDirection}
+        handleSort={handleSort}
+        handleToggleEstado={handleToggleEstado}
+        abrirModalEditar={abrirModalEditar}
+        abrirModalPassword={abrirModalPassword}
+        handleRestore={handleRestore}
+        handleSoftDelete={handleSoftDelete}
+      />
+    );
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <UsuarioHeader abrirModalCrear={abrirModalCrear} />
@@ -1137,51 +1213,7 @@ export default function Usuarios() {
         overflow: 'hidden',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
       }}>
-        {cargando ? (
-          <div style={{ padding: '4rem 0', textAlign: 'center', color: '#64748b' }}>
-            <div style={{
-              border: '4px solid #f3f3f3',
-              borderTop: '4px solid #4f46e5',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 1rem'
-            }}></div>
-            <span>Cargando listado de usuarios...</span>
-            <style>{`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
-          </div>
-        ) : usuarios.length === 0 ? (
-          <div style={{ padding: '4rem 0', textAlign: 'center', color: '#64748b' }}>
-            <div style={{ color: '#94a3b8', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-            <h3 style={{ margin: '1rem 0 0.5rem', color: '#334155' }}>No se encontraron usuarios</h3>
-            <p style={{ margin: 0, fontSize: '0.9rem' }}>Intente cambiar los filtros o busque otro nombre.</p>
-          </div>
-        ) : (
-          <UsuarioTable
-            usuarios={usuarios}
-            orderBy={orderBy}
-            orderDirection={orderDirection}
-            handleSort={handleSort}
-            handleToggleEstado={handleToggleEstado}
-            abrirModalEditar={abrirModalEditar}
-            abrirModalPassword={abrirModalPassword}
-            handleRestore={handleRestore}
-            handleSoftDelete={handleSoftDelete}
-          />
-        )}
+        {renderTabla()}
 
         <UsuarioPaginacion
           pagina={pagina}

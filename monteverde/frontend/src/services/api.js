@@ -9,7 +9,7 @@ const apiRequest = async (endpoint, options = {}) => {
   const config = {
     headers: {
       'Content-Type': 'application/json',
-      ...(options.headers || {}),
+      ...options.headers,
     },
     ...options,
   };
@@ -23,11 +23,30 @@ const apiRequest = async (endpoint, options = {}) => {
     const data = await response.json();
     
     if (!response.ok) {
-      throw new Error(data.message || data.msg || data.error || 'Error en la petición');
+      const errorMsg = data.message || data.msg || data.error || '';
+      if (response.status === 401 || response.status === 422) {
+        if (
+          errorMsg.includes('claim') ||
+          errorMsg.includes('Signature') ||
+          errorMsg.includes('Token has expired') ||
+          errorMsg.includes('Invalid token') ||
+          errorMsg.includes('segments') ||
+          errorMsg.includes('Invalid header')
+        ) {
+          console.warn('⚠️ Token JWT inválido, corrupto o expirado detectado:', errorMsg);
+          localStorage.removeItem('token');
+          localStorage.removeItem('usuario');
+          localStorage.removeItem('user');
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+        }
+      }
+      throw new Error(errorMsg || 'Error en la petición');
     }
     
     if (data.success) {
-      if (Object.prototype.hasOwnProperty.call(data, 'data')) {
+      if (Object.hasOwn(data, 'data')) {
         return data.data;
       }
       return data;
