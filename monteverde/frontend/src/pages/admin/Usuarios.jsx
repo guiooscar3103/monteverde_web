@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { 
-  getUsuariosPaginados, 
-  crearUsuario, 
-  actualizarUsuario, 
-  eliminarUsuario, 
-  cambiarEstadoUsuario, 
-  restablecerPasswordUsuario, 
-  restaurarUsuario,
-  getTodosLosEstudiantes 
+  getUsuariosPaginados,       // Obtiene usuarios con paginación, búsqueda y filtros
+  crearUsuario,               // Crea una nueva cuenta de usuario
+  actualizarUsuario,          // Modifica datos de un usuario existente
+  eliminarUsuario,             // Borrado lógico (soft delete) de un usuario
+  cambiarEstadoUsuario,        // Alterna activo/inactivo la cuenta de un usuario
+  restablecerPasswordUsuario,           // Reinicia la contraseña de un usuario específico
+  restaurarUsuario,            // Revierte el borrado lógico de un usuario
+  getTodosLosEstudiantes       // Obtiene el listado completo de estudiantes para vinculación
 } from '../../services/api';
 
-// Funciones helper
+// ── Funciones helper (utilidades internas) ──────────────────────────────────
+// Interpreta la respuesta que devuelve la API y extrae `success` y `message`.
+// Soporta dos formatos: objeto con campo `success` o respuesta con solo el `id` del recurso creado.
 const _parseApiResponse = (res, defaultMessage) => {
   let success = false, message = '';
   if (res?.success !== undefined) {
@@ -24,12 +26,16 @@ const _parseApiResponse = (res, defaultMessage) => {
   return { success, message };
 };
 
+// Verifica que los campos obligatorios del formulario estén completos.
+// En modo creación (editandoId === null) la contraseña es obligatoria.
 const _validarFormularioUsuario = (nombre, email, password, editandoId) => {
   if (!nombre || !email) return false;
   if (editandoId === null && !password) return false;
   return true;
 };
 
+// Construye el objeto que se envía al backend con los datos del usuario.
+// Solo incluye `password` si se ha rellenado (creación o cambio opcional en edición).
 const _construirPayloadUsuario = (nombre, email, password, rolForm, estudianteId, activoForm) => {
   const payload = {
     nombre,
@@ -42,6 +48,7 @@ const _construirPayloadUsuario = (nombre, email, password, rolForm, estudianteId
   return payload;
 };
 
+// Reinicia todos los campos del formulario de creación/edición a sus valores por defecto.
 const _resetFormularioUsuario = (setNombre, setEmail, setPassword, setRolForm, setEstudianteId, setActivoForm) => {
   setNombre('');
   setEmail('');
@@ -51,16 +58,21 @@ const _resetFormularioUsuario = (setNombre, setEmail, setPassword, setRolForm, s
   setActivoForm(true);
 };
 
+// Muestra un mensaje (éxito o error) durante `timeout` milisegundos y luego lo limpia.
 const _mostrarMensajeConTimeout = (setter, mensaje, timeout = 3000) => {
   setter(mensaje);
   setTimeout(() => setter(''), timeout);
 };
 
+// Retorna el carácter de orden (▲/▼) para la cabecera de columna activa en la tabla.
 const _mostrarIndicadorOrden = (col, orderBy, orderDirection) => {
   if (orderBy !== col) return '';
   return orderDirection === 'ASC' ? '▲' : '▼';
 };
 
+// ── Componente: Fila individual de la tabla de usuarios ─────────────────────
+// Representa una fila con los datos del usuario, acciones de edición,
+// cambio de contraseña, eliminación/restauración y toggle de estado.
 function UsuarioRow({
   u,
   handleToggleEstado,
@@ -69,6 +81,7 @@ function UsuarioRow({
   handleRestore,
   handleSoftDelete
 }) {
+  // Renderiza un badge de color según el rol del usuario
   const renderRolBadge = (rol) => {
     const badgeStyles = {
       padding: '0.25rem 0.6rem',
@@ -78,15 +91,20 @@ function UsuarioRow({
       textTransform: 'uppercase',
       border: '1px solid currentColor'
     };
+    // Rojo para administradores
     if (rol === 'admin') {
       return <span style={{ ...badgeStyles, background: '#fee2e2', color: '#991b1b' }}>Administrador</span>;
     }
+    // Azul para docentes
     if (rol === 'docente') {
       return <span style={{ ...badgeStyles, background: '#dbeafe', color: '#1e40af' }}>Docente</span>;
     }
+    // Verde para familia (rol por defecto)
     return <span style={{ ...badgeStyles, background: '#d1fae5', color: '#065f46' }}>Familia</span>;
   };
 
+  // Muestra el nombre del estudiante vinculado si el rol es 'familia',
+  // o un guion para roles que no requieren vinculación.
   const renderEstudianteInfo = () => {
     if (u.rol !== 'familia') {
       return <span style={{ color: '#94a3b8' }}>-</span>;
@@ -263,6 +281,9 @@ function UsuarioRow({
   );
 }
 
+// ── Componente: Modal de formulario para crear/editar usuario ──────────────
+// Se muestra como overlay con campos: nombre, email, contraseña (solo en creación),
+// selector de rol, vinculación de estudiante (solo rol familia) y checkbox de activo.
 function UsuarioFormModal({
   abierto,
   onClose,
@@ -482,6 +503,8 @@ function UsuarioFormModal({
   );
 }
 
+// ── Componente: Modal de restablecimiento de contraseña ──────────────────────
+// Permite ingresar una nueva contraseña para un usuario específico.
 function PasswordModal({
   abierto,
   onClose,
@@ -608,6 +631,8 @@ function PasswordModal({
   );
 }
 
+// ── Componente: Cabecera de la página de usuarios ────────────────────────────
+// Muestra el título de la sección y un botón para crear un nuevo usuario.
 function UsuarioHeader({ abrirModalCrear }) {
   return (
     <div style={{ 
@@ -659,6 +684,9 @@ function UsuarioHeader({ abrirModalCrear }) {
   );
 }
 
+// ── Componente: Barra de filtros y búsqueda ──────────────────────────────────
+// Incluye campo de texto para búsqueda, selectores para filtrar por rol,
+// estado (activo/inactivo) y número de elementos por página.
 function UsuarioFiltros({
   search,
   setSearch,
@@ -756,6 +784,8 @@ function UsuarioFiltros({
   );
 }
 
+// ── Componente: Tabla de usuarios ────────────────────────────────────────────
+// Renderiza la tabla con cabeceras ordenables y delega cada fila al componente UsuarioRow.
 function UsuarioTable({
   usuarios,
   orderBy,
@@ -813,6 +843,8 @@ function UsuarioTable({
   );
 }
 
+// ── Componente: Barra de paginación inferior ─────────────────────────────────
+// Muestra el conteo de usuarios y botones para navegar entre páginas.
 function UsuarioPaginacion({
   pagina,
   setPagina,
@@ -878,10 +910,15 @@ function UsuarioPaginacion({
   );
 }
 
+// ── Componente principal: Página de Administración de Usuarios ──────────────
+// Orquesta toda la lógica de CRUD de usuarios: listado paginado, creación,
+// edición, eliminación lógica, restauración, cambio de estado y restablecimiento
+// de contraseña. Compone los subcomponentes definidos arriba.
 export default function Usuarios() {
+  // Cliente de React Query para invalidar cachés remotas después de mutaciones
   const queryClient = useQueryClient();
 
-  // Estado para el listado de usuarios
+  // ── Estados del listado de usuarios ──
   const [usuarios, setUsuarios] = useState([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
@@ -891,16 +928,16 @@ export default function Usuarios() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Estado de los filtros de búsqueda y paginación
+  // ── Estados de los filtros y ordenación ──
   const [search, setSearch] = useState('');
   const [rol, setRol] = useState('');
   const [activo, setActivo] = useState('');
   const [orderBy, setOrderBy] = useState('nombre');
   const [orderDirection, setOrderDirection] = useState('ASC');
 
-  // Estados para el control del modal de creación y edición
+  // ── Estados del modal de creación/edición ──
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [editandoId, setEditandoId] = useState(null);
+  const [editandoId, setEditandoId] = useState(null);   // null = creación, número = edición
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -908,14 +945,15 @@ export default function Usuarios() {
   const [estudianteId, setEstudianteId] = useState('');
   const [activoForm, setActivoForm] = useState(true);
 
-  // Estado para el control del modal de restablecimiento de contraseña
+  // ── Estados del modal de restablecimiento de contraseña ──
   const [modalPasswordAbierto, setModalPasswordAbierto] = useState(false);
   const [passwordResetId, setPasswordResetId] = useState(null);
   const [nuevoPassword, setNuevoPassword] = useState('');
 
-  // Lista de todos los estudiantes para la vinculación con el rol de Familia
+  // ── Lista completa de estudiantes para la vinculación de cuentas 'familia' ──
   const [estudiantes, setEstudiantes] = useState([]);
 
+  // Obtiene el listado de usuarios desde la API aplicando filtros, paginación y orden.
   const cargarUsuarios = useCallback(async () => {
     setCargando(true);
     setErrorMsg('');
@@ -942,6 +980,7 @@ export default function Usuarios() {
     }
   }, [pagina, limite, search, rol, activo, orderBy, orderDirection]);
 
+  // Carga la lista completa de estudiantes (sin paginación) para el selector de vinculación.
   const cargarEstudiantes = async () => {
     try {
       const data = await getTodosLosEstudiantes();
@@ -953,23 +992,26 @@ export default function Usuarios() {
     }
   };
 
-  // Obtener la lista de usuarios al cambiar filtros o de página
+  // Efecto que recarga la tabla cada vez que cambian los filtros, paginación u orden.
   useEffect(() => {
     cargarUsuarios();
   }, [cargarUsuarios]);
 
-  // Obtener la lista completa de estudiantes una sola vez al montar el componente
+  // Efecto de montaje: obtiene la lista de estudiantes una sola vez.
   useEffect(() => {
     cargarEstudiantes();
   }, []);
 
+  // Alterna el estado activo/inactivo de un usuario.
   const handleToggleEstado = async (id, activoActual) => {
     try {
       const nuevoEstado = !activoActual;
       const res = await cambiarEstadoUsuario(id, nuevoEstado);
       if (res.success) {
         _mostrarMensajeConTimeout(setSuccessMsg, res.message || 'Estado actualizado con éxito');
+        // Invalida la caché de docentes en React Query
         queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
+        // Actualización optimista del estado local
         setUsuarios(usuarios.map(u => u.id === id ? { ...u, activo: nuevoEstado } : u));
       }
     } catch (error) {
@@ -978,6 +1020,7 @@ export default function Usuarios() {
     }
   };
 
+  // Soft delete: marca un usuario como eliminado (no se borra físicamente de la BD).
   const handleSoftDelete = async (id) => {
     if (!window.confirm('¿Está seguro de eliminar lógicamente este usuario? El usuario no podrá iniciar sesión.')) {
       return;

@@ -24,14 +24,26 @@ class TestUsuarioUnit(unittest.TestCase):
         
         self.assertFalse(usuario.check_password("clave_incorrecta"))
 
-    def test_check_password_legacy_texto_plano(self):
-        """[REQ-01 / REQ-02 / CU-001] Verifica que check_password brinde soporte y compatibilidad a contraseñas almacenadas en texto plano"""
-        # Para compatibilidad, si la clave no empieza con un prefijo de hash scrypt o pbkdf2,
-        # debe validarse comparando directamente en texto plano.
+    def test_check_password_legacy_texto_plano_hashing(self):
+        """[REQ-01 / REQ-02 / CU-001] Verifica que las contraseñas asignadas directamente se hasheen automáticamente y se validen con check_password"""
         usuario = Usuario(password="textoPlanoLegacy123")
         
+        # Debe haber sido hasheada automáticamente y no guardada en texto plano
+        self.assertNotEqual(usuario.password, "textoPlanoLegacy123")
+        self.assertTrue(usuario.password.startswith(('scrypt:', 'pbkdf2:sha256:')))
+        
+        # La verificación de contraseña debe funcionar correctamente contra el hash generado
         self.assertTrue(usuario.check_password("textoPlanoLegacy123"))
         self.assertFalse(usuario.check_password("otra_clave"))
+
+    def test_reject_plain_text_db_direct_storage(self):
+        """Verifica que si una contraseña está almacenada en texto plano directamente (bypasseando el validador), sea rechazada en check_password"""
+        usuario = Usuario()
+        # Simulamos almacenamiento directo de contraseña sin hash bypassando el validador
+        usuario.__dict__['password'] = 'textoPlanoLegacy123'
+        
+        # Debe fallar la autenticación ya que no se permite comparación en texto plano
+        self.assertFalse(usuario.check_password("textoPlanoLegacy123"))
 
     def test_to_dict_campos_basicos(self):
         """[REQ-03 / REQ-05 / REQ-06 / CU-002 / CU-004] Verifica la correcta serialización a diccionario de los datos del usuario para el retorno de respuestas HTTP estructuradas en la API"""

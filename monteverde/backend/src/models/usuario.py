@@ -1,6 +1,7 @@
 from src.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from sqlalchemy.orm import validates
 
 
 # Tabla asociativa para relación de familias y múltiples estudiantes
@@ -42,15 +43,24 @@ class Usuario(db.Model):
     def __repr__(self):
         return f'<Usuario {self.email}>'
     
+    @validates('password')
+    def validate_password(self, key, password):
+        """Asegurar que la contraseña guardada siempre esté correctamente hasheada"""
+        if not password:
+            raise ValueError("La contraseña no puede estar vacía.")
+        if not str(password).startswith(('scrypt:', 'pbkdf2:sha256:')):
+            return generate_password_hash(password)
+        return password
+
     def set_password(self, password):
         """Hashear la contraseña de forma segura"""
-        self.password = generate_password_hash(password)
+        self.password = password  # Será interceptada por el validador
     
     def check_password(self, password):
-        """Verificar contraseña (soporta hash y texto plano para compatibilidad)"""
-        if str(self.password).startswith(('scrypt:', 'pbkdf2:sha256:')):
-            return check_password_hash(self.password, password)
-        return str(self.password) == str(password)
+        """Verificar contraseña de forma segura usando check_password_hash"""
+        if not self.password:
+            return False
+        return check_password_hash(self.password, password)
     
     def to_dict(self):
         data = {

@@ -253,9 +253,9 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `rol`, `nombre`, `email`, `password`, `estudiante_id`) VALUES
-(1, 'admin', 'Administrador Sistema', 'admin@monteverde.com', 'admin123', NULL),
-(2, 'docente', 'María García López', 'docente@monteverde.com', 'docente123', NULL),
-(4, 'familia', 'Familia González', 'familia@monteverde.com', 'familia123', 1);
+(1, 'admin', 'Administrador Sistema', 'admin@monteverde.com', 'scrypt:32768:8:1$Gq7YToC5z1p7Tnz8$0a8965595cd54770a5f326a0af871f1fc98f444cccbfee4fc43ec7a39eb8261b2e10a0174c20a0cfbe78cea24ff5d0907749ea9b5a9e8890f83fbfef6ca77901', NULL),
+(2, 'docente', 'María García López', 'docente@monteverde.com', 'scrypt:32768:8:1$mCEs0hmEDRVumogk$b5861d9b14aa5a760df2ae65524df275769c38c15190507b6f148bfe16b1a46a984498f10b9db016be98821f6ea20719c8239793afefdd88d58f248608396678', NULL),
+(4, 'familia', 'Familia González', 'familia@monteverde.com', 'scrypt:32768:8:1$u8jutB3ErAH1DeD4$57124e0b8adbd030f39764d449875d1f7f170d0c2c89958ee775607227db344f4adefea93ba91d54ff748ba7b2d42df01bcf877061077b2069321adfb478aa27', 1);
 
 --
 -- Índices para tablas volcadas

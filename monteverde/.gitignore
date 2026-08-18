@@ -1,0 +1,26 @@
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python caching
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Database backup / dumps (potentially with credentials)
+*.sql.bak
+*.sql.gz
+*.sqlite
+
+# OS and IDE files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
