@@ -6,6 +6,8 @@ import adminImg from '../assets/img/admin.png';
 import docenteImg from '../assets/img/docente.png';
 import familiaImg from '../assets/img/familia.png';
 import fondoImg from '../assets/img/fondo.png';
+import iconoDocente from '../assets/img/icono docente.png';
+import iconoFamilia from '../assets/img/icono familia.png';
 import BorderBeam from '../components/BorderBeam';
 
 const ROLE_CREDENTIALS = {
@@ -15,9 +17,9 @@ const ROLE_CREDENTIALS = {
 };
 
 const ROLE_IMAGES = {
-  admin: adminImg,
-  docente: docenteImg,
-  familia: familiaImg
+  admin: logoColegio,
+  docente: iconoDocente,
+  familia: iconoFamilia
 };
 
 const ROLE_LABELS = {

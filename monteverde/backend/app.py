@@ -28,6 +28,10 @@ from src.models.docente_curso import DocenteCurso
 from src.models.materia import Materia
 from src.models.docente_asignacion import DocenteAsignacion
 from src.models.circular import Circular
+# Nuevos modelos — sistema de evaluación por indicadores de logro
+from src.models.bimestre import Bimestre
+from src.models.indicador_logro import IndicadorLogro
+from src.models.calificacion_bimestre import CalificacionBimestre
 
 def create_app():
     app = Flask(__name__)
@@ -56,6 +60,22 @@ def create_app():
                 db.create_all()
             else:
                 raise
+
+        # ----- Seed de bimestres por defecto -----
+        try:
+            if Bimestre.query.count() == 0:
+                anio_actual = datetime.now().year
+                for orden in range(1, 5):
+                    db.session.add(Bimestre(
+                        nombre=f'Bimestre {orden}',
+                        anio=anio_actual,
+                        orden=orden
+                    ))
+                db.session.commit()
+                print(f'[INFO] Bimestres {anio_actual} creados correctamente')
+        except Exception as exc:
+            db.session.rollback()
+            print(f'[WARN] No se pudo crear seed de bimestres: {exc}')
 
         try:
             inspector = inspect(db.engine)
@@ -99,6 +119,7 @@ def create_app():
     from src.routes.materias import materias_bp
     from src.routes.asistencia import asistencia_bp
     from src.routes.calificaciones import calificaciones_bp
+    from src.routes.calificaciones_bimestre import calificaciones_bimestre_bp
     from src.routes.observaciones import observaciones_bp
     from src.routes.mensajes import mensajes_bp
     from src.routes.usuarios import usuarios_bp
@@ -114,6 +135,7 @@ def create_app():
     app.register_blueprint(materias_bp, url_prefix='/api')
     app.register_blueprint(asistencia_bp, url_prefix='/api')
     app.register_blueprint(calificaciones_bp, url_prefix='/api')
+    app.register_blueprint(calificaciones_bimestre_bp, url_prefix='/api')
     app.register_blueprint(observaciones_bp, url_prefix='/api')
     app.register_blueprint(mensajes_bp, url_prefix='/api')
     app.register_blueprint(usuarios_bp, url_prefix='/api')

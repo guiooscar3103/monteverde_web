@@ -1,472 +1,462 @@
-import { useState, useEffect } from 'react';
-import Card from '../../components/Card';
-import SelectSimple from '../../components/SelectSimple';
-import CampoNumero from '../../components/CampoNumero';
-import Tabla from '../../components/Tabla';
-import BarraTitulo from '../../components/BarraTitulo';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import BlurFade from '../../components/BlurFade';
-import { getMyCoursesAndSubjects, getEstudiantesPorCurso, getCalificacionesPor, guardarCalificaciones } from '../../services/api';
+import Card from '../../components/Card';
+import BarraTitulo from '../../components/BarraTitulo';
+import SelectSimple from '../../components/SelectSimple';
+import PanelIndicadores from '../../components/PanelIndicadores';
+import MatrizCalificaciones from '../../components/MatrizCalificaciones';
+import {
+  getMyCoursesAndSubjects,
+  getBimestres,
+  getIndicadoresBimestre,
+  guardarIndicadoresBimestre,
+  getMatrizCalificaciones,
+  guardarMatrizCalificaciones,
+} from '../../services/api';
 
-// Constantes y funciones helper
-const PERIODOS = [
-  { value: '2025-P1', label: '2025 - Primer Período' },
-  { value: '2025-P2', label: '2025 - Segundo Período' },
-  { value: '2025-P3', label: '2025 - Tercer Período' },
-  { value: '2025-P4', label: '2025 - Cuarto Período' }
-];
+// ─── Helpers ──────────────────────────────────────────────────────
 
-const MATERIA_MAP = {
-  'Matemáticas': 'Matematicas',
-  'Lenguaje': 'Lenguaje',
-  'Ciencias Naturales': 'Ciencias',
-  'Ciencias Sociales': 'Historia',
-  'Inglés': 'Ingles',
-  'Educación Física': 'Educacion_Fisica'
+const _calcularPromedio = (n1, n2, n3) => {
+  const vals = [n1, n2, n3].filter(v => v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v)));
+  if (!vals.length) return null;
+  return Math.round(vals.reduce((s, v) => s + parseFloat(v), 0) / vals.length * 100) / 100;
 };
 
-const mapMateriaALegacy = (materiaNombre) => MATERIA_MAP[materiaNombre] || materiaNombre;
-
-const _procesarAsignacionesAcademicas = (data) => {
-  return data.map(item => ({
-    id: item.curso_id,
-    nombre: item.curso_nombre,
-    nivel: item.curso_nivel,
-    letra: item.curso_letra
-  }));
+const _calcularDefinitiva = (indicadores) => {
+  const proms = indicadores.map(i => i.promedio).filter(p => p !== null && p !== undefined);
+  if (!proms.length) return null;
+  return Math.round(proms.reduce((s, p) => s + p, 0) / proms.length * 100) / 100;
 };
 
-const _obtenerAsignaturasDelCurso = (cursoSeleccionado, asignacionAcademica) => {
-  const cursoAsig = asignacionAcademica.find(c => c.curso_id.toString() === cursoSeleccionado);
-  if (!cursoAsig?.materias) return [];
-  return cursoAsig.materias.map(m => ({
-    value: mapMateriaALegacy(m.materia_nombre),
-    label: m.materia_nombre
-  }));
-};
-
-const _combinarEstudiantesConCalificaciones = (estudiantes, califs) => {
-  const califMap = {};
-  califs.forEach(c => {
-    califMap[c.estudiante_id] = c;
+const _actualizarNota = (estudiantes, estId, indId, numNota, valor) => {
+  return estudiantes.map(est => {
+    if (est.estudiante_id !== estId) return est;
+    const nuevosInd = est.indicadores.map(ind => {
+      if (ind.indicador_id !== indId) return ind;
+      const key = `nota_${numNota}`;
+      const updated = { ...ind, [key]: valor === '' ? null : valor };
+      updated.promedio = _calcularPromedio(updated.nota_1, updated.nota_2, updated.nota_3);
+      return updated;
+    });
+    return { ...est, indicadores: nuevosInd, definitiva: _calcularDefinitiva(nuevosInd) };
   });
-  
-  return estudiantes.map(e => ({
-    ...e,
-    nota: califMap[e.id]?.nota || '',
-    calificacion_id: califMap[e.id]?.id || null
-  }));
 };
 
-const _crearCalificacionesParaGuardar = (calificaciones, asignaturaSeleccionada, periodoSeleccionado) => {
-  return calificaciones
-    .filter(est => est.nota !== '' && est.nota >= 0 && est.nota <= 5)
-    .map(est => ({
-      estudianteId: est.id,
-      asignatura: asignaturaSeleccionada,
-      periodo: periodoSeleccionado,
-      nota: parseFloat(est.nota)
-    }));
+// ─── Estado de guardado ───────────────────────────────────────────
+
+const SAVE_STATUS = {
+  IDLE: 'idle',
+  SAVING: 'saving',
+  OK: 'ok',
+  ERROR: 'error',
 };
 
-const _validarNotaChange = (valor) => {
-  return valor === '' || (!isNaN(valor) && valor >= 0 && valor <= 5);
-};
+function BarraGuardado({ status, mensaje, onGuardar, celdasModificadas }) {
+  const colorMap = {
+    [SAVE_STATUS.IDLE]: '#64748b',
+    [SAVE_STATUS.SAVING]: '#0ea5e9',
+    [SAVE_STATUS.OK]: '#16a34a',
+    [SAVE_STATUS.ERROR]: '#dc2626',
+  };
+  const iconMap = {
+    [SAVE_STATUS.IDLE]: '💾',
+    [SAVE_STATUS.SAVING]: '⏳',
+    [SAVE_STATUS.OK]: '✅',
+    [SAVE_STATUS.ERROR]: '❌',
+  };
+  const labelMap = {
+    [SAVE_STATUS.IDLE]: celdasModificadas > 0 ? `${celdasModificadas} cambio(s) sin guardar` : 'Sin cambios',
+    [SAVE_STATUS.SAVING]: 'Guardando...',
+    [SAVE_STATUS.OK]: 'Guardado correctamente',
+    [SAVE_STATUS.ERROR]: mensaje || 'Error al guardar',
+  };
 
-const _buildColumnas = (handleNotaChange) => [
-  { 
-    key: 'nombre', 
-    label: 'Estudiante',
-    render: (valor, fila) => (
-      <div>
-        <strong>{valor}</strong>
-        <br />
-        <small style={{ color: '#666' }}>{fila.curso_nombre}</small>
-      </div>
-    )
-  },
-  {
-    key: 'nota',
-    label: 'Nota (0.0 - 5.0)',
-    render: (valor, fila) => (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <CampoNumero
-          value={valor}
-          onChange={(v) => handleNotaChange(fila.id, v)}
-          min={0}
-          max={5}
-          paso={0.1}
-        />
-        {valor !== '' && (
-          <span style={{ 
-            color: valor >= 3.0 ? '#28a745' : '#dc3545',
-            fontSize: '0.8rem',
-            fontWeight: 'bold'
-          }}>
-            {valor >= 3.0 ? '✅' : '❌'}
-          </span>
-        )}
-      </div>
-    )
-  }
-];
-
-function EstadisticasCalificaciones({ totalEstudiantes, estudiantesConNota, promedioGeneral }) {
   return (
-    <BlurFade delay={0.18} duration={0.4}>
-      <Card>
-        <div className="grid grid-4" style={{ textAlign: 'center', gap: '1rem' }}>
-          <div>
-            <strong style={{ color: 'var(--brand)', fontSize: '1.5rem' }}>{totalEstudiantes}</strong>
-            <br />
-            <small>Total Estudiantes</small>
-          </div>
-          <div>
-            <strong style={{ color: '#007bff', fontSize: '1.5rem' }}>{estudiantesConNota}</strong>
-            <br />
-            <small>Con Calificación</small>
-          </div>
-          <div>
-            <strong style={{ color: estudiantesConNota > 0 ? '#28a745' : '#6c757d', fontSize: '1.5rem' }}>
-              {estudiantesConNota > 0 ? promedioGeneral : '--'}
-            </strong>
-            <br />
-            <small>Promedio General</small>
-          </div>
-          <div>
-            <strong style={{ color: '#ffc107', fontSize: '1.5rem' }}>
-              {totalEstudiantes > 0 ? Math.round((estudiantesConNota / totalEstudiantes) * 100) : 0}%
-            </strong>
-            <br />
-            <small>Progreso</small>
-          </div>
-        </div>
-      </Card>
-    </BlurFade>
+    <div className="barra-guardado" style={{ borderTopColor: colorMap[status] }}>
+      <div className="bg-estado" style={{ color: colorMap[status] }}>
+        <span>{iconMap[status]}</span>
+        <span>{labelMap[status]}</span>
+      </div>
+      <button
+        className="btn-guardar-matriz"
+        onClick={onGuardar}
+        disabled={status === SAVE_STATUS.SAVING || celdasModificadas === 0}
+      >
+        {status === SAVE_STATUS.SAVING ? 'Guardando...' : 'Guardar calificaciones'}
+      </button>
+    </div>
   );
 }
 
-function CalificacionesFiltros({
-  cursoSeleccionado,
-  setCursoSeleccionado,
-  cursos,
-  asignaturaSeleccionada,
-  setAsignaturaSeleccionada,
-  asignaturas,
-  periodoSeleccionado,
-  setPeriodoSeleccionado
-}) {
+// ─── Filtros de selección ─────────────────────────────────────────
+
+function FiltrosCalificaciones({ cursos, asignaturas, bimestres, valores, onChange, loading }) {
   return (
-    <BlurFade delay={0.12} duration={0.35}>
-      <Card title="Filtros">
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+    <BlurFade delay={0.08} duration={0.35}>
+      <Card title="Selección">
+        <div className="filtros-cal-grid">
           <SelectSimple
-            etiqueta="Curso"
-            value={cursoSeleccionado}
-            onChange={(valor) => {
-              console.log('Curso seleccionado:', valor);
-              setCursoSeleccionado(valor);
-            }}
+            etiqueta="Curso / Grupo"
+            value={valores.cursoId}
+            onChange={v => onChange('cursoId', v)}
             options={cursos.map(c => ({ value: c.id.toString(), label: c.nombre }))}
           />
           <SelectSimple
             etiqueta="Asignatura"
-            value={asignaturaSeleccionada}
-            onChange={(valor) => {
-              console.log('Asignatura seleccionada:', valor);
-              setAsignaturaSeleccionada(valor);
-            }}
-            options={asignaturas}
+            value={valores.materiaId}
+            onChange={v => onChange('materiaId', v)}
+            options={asignaturas.map(a => ({ value: a.materia_id.toString(), label: a.materia_nombre }))}
           />
           <SelectSimple
-            etiqueta="Período"
-            value={periodoSeleccionado}
-            onChange={(valor) => {
-              console.log('Periodo seleccionado:', valor);
-              setPeriodoSeleccionado(valor);
-            }}
-            options={PERIODOS}
+            etiqueta="Bimestre"
+            value={valores.bimestreId}
+            onChange={v => onChange('bimestreId', v)}
+            options={bimestres.map(b => ({ value: b.id.toString(), label: b.nombre }))}
           />
         </div>
+        {loading && (
+          <div className="filtros-loading">
+            <div className="mini-spinner" />
+            <span>Cargando...</span>
+          </div>
+        )}
       </Card>
     </BlurFade>
   );
 }
 
-function CalificacionesContenido({
-  loading,
-  calificaciones,
-  cursoActual,
-  columnas,
-  guardando,
-  handleGuardar
-}) {
-  const calificacionesConNota = calificaciones.filter(e => e.nota !== '').length;
+// ─── Estadísticas del bimestre ────────────────────────────────────
 
-  if (loading) {
-    return (
-      <BlurFade delay={0.2} duration={0.3}>
-        <Card>
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
-            <p>Cargando estudiantes...</p>
-          </div>
-        </Card>
-      </BlurFade>
-    );
-  }
+function EstadisticasBimestre({ estudiantes }) {
+  if (!estudiantes?.length) return null;
 
-  if (calificaciones.length > 0) {
-    return (
-      <BlurFade delay={0.24} duration={0.45}>
-        <Card title={`Estudiantes de ${cursoActual?.nombre || 'Curso'}`}>
-          <Tabla
-            columns={columnas}
-            rows={calificaciones}
-          />
-        </Card>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>
-            💡 Rango de notas: 0.0 a 5.0 | Nota mínima aprobatoria: 3.0
-          </div>
-          <button
-            onClick={handleGuardar}
-            disabled={guardando || calificacionesConNota === 0}
-            style={{
-              padding: '0.75rem 2rem',
-              backgroundColor: guardando ? '#6c757d' : '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              cursor: guardando ? 'not-allowed' : 'pointer',
-              opacity: guardando ? 0.7 : 1
-            }}
-          >
-            {guardando ? '💾 Guardando...' : `💾 Guardar ${calificacionesConNota} Calificaciones`}
-          </button>
-        </div>
-      </BlurFade>
-    );
-  }
+  const total = estudiantes.length;
+  const conDefinitiva = estudiantes.filter(e => e.definitiva !== null).length;
+  const aprobados = estudiantes.filter(e => e.definitiva !== null && e.definitiva >= 3.0).length;
+  const promedioGeneral = conDefinitiva > 0
+    ? (estudiantes.filter(e => e.definitiva !== null).reduce((s, e) => s + e.definitiva, 0) / conDefinitiva).toFixed(2)
+    : null;
+
+  const stats = [
+    { label: 'Estudiantes', valor: total, color: 'var(--brand)' },
+    { label: 'Con definitiva', valor: conDefinitiva, color: '#0ea5e9' },
+    { label: 'Aprobados', valor: aprobados, color: '#16a34a' },
+    { label: 'Promedio grupo', valor: promedioGeneral ?? '—', color: promedioGeneral >= 3 ? '#16a34a' : '#dc2626' },
+  ];
 
   return (
-    <BlurFade delay={0.2} duration={0.3}>
-      <Card>
-        <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📚</div>
-          <p>No hay estudiantes en este curso</p>
-          <small>Selecciona un curso diferente o verifica que tenga estudiantes asignados</small>
-        </div>
-      </Card>
+    <BlurFade delay={0.14} duration={0.35}>
+      <div className="stats-bimestre">
+        {stats.map(s => (
+          <div key={s.label} className="stat-item">
+            <span className="stat-valor" style={{ color: s.color }}>{s.valor}</span>
+            <span className="stat-label">{s.label}</span>
+          </div>
+        ))}
+      </div>
     </BlurFade>
   );
 }
+
+// ─── Componente principal ─────────────────────────────────────────
 
 export default function RegistroCalificaciones() {
+  // ── Datos maestros ──
   const [asignacionAcademica, setAsignacionAcademica] = useState([]);
   const [cursos, setCursos] = useState([]);
-  const [calificaciones, setCalificaciones] = useState([]); 
-  const [cursoSeleccionado, setCursoSeleccionado] = useState('');
-  const [asignaturas, setAsignaturas] = useState([]);
-  const [asignaturaSeleccionada, setAsignaturaSeleccionada] = useState('');
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState('2025-P3');
-  const [loading, setLoading] = useState(false);
-  const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState('');
+  const [bimestres, setBimestres] = useState([]);
 
-  // Cargar carga académica al montar
+  // ── Selección activa ──
+  const [filtros, setFiltros] = useState({ cursoId: '', materiaId: '', bimestreId: '' });
+  const [asignaturas, setAsignaturas] = useState([]);
+
+  // ── Datos del bimestre ──
+  const [indicadores, setIndicadores] = useState([]);
+  const [estudiantes, setEstudiantes] = useState([]);   // con notas calculadas localmente
+
+  // ── Estado UI ──
+  const [loadingInicial, setLoadingInicial] = useState(true);
+  const [loadingMatriz, setLoadingMatriz] = useState(false);
+  const [guardandoIndicadores, setGuardandoIndicadores] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(SAVE_STATUS.IDLE);
+  const [saveMensaje, setSaveMensaje] = useState('');
+  const [celdasModificadas, setCeldasModificadas] = useState(0);
+
+  // Timer para autosave (debounce)
+  const saveTimerRef = useRef(null);
+  const notasPendientesRef = useRef([]);   // buffer de cambios para guardar en lote
+
+  // ── Selección derivada ──
+  const cursoActual    = cursos.find(c => c.id.toString() === filtros.cursoId);
+  const asignaturaActual = asignaturas.find(a => a.materia_id.toString() === filtros.materiaId);
+  const bimestreActual = bimestres.find(b => b.id.toString() === filtros.bimestreId);
+  const indicadoresListos = indicadores.length === 2;
+  const tieneNotas = estudiantes.some(e => e.indicadores?.some(i =>
+    [i.nota_1, i.nota_2, i.nota_3].some(n => n !== null)
+  ));
+
+  // ── 1. Cargar datos maestros al montar ───────────────────────────
   useEffect(() => {
-    const cargarCargaAcademica = async () => {
+    const init = async () => {
+      setLoadingInicial(true);
       try {
-        const data = await getMyCoursesAndSubjects();
-        console.log('Carga académica cargada:', data);
-        setAsignacionAcademica(data);
-        
-        const cursosMapeados = _procesarAsignacionesAcademicas(data);
-        setCursos(cursosMapeados);
-        if (data.length > 0) {
-          setCursoSeleccionado(data[0].curso_id.toString());
+        const [academica, bims] = await Promise.all([
+          getMyCoursesAndSubjects(),
+          getBimestres(),
+        ]);
+
+        setAsignacionAcademica(academica || []);
+
+        const cursosUnicos = [];
+        const seen = new Set();
+        (academica || []).forEach(item => {
+          if (!seen.has(item.curso_id)) {
+            seen.add(item.curso_id);
+            cursosUnicos.push({ id: item.curso_id, nombre: item.curso_nombre });
+          }
+        });
+        setCursos(cursosUnicos);
+
+        setBimestres(bims || []);
+
+        // Seleccionar primeros valores por defecto
+        if (cursosUnicos.length > 0) {
+          setFiltros(prev => ({ ...prev, cursoId: cursosUnicos[0].id.toString() }));
         }
-      } catch (error) {
-        console.error('Error al cargar carga académica:', error);
-        setMensaje('❌ Error al cargar la carga académica');
+        if (bims?.length > 0) {
+          setFiltros(prev => ({ ...prev, bimestreId: bims[0].id.toString() }));
+        }
+      } catch (err) {
+        console.error('Error inicializando RegistroCalificaciones:', err);
+      } finally {
+        setLoadingInicial(false);
       }
     };
-    cargarCargaAcademica();
+    init();
   }, []);
 
-  // Actualizar asignaturas dinámicamente cuando cambie el curso seleccionado
+  // ── 2. Actualizar asignaturas cuando cambia el curso ─────────────
   useEffect(() => {
-    if (!cursoSeleccionado || asignacionAcademica.length === 0) return;
-    
-    const asignaturasMapeadas = _obtenerAsignaturasDelCurso(cursoSeleccionado, asignacionAcademica);
-    setAsignaturas(asignaturasMapeadas);
-    
-    if (asignaturasMapeadas.length > 0) {
-      const existeActual = asignaturasMapeadas.some(a => a.value === asignaturaSeleccionada);
-      if (!existeActual) {
-        setAsignaturaSeleccionada(asignaturasMapeadas[0].value);
-      }
+    if (!filtros.cursoId || !asignacionAcademica.length) return;
+    const cursoData = asignacionAcademica.find(c => c.curso_id.toString() === filtros.cursoId);
+    const mats = cursoData?.materias || [];
+    setAsignaturas(mats);
+    if (mats.length > 0) {
+      setFiltros(prev => ({ ...prev, materiaId: mats[0].materia_id.toString() }));
     } else {
-      setAsignaturas([]);
-      setAsignaturaSeleccionada('');
+      setFiltros(prev => ({ ...prev, materiaId: '' }));
     }
-  }, [cursoSeleccionado, asignacionAcademica]);
+  }, [filtros.cursoId, asignacionAcademica]);
 
-  // ✅ Función separada para cargar datos
-  const cargarEstudiantesYCalif = async () => {
-    if (!cursoSeleccionado || !asignaturaSeleccionada) return;
-    
-    setLoading(true);
-    setMensaje('');
-    
-    try {
-      console.log('Cargando estudiantes y calificaciones...');
-      
-      const estudiantes = await getEstudiantesPorCurso(parseInt(cursoSeleccionado));
-      console.log('Estudiantes del curso:', estudiantes);
-
-      const califs = await getCalificacionesPor({
-        cursoId: parseInt(cursoSeleccionado),
-        asignatura: asignaturaSeleccionada,
-        periodo: periodoSeleccionado
-      });
-      console.log('Calificaciones encontradas:', califs);
-
-      const estudiantesConCalif = _combinarEstudiantesConCalificaciones(estudiantes, califs);
-      console.log('Estudiantes con calificaciones:', estudiantesConCalif);
-      setCalificaciones(estudiantesConCalif);
-    } catch (error) {
-      console.error('Error:', error);
-      setCalificaciones([]);
-      setMensaje('❌ Error al cargar datos: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ── 3. Cargar indicadores y matriz cuando cambian los filtros ─────
   useEffect(() => {
-    cargarEstudiantesYCalif();
-  }, [cursoSeleccionado, asignaturaSeleccionada, periodoSeleccionado]);
+    const { cursoId, materiaId, bimestreId } = filtros;
+    if (!cursoId || !materiaId || !bimestreId) return;
 
-  const handleNotaChange = (estudianteId, valor) => {
-    if (!_validarNotaChange(valor)) return;
-    
-    setCalificaciones(prev =>
-      prev.map(est =>
-        est.id === estudianteId ? { ...est, nota: valor } : est
-      )
-    );
-  };
-
-  const handleGuardar = async () => {
-    setGuardando(true);
-    setMensaje('');
-    
-    try {
-      const nuevas = _crearCalificacionesParaGuardar(calificaciones, asignaturaSeleccionada, periodoSeleccionado);
-
-      if (nuevas.length === 0) {
-        setMensaje('⚠️ No hay calificaciones válidas para guardar');
-        return;
+    const cargar = async () => {
+      setLoadingMatriz(true);
+      setCeldasModificadas(0);
+      notasPendientesRef.current = [];
+      try {
+        const [indsData, matrizData] = await Promise.all([
+          getIndicadoresBimestre({ cursoId: parseInt(cursoId), materiaId: parseInt(materiaId), bimestreId: parseInt(bimestreId) }),
+          getMatrizCalificaciones({ cursoId: parseInt(cursoId), materiaId: parseInt(materiaId), bimestreId: parseInt(bimestreId) }),
+        ]);
+        setIndicadores(indsData || []);
+        setEstudiantes(matrizData?.estudiantes || []);
+      } catch (err) {
+        console.error('Error cargando datos de bimestre:', err);
+        setIndicadores([]);
+        setEstudiantes([]);
+      } finally {
+        setLoadingMatriz(false);
       }
+    };
+    cargar();
+  }, [filtros.cursoId, filtros.materiaId, filtros.bimestreId]);
 
-      console.log('Guardando calificaciones:', nuevas);
-      await guardarCalificaciones(nuevas);
-      
-      setMensaje('✅ Calificaciones guardadas correctamente');
-      
-      setTimeout(() => {
-        cargarEstudiantesYCalif();
-        setMensaje('');
-      }, 1500);
-      
-    } catch (error) {
-      console.error('Error al guardar:', error);
-      setMensaje('❌ Error al guardar: ' + error.message);
+  // ── Cambio de filtros ──────────────────────────────────────────────
+  const handleFiltroChange = useCallback((campo, valor) => {
+    setFiltros(prev => ({ ...prev, [campo]: valor }));
+  }, []);
+
+  // ── Guardar indicadores ───────────────────────────────────────────
+  const handleGuardarIndicadores = useCallback(async ({ ind1, ind2 }) => {
+    setGuardandoIndicadores(true);
+    try {
+      const result = await guardarIndicadoresBimestre({
+        cursoId: parseInt(filtros.cursoId),
+        materiaId: parseInt(filtros.materiaId),
+        bimestreId: parseInt(filtros.bimestreId),
+        indicadores: [
+          { numero: 1, descripcion: ind1 },
+          { numero: 2, descripcion: ind2 },
+        ],
+      });
+      setIndicadores(result || []);
+      // Recargar matriz para reflejar posibles cambios
+      const matrizData = await getMatrizCalificaciones({
+        cursoId: parseInt(filtros.cursoId),
+        materiaId: parseInt(filtros.materiaId),
+        bimestreId: parseInt(filtros.bimestreId),
+      });
+      setEstudiantes(matrizData?.estudiantes || []);
+      setCeldasModificadas(0);
     } finally {
-      setGuardando(false);
+      setGuardandoIndicadores(false);
     }
-  };
+  }, [filtros]);
 
-  const columnas = _buildColumnas(handleNotaChange);
+  // ── Cambio de nota ────────────────────────────────────────────────
+  const handleNotaChange = useCallback((estId, indId, numNota, valor) => {
+    // Actualizar estado local con cálculos de promedio automático
+    setEstudiantes(prev => _actualizarNota(prev, estId, indId, numNota, valor));
 
-  const cursoActual = cursos.find(c => c.id.toString() === cursoSeleccionado);
-  const totalEstudiantes = calificaciones.length;
-  const estudiantesConNota = calificaciones.filter(e => e.nota !== '').length;
-  const promedioGeneral = calificaciones.length > 0 
-    ? (calificaciones.filter(e => e.nota !== '').reduce((sum, e) => sum + parseFloat(e.nota || 0), 0) / estudiantesConNota).toFixed(2)
-    : '0.00';
+    // Acumular en buffer de pendientes
+    const key = `${estId}-${indId}-${numNota}`;
+    const idx = notasPendientesRef.current.findIndex(n => n.key === key);
+    const entry = { key, estudianteId: estId, indicadorId: indId, numeroNota: numNota, nota: valor };
+    if (idx >= 0) {
+      notasPendientesRef.current[idx] = entry;
+    } else {
+      notasPendientesRef.current.push(entry);
+    }
+
+    setCeldasModificadas(notasPendientesRef.current.length);
+
+    // Auto-save con debounce de 2 s
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setSaveStatus(SAVE_STATUS.IDLE);
+    saveTimerRef.current = setTimeout(() => {
+      handleGuardar();
+    }, 2000);
+  }, []); // eslint-disable-line
+
+  // ── Guardar notas en lote ─────────────────────────────────────────
+  const handleGuardar = useCallback(async () => {
+    const pendientes = notasPendientesRef.current.filter(
+      n => n.nota !== '' && n.nota !== null && !isNaN(parseFloat(n.nota)) &&
+           parseFloat(n.nota) >= 0 && parseFloat(n.nota) <= 5
+    );
+    if (!pendientes.length) return;
+
+    setSaveStatus(SAVE_STATUS.SAVING);
+    setSaveMensaje('');
+    try {
+      await guardarMatrizCalificaciones(
+        pendientes.map(n => ({
+          estudianteId: n.estudianteId,
+          indicadorId: n.indicadorId,
+          numeroNota: n.numeroNota,
+          nota: parseFloat(n.nota),
+        }))
+      );
+      notasPendientesRef.current = [];
+      setCeldasModificadas(0);
+      setSaveStatus(SAVE_STATUS.OK);
+      // Volver a idle después de 3 s
+      setTimeout(() => setSaveStatus(SAVE_STATUS.IDLE), 3000);
+    } catch (err) {
+      console.error('Error guardando notas:', err);
+      setSaveStatus(SAVE_STATUS.ERROR);
+      setSaveMensaje(err.message || 'No se pudieron guardar las notas.');
+    }
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────
+
+  if (loadingInicial) {
+    return (
+      <div className="reg-cal-loading">
+        <div className="spinner-ring spinner-ring--lg" />
+        <p>Cargando módulo de calificaciones...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid">
-      <BlurFade delay={0.05} duration={0.3}>
-        <BarraTitulo 
-          titulo="Gestión de Calificaciones"
-          subtitulo="Registrar y actualizar notas de estudiantes"
+    <div className="reg-cal-wrapper">
+      {/* Título */}
+      <BlurFade delay={0.04} duration={0.3}>
+        <BarraTitulo
+          titulo="Registro de Calificaciones"
+          subtitulo="Evaluación por indicadores de logro y bimestres"
           derecha={
-            <div style={{ fontSize: '0.9rem', textAlign: 'right', color: '#666' }}>
-              {cursoActual && (
-                <>
-                  <div><strong>{cursoActual.nombre}</strong></div>
-                  <div>{asignaturaSeleccionada} - {periodoSeleccionado}</div>
-                </>
-              )}
-            </div>
+            cursoActual && asignaturaActual && bimestreActual ? (
+              <div className="titulo-derecha">
+                <strong>{cursoActual.nombre}</strong>
+                <span>{asignaturaActual.materia_nombre}</span>
+                <span className="badge-bimestre">{bimestreActual.nombre}</span>
+              </div>
+            ) : null
           }
         />
       </BlurFade>
 
-      {/* Mostrar mensajes de estado */}
-      {mensaje && (
-        <BlurFade delay={0.1} duration={0.25}>
-          <div style={{ 
-            padding: '0.75rem 1rem',
-            backgroundColor: mensaje.includes('✅') ? '#d4edda' : mensaje.includes('⚠️') ? '#fff3cd' : '#f8d7da',
-            color: mensaje.includes('✅') ? '#155724' : mensaje.includes('⚠️') ? '#856404' : '#721c24',
-            border: '1px solid',
-            borderColor: mensaje.includes('✅') ? '#c3e6cb' : mensaje.includes('⚠️') ? '#ffeaa7' : '#f5c6cb',
-            borderRadius: '6px',
-            marginBottom: '1rem',
-            textAlign: 'center'
-          }}>
-            {mensaje}
+      {/* Filtros */}
+      <FiltrosCalificaciones
+        cursos={cursos}
+        asignaturas={asignaturas}
+        bimestres={bimestres}
+        valores={filtros}
+        onChange={handleFiltroChange}
+        loading={loadingMatriz}
+      />
+
+      {/* Panel de indicadores */}
+      {filtros.cursoId && filtros.materiaId && filtros.bimestreId && (
+        <BlurFade delay={0.12} duration={0.35}>
+          <Card>
+            <PanelIndicadores
+              indicadores={indicadores}
+              onGuardar={handleGuardarIndicadores}
+              guardando={guardandoIndicadores}
+              tieneNotas={tieneNotas}
+            />
+          </Card>
+        </BlurFade>
+      )}
+
+      {/* Estadísticas */}
+      {indicadoresListos && !loadingMatriz && <EstadisticasBimestre estudiantes={estudiantes} />}
+
+      {/* Aviso si no hay indicadores */}
+      {filtros.cursoId && filtros.materiaId && filtros.bimestreId && !indicadoresListos && !loadingMatriz && (
+        <BlurFade delay={0.18} duration={0.3}>
+          <div className="aviso-indicadores">
+            <span className="aviso-icon">📋</span>
+            <div>
+              <strong>Define los indicadores primero</strong>
+              <p>Debes configurar los 2 indicadores de logro del bimestre antes de ingresar notas.</p>
+            </div>
           </div>
         </BlurFade>
       )}
 
-      {/* Filtros */}
-      <CalificacionesFiltros
-        cursoSeleccionado={cursoSeleccionado}
-        setCursoSeleccionado={setCursoSeleccionado}
-        cursos={cursos}
-        asignaturaSeleccionada={asignaturaSeleccionada}
-        setAsignaturaSeleccionada={setAsignaturaSeleccionada}
-        asignaturas={asignaturas}
-        periodoSeleccionado={periodoSeleccionado}
-        setPeriodoSeleccionado={setPeriodoSeleccionado}
-      />
-
-      {/* Estadísticas */}
-      {calificaciones.length > 0 && !loading && (
-        <EstadisticasCalificaciones 
-          totalEstudiantes={totalEstudiantes}
-          estudiantesConNota={estudiantesConNota}
-          promedioGeneral={promedioGeneral}
-        />
+      {/* Matriz de calificaciones */}
+      {indicadoresListos && (
+        <BlurFade delay={0.2} duration={0.4}>
+          <Card title={`Matriz de calificaciones — ${bimestreActual?.nombre || ''}`}>
+            <MatrizCalificaciones
+              estudiantes={estudiantes}
+              onNotaChange={handleNotaChange}
+              loading={loadingMatriz}
+            />
+          </Card>
+        </BlurFade>
       )}
 
-      {/* Tabla de calificaciones */}
-      <CalificacionesContenido
-        loading={loading}
-        calificaciones={calificaciones}
-        cursoActual={cursoActual}
-        columnas={columnas}
-        guardando={guardando}
-        handleGuardar={handleGuardar}
-      />
+      {/* Barra de guardado */}
+      {indicadoresListos && estudiantes.length > 0 && (
+        <BarraGuardado
+          status={saveStatus}
+          mensaje={saveMensaje}
+          onGuardar={handleGuardar}
+          celdasModificadas={celdasModificadas}
+        />
+      )}
     </div>
   );
 }

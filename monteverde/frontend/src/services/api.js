@@ -649,4 +649,53 @@ export const getMyCoursesAndSubjects = async () => {
   return await apiRequest('/teacher/my-courses');
 };
 
+// =====================================================
+// SISTEMA DE EVALUACIÓN POR INDICADORES Y BIMESTRES
+// =====================================================
+
+/** Lista los bimestres del año actual */
+export const getBimestres = async (anio = null) => {
+  const query = anio ? `?anio=${anio}` : '';
+  console.log('🌐 API: Obteniendo bimestres...');
+  return await apiRequest(`/bimestres${query}`);
+};
+
+/** Obtiene los indicadores de logro para curso+materia+bimestre */
+export const getIndicadoresBimestre = async ({ cursoId, materiaId, bimestreId }) => {
+  const q = new URLSearchParams({ cursoId, materiaId, bimestreId });
+  console.log('🌐 API: Obteniendo indicadores de bimestre...');
+  return await apiRequest(`/calificaciones-bimestre/indicadores?${q}`);
+};
+
+/** Guarda / actualiza los 2 indicadores de logro de un bimestre */
+export const guardarIndicadoresBimestre = async ({ cursoId, materiaId, bimestreId, indicadores }) => {
+  console.log('🌐 API: Guardando indicadores de bimestre...');
+  return await apiRequest('/calificaciones-bimestre/indicadores', {
+    method: 'POST',
+    body: JSON.stringify({ cursoId, materiaId, bimestreId, indicadores }),
+  });
+};
+
+/** Obtiene la matriz completa de estudiantes × indicadores × notas */
+export const getMatrizCalificaciones = async ({ cursoId, materiaId, bimestreId }) => {
+  const q = new URLSearchParams({ cursoId, materiaId, bimestreId });
+  console.log('🌐 API: Obteniendo matriz de calificaciones...');
+  return await apiRequest(`/calificaciones-bimestre/matriz?${q}`);
+};
+
+/** Guarda un lote de notas parciales */
+export const guardarMatrizCalificaciones = async (notas) => {
+  console.log('🌐 API: Guardando matriz de calificaciones...');
+  return await apiRequest('/calificaciones-bimestre/guardar', {
+    method: 'POST',
+    body: JSON.stringify({ notas }),
+  });
+};
+
+/** Vista familia: notas por indicador + definitiva de un estudiante */
+export const getCalificacionesBimestreFamilia = async (estudianteId) => {
+  console.log('🌐 API: Obteniendo calificaciones bimestre para familia:', estudianteId);
+  return await apiRequest(`/calificaciones-bimestre/familia/${estudianteId}`);
+};
+
 // Circulares duplicadas eliminadas para usar las del bloque central.
