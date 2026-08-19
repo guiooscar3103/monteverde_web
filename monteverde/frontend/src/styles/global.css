@@ -521,7 +521,11 @@ tbody tr:hover {
   min-width: 260px;
   max-width: 260px;
   flex-shrink: 0;
-  background: #ffffff;
+  background-color: #ffffff;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.965), rgba(255, 255, 255, 0.965)), url('../assets/img/fondo%20barra%20lateral.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border-right: 1px solid var(--border);
   padding: 1.5rem 1.25rem;
   display: flex;

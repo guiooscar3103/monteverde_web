@@ -1,5 +1,7 @@
 import { useAuth } from '../hooks/useAuth';
 import logoColegio from '../assets/img/logo-colegio.png';
+import iconoDocente from '../assets/img/icono docente.png';
+import iconoFamilia from '../assets/img/icono familia.png';
 
 export default function HeaderBar({ usuario, rol }) {
   const { logout } = useAuth();
@@ -7,6 +9,15 @@ export default function HeaderBar({ usuario, rol }) {
     logout();
     window.location.href = '/';
   };
+
+  // Determinar la ilustración de avatar a nivel de header según el rol
+  let avatarImg = logoColegio; // Por defecto es el escudo del colegio
+  const rolNormalizado = rol?.toLowerCase() || '';
+  if (rolNormalizado.includes('docente') || rolNormalizado.includes('profesor')) {
+    avatarImg = iconoDocente;
+  } else if (rolNormalizado.includes('familia') || rolNormalizado.includes('padre') || rolNormalizado.includes('madre')) {
+    avatarImg = iconoFamilia;
+  }
 
   return (
     <header style={{
@@ -40,21 +51,37 @@ export default function HeaderBar({ usuario, rol }) {
             Monteverde School
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-            {rol === 'familia' ? 'Familia conectada' : `Bienvenido ${rol}`}
+            {rolNormalizado.includes('familia') ? 'Familia conectada' : `Bienvenido ${rol}`}
           </div>
         </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span className="badge" style={{ 
-          background: 'var(--brand-light)', 
-          color: 'var(--color-primary)', 
-          borderColor: 'rgba(16, 185, 129, 0.15)',
-          padding: '0.35rem 0.8rem',
-          fontWeight: 700
-        }}>
-          {usuario} · {rol}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <img
+            src={avatarImg}
+            alt={`Avatar de ${rol}`}
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              background: 'var(--brand-light)',
+              border: '2.2px solid var(--color-primary)',
+              boxShadow: 'var(--shadow-sm)',
+              padding: rolNormalizado.includes('admin') ? '3px' : '0'
+            }}
+          />
+          <span className="badge" style={{ 
+            background: 'var(--brand-light)', 
+            color: 'var(--color-primary)', 
+            borderColor: 'rgba(16, 185, 129, 0.15)',
+            padding: '0.35rem 0.8rem',
+            fontWeight: 700
+          }}>
+            {usuario} · {rol}
+          </span>
+        </div>
         <button 
           className="btn btn--secondary" 
           onClick={salir}
