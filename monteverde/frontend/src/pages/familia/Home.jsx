@@ -3,7 +3,7 @@ import ButtonLink from '../../components/ButtonLink';
 import DiaTextReveal from '../../components/DiaTextReveal';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { getFamiliaDashboard, getMensajesPorUsuario } from '../../services/api';
+import { getFamiliaDashboard, getMensajesPorUsuario, getCirculares, formatearFecha, formatearFechaHora } from '../../services/api';
 import familiaImg from '../../assets/img/familia.png';
 import logoColegio from '../../assets/img/logo-colegio.png';
 
@@ -11,6 +11,8 @@ export default function FamiliaHome() {
   const { usuario } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [ultimoMensaje, setUltimoMensaje] = useState(null);
+  const [circulares, setCirculares] = useState([]);
+  const [circularSeleccionada, setCircularSeleccionada] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mensaje, setMensaje] = useState('');
   const [selectedHijoIndex, setSelectedHijoIndex] = useState(0);
@@ -24,15 +26,24 @@ export default function FamiliaHome() {
       }
 
       try {
-        const [dashboard, mensajes] = await Promise.all([
+        const [dashboard, mensajes, circularesRes] = await Promise.all([
           getFamiliaDashboard(usuario.id),
           getMensajesPorUsuario(usuario.id).catch(err => {
             console.warn('No se pudieron cargar mensajes:', err);
+            return [];
+          }),
+          getCirculares(5).catch(err => {
+            console.warn('No se pudieron cargar circulares:', err);
             return [];
           })
         ]);
 
         setDashboardData(dashboard);
+
+        if (circularesRes) {
+          const listaCirculares = circularesRes.data ? circularesRes.data : circularesRes;
+          setCirculares(listaCirculares);
+        }
 
         if (mensajes && mensajes.length > 0) {
           const mensajesRecibidos = mensajes.filter(m => m.receptor_id === usuario.id);
@@ -175,17 +186,173 @@ export default function FamiliaHome() {
       </Card>
 
       <Card title="Últimas Circulares">
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <div style={{ padding: '1rem', borderRadius: '18px', background: 'var(--surface)' }}>
-            <strong>Reunión de padres</strong>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '.5rem' }}>El viernes a las 6:00 PM en el Auditorio Principal.</p>
+        {circulares.length === 0 ? (
+          <div style={{ color: 'var(--text-secondary)', padding: '1.5rem', textAlign: 'center', fontSize: '0.95rem' }}>
+            No hay circulares publicadas todavía.
           </div>
-          <div style={{ padding: '1rem', borderRadius: '18px', background: 'var(--surface)' }}>
-            <strong>Salida pedagógica</strong>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '.5rem' }}>Mañana en el museo de ciencias naturales.</p>
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '350px', overflowY: 'auto' }}>
+            {circulares.map((c) => (
+              <li 
+                key={c.id} 
+                onClick={() => setCircularSeleccionada(c)}
+                style={{ 
+                  padding: '0.85rem 1.1rem', 
+                  borderRadius: '14px', 
+                  background: 'var(--surface)', 
+                  border: '1px solid rgba(16, 185, 129, 0.08)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                  e.currentTarget.style.background = 'rgba(16, 185, 129, 0.03)';
+                  e.currentTarget.style.transform = 'translateX(3px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.08)';
+                  e.currentTarget.style.background = 'var(--surface)';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <span style={{ 
+                  fontWeight: 600, 
+                  color: 'var(--brand)', 
+                  fontSize: '0.925rem',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '70%'
+                }}>
+                  {c.titulo}
+                </span>
+                <span style={{ 
+                  fontSize: '0.75rem', 
+                  color: 'var(--text-secondary)',
+                  whiteSpace: 'nowrap',
+                  background: 'rgba(16, 185, 129, 0.06)',
+                  padding: '3px 9px',
+                  borderRadius: '20px',
+                  fontWeight: 600
+                }}>
+                  {c.fecha_publicacion ? formatearFecha(c.fecha_publicacion) : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* Modal de Detalle de Circular */}
+      {circularSeleccionada && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(6px)',
+          padding: '1.5rem',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '560px',
+            background: '#ffffff',
+            borderRadius: '24px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden'
+          }}>
+            {/* Header del Modal */}
+            <div style={{
+              background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+              padding: '1.5rem 1.75rem',
+              color: '#ffffff',
+              position: 'relative'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, paddingRight: '2rem' }}>
+                {circularSeleccionada.titulo}
+              </h3>
+              <p style={{ margin: '0.35rem 0 0', color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.82rem', fontWeight: 500 }}>
+                Publicado por: {circularSeleccionada.autor_nombre} · {formatearFechaHora(circularSeleccionada.fecha_publicacion)}
+              </p>
+              <button 
+                onClick={() => setCircularSeleccionada(null)}
+                style={{
+                  position: 'absolute',
+                  top: '1.5rem',
+                  right: '1.5rem',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  color: '#ffffff',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Contenido del Modal */}
+            <div style={{ padding: '1.75rem', maxHeight: '400px', overflowY: 'auto' }}>
+              <p style={{
+                margin: 0,
+                fontSize: '0.95rem',
+                color: '#334155',
+                lineHeight: '1.6',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {circularSeleccionada.contenido}
+              </p>
+            </div>
+
+            {/* Footer del Modal */}
+            <div style={{
+              padding: '1.25rem 1.75rem',
+              borderTop: '1px solid #f1f5f9',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              background: '#f8fafc'
+            }}>
+              <button
+                onClick={() => setCircularSeleccionada(null)}
+                style={{
+                  background: '#11998e',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.65rem 1.5rem',
+                  borderRadius: '10px',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 10px rgba(17, 153, 142, 0.15)',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#0f857b'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#11998e'}
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
-      </Card>
+      )}
     </div>
   );
 }

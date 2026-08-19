@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCirculares, crearCircular, formatearFecha, formatearFechaHora } from '../../services/api';
+import { getCirculares, crearCircular, actualizarCircular, eliminarCircular, formatearFecha, formatearFechaHora } from '../../services/api';
 
 // Funciones helper
 const _validarFormCircular = (titulo, contenido) => {
@@ -26,6 +26,7 @@ export default function Circulares() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [circularSeleccionada, setCircularSeleccionada] = useState(null);
+  const [editandoId, setEditandoId] = useState(null);
 
   // 1. Consulta reactiva de circulares
   const { data: circulares = [], isLoading: cargando } = useQuery({
@@ -57,7 +58,47 @@ export default function Circulares() {
     }
   });
 
-  const handlePublicar = (event) => {
+  // Mutación para editar circular
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }) => actualizarCircular(id, payload),
+    onSuccess: (respuesta) => {
+      const { exito, mensaje } = _parseCircularResponse(respuesta, 'Circular actualizada con éxito');
+      if (exito) {
+        setSuccessMsg(mensaje);
+        setTitulo('');
+        setContenido('');
+        setEditandoId(null);
+        queryClient.invalidateQueries({ queryKey: ['circulares'] });
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        setErrorMsg(mensaje);
+      }
+    },
+    onError: (error) => {
+      setErrorMsg(error.message || 'Error en el servidor al actualizar la circular.');
+    }
+  });
+
+  // Mutación para eliminar circular
+  const deleteMutation = useMutation({
+    mutationFn: eliminarCircular,
+    onSuccess: (respuesta) => {
+      const { exito, mensaje } = _parseCircularResponse(respuesta, 'Circular eliminada con éxito');
+      if (exito) {
+        setSuccessMsg(mensaje);
+        setCircularSeleccionada(null);
+        queryClient.invalidateQueries({ queryKey: ['circulares'] });
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        setErrorMsg(mensaje);
+      }
+    },
+    onError: (error) => {
+      setErrorMsg(error.message || 'Error en el servidor al eliminar la circular.');
+    }
+  });
+
+  const handleGuardar = (event) => {
     event.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -67,7 +108,34 @@ export default function Circulares() {
       return;
     }
 
-    createMutation.mutate(_crearPayloadCircular(titulo, contenido));
+    const payload = _crearPayloadCircular(titulo, contenido);
+
+    if (editandoId) {
+      updateMutation.mutate({ id: editandoId, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
+  };
+
+  const handleCancelarEdicion = () => {
+    setTitulo('');
+    setContenido('');
+    setEditandoId(null);
+    setErrorMsg('');
+  };
+
+  const iniciarEdicion = (circular) => {
+    setEditandoId(circular.id);
+    setTitulo(circular.titulo);
+    setContenido(circular.contenido);
+    setCircularSeleccionada(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleEliminar = (id) => {
+    if (window.confirm('¿Seguro que deseas eliminar esta circular?')) {
+      deleteMutation.mutate(id);
+    }
   };
 
   return (
@@ -159,10 +227,10 @@ export default function Circulares() {
           boxShadow: '0 18px 35px rgba(15, 23, 42, 0.04)'
         }}>
           <h2 style={{ margin: '0 0 1.25rem', fontSize: '1.3rem', color: '#0f172a', fontWeight: 600 }}>
-            Redactar Nueva Circular
+            {editandoId ? 'Editar Circular' : 'Redactar Nueva Circular'}
           </h2>
           
-          <form onSubmit={handlePublicar} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <form onSubmit={handleGuardar} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.92rem', fontWeight: 600, color: '#334155' }}>
                 Título de la Circular
@@ -216,54 +284,85 @@ export default function Circulares() {
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              style={{
-                background: '#6366f1',
-                color: '#ffffff',
-                border: 'none',
-                padding: '0.95rem 1.5rem',
-                borderRadius: '12px',
-                cursor: createMutation.isPending ? 'not-allowed' : 'pointer',
-                fontWeight: 700,
-                fontSize: '0.95rem',
-                boxShadow: '0 8px 20px rgba(99, 102, 241, 0.15)',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => {
-                if (!createMutation.isPending) {
-                  e.currentTarget.style.background = '#4f46e5';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(79, 70, 229, 0.25)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!createMutation.isPending) {
-                  e.currentTarget.style.background = '#6366f1';
-                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.15)';
-                }
-              }}
-            >
-              {createMutation.isPending ? (
-                <>
-                  <div style={{
-                    width: '18px',
-                    height: '18px',
-                    border: '2px solid rgba(255, 255, 255, 0.3)',
-                    borderTop: '2px solid #ffffff',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite'
-                  }} />
-                  Publicando...
-                </>
-              ) : (
-                'Publicar Circular'
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+                style={{
+                  flexGrow: 1,
+                  background: '#6366f1',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.95rem 1.5rem',
+                  borderRadius: '12px',
+                  cursor: (createMutation.isPending || updateMutation.isPending) ? 'not-allowed' : 'pointer',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  boxShadow: '0 8px 20px rgba(99, 102, 241, 0.15)',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  if (!createMutation.isPending && !updateMutation.isPending) {
+                    e.currentTarget.style.background = '#4f46e5';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(79, 70, 229, 0.25)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!createMutation.isPending && !updateMutation.isPending) {
+                    e.currentTarget.style.background = '#6366f1';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.15)';
+                  }
+                }}
+              >
+                {createMutation.isPending || updateMutation.isPending ? (
+                  <>
+                    <div style={{
+                      width: '18px',
+                      height: '18px',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
+                      borderTop: '2px solid #ffffff',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite'
+                    }} />
+                    {editandoId ? 'Guardando...' : 'Publicando...'}
+                  </>
+                ) : (
+                  editandoId ? 'Guardar Cambios' : 'Publicar Circular'
+                )}
+              </button>
+
+              {editandoId && (
+                <button
+                  type="button"
+                  onClick={handleCancelarEdicion}
+                  style={{
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    padding: '0.95rem 1.5rem',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '0.95rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#e2e8f0';
+                    e.currentTarget.style.color = '#334155';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f1f5f9';
+                    e.currentTarget.style.color = '#475569';
+                  }}
+                >
+                  Cancelar
+                </button>
               )}
-            </button>
+            </div>
           </form>
         </div>
 
@@ -461,19 +560,59 @@ export default function Circulares() {
               padding: '1.25rem 1.75rem',
               borderTop: '1px solid #f1f5f9',
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               background: '#f8fafc'
             }}>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => iniciarEdicion(circularSeleccionada)}
+                  style={{
+                    background: '#e2e8f0',
+                    color: '#334155',
+                    border: '1px solid #cbd5e1',
+                    padding: '0.55rem 1.25rem',
+                    borderRadius: '10px',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#cbd5e1'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#e2e8f0'}
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleEliminar(circularSeleccionada.id)}
+                  style={{
+                    background: '#fee2e2',
+                    color: '#991b1b',
+                    border: '1px solid #f87171',
+                    padding: '0.55rem 1.25rem',
+                    borderRadius: '10px',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#fca5a5'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#fee2e2'}
+                >
+                  Eliminar
+                </button>
+              </div>
+
               <button
                 onClick={() => setCircularSeleccionada(null)}
                 style={{
                   background: '#6366f1',
                   color: '#ffffff',
                   border: 'none',
-                  padding: '0.65rem 1.5rem',
+                  padding: '0.55rem 1.25rem',
                   borderRadius: '10px',
                   fontWeight: 600,
-                  fontSize: '0.9rem',
+                  fontSize: '0.85rem',
                   cursor: 'pointer',
                   boxShadow: '0 4px 10px rgba(99, 102, 241, 0.15)',
                   transition: 'background 0.2s'

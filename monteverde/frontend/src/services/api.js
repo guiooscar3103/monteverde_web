@@ -429,17 +429,54 @@ export const eliminarToken = () => {
 
 export const verificarToken = async () => {
   const token = obtenerToken();
-  if (!token) return false;
+  if (!token) return null;
   
   try {
-    // Puedes implementar un endpoint de verificación en el backend
-    await apiRequest('/auth/verify');
-    return true;
-  } catch {
+    const res = await apiRequest('/auth/verify');
+    if (res && res.success && res.user) {
+      return res.user;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error al verificar token:', error);
     eliminarToken();
-    return false;
+    return null;
   }
 };
+
+// =====================================================
+// FUNCIONES PARA CIRCULARES
+// =====================================================
+
+export const getCirculares = async (limit = null) => {
+  const query = limit ? `?limit=${limit}` : '';
+  return apiRequest(`/circulares${query}`);
+};
+
+export const getCircular = async (id) => {
+  return apiRequest(`/circulares/${id}`);
+};
+
+export const crearCircular = async (payload) => {
+  return apiRequest('/circulares', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+};
+
+export const actualizarCircular = async (id, payload) => {
+  return apiRequest(`/circulares/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
+};
+
+export const eliminarCircular = async (id) => {
+  return apiRequest(`/circulares/${id}`, {
+    method: 'DELETE'
+  });
+};
+
 
 // =====================================================
 // ✅ TODOS LOS ALIAS PARA COMPATIBILIDAD TOTAL
@@ -612,20 +649,4 @@ export const getMyCoursesAndSubjects = async () => {
   return await apiRequest('/teacher/my-courses');
 };
 
-// =====================================================
-// CIRCULARES
-// =====================================================
-
-export const getCirculares = async (limit) => {
-  console.log('🌐 API: Obteniendo circulares...', limit ? `con límite ${limit}` : '');
-  const url = limit ? `/circulares?limit=${limit}` : '/circulares';
-  return await apiRequest(url);
-};
-
-export const crearCircular = async (datos) => {
-  console.log('🌐 API: Creando circular:', datos);
-  return await apiRequest('/circulares', {
-    method: 'POST',
-    body: JSON.stringify(datos),
-  });
-};
+// Circulares duplicadas eliminadas para usar las del bloque central.

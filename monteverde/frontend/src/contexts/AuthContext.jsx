@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { verificarToken } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -11,28 +12,25 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    // Intentar recuperar usuario del token al inicializar
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return {
-          id: payload.user_id,
-          email: payload.email,
-          rol: payload.rol,
-          nombre: payload.nombre || payload.email.split('@')[0]
-        };
-      } catch (e) {
-        localStorage.removeItem('token');
-        return null;
-      }
-    }
-    return null;
-  });
-
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const verificarSesion = async () => {
+      try {
+        const validatedUser = await verificarToken();
+        setUser(validatedUser);
+      } catch (err) {
+        console.error('Error al verificar la sesión inicial:', err);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    verificarSesion();
+  }, []);
+
 
   const login = async ({ email, password }) => {
     setError(null);
@@ -72,6 +70,7 @@ export const AuthProvider = ({ children }) => {
     usuario: user,
     isAuthenticated: !!user,
     isLoading,
+    loading: isLoading,
     error,
     login,
     logout,
