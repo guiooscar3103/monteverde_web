@@ -12,8 +12,6 @@ import {
 } from '../../services/api';
 
 // ── Funciones helper (utilidades internas) ──────────────────────────────────
-// Interpreta la respuesta que devuelve la API y extrae `success` y `message`.
-// Soporta dos formatos: objeto con campo `success` o respuesta con solo el `id` del recurso creado.
 const _parseApiResponse = (res, defaultMessage) => {
   let success = false, message = '';
   if (res?.success !== undefined) {
@@ -26,16 +24,12 @@ const _parseApiResponse = (res, defaultMessage) => {
   return { success, message };
 };
 
-// Verifica que los campos obligatorios del formulario estén completos.
-// En modo creación (editandoId === null) la contraseña es obligatoria.
 const _validarFormularioUsuario = (nombre, email, password, editandoId) => {
   if (!nombre || !email) return false;
   if (editandoId === null && !password) return false;
   return true;
 };
 
-// Construye el objeto que se envía al backend con los datos del usuario.
-// Solo incluye `password` si se ha rellenado (creación o cambio opcional en edición).
 const _construirPayloadUsuario = (nombre, email, password, rolForm, estudianteId, activoForm) => {
   const payload = {
     nombre,
@@ -48,7 +42,6 @@ const _construirPayloadUsuario = (nombre, email, password, rolForm, estudianteId
   return payload;
 };
 
-// Reinicia todos los campos del formulario de creación/edición a sus valores por defecto.
 const _resetFormularioUsuario = (setNombre, setEmail, setPassword, setRolForm, setEstudianteId, setActivoForm) => {
   setNombre('');
   setEmail('');
@@ -58,21 +51,17 @@ const _resetFormularioUsuario = (setNombre, setEmail, setPassword, setRolForm, s
   setActivoForm(true);
 };
 
-// Muestra un mensaje (éxito o error) durante `timeout` milisegundos y luego lo limpia.
 const _mostrarMensajeConTimeout = (setter, mensaje, timeout = 3000) => {
   setter(mensaje);
   setTimeout(() => setter(''), timeout);
 };
 
-// Retorna el carácter de orden (▲/▼) para la cabecera de columna activa en la tabla.
 const _mostrarIndicadorOrden = (col, orderBy, orderDirection) => {
   if (orderBy !== col) return '';
-  return orderDirection === 'ASC' ? '▲' : '▼';
+  return orderDirection === 'ASC' ? ' ▲' : ' ▼';
 };
 
 // ── Componente: Fila individual de la tabla de usuarios ─────────────────────
-// Representa una fila con los datos del usuario, acciones de edición,
-// cambio de contraseña, eliminación/restauración y toggle de estado.
 function UsuarioRow({
   u,
   handleToggleEstado,
@@ -81,129 +70,111 @@ function UsuarioRow({
   handleRestore,
   handleSoftDelete
 }) {
-  // Renderiza un badge de color según el rol del usuario
   const renderRolBadge = (rol) => {
     const badgeStyles = {
-      padding: '0.25rem 0.6rem',
-      borderRadius: '999px',
-      fontSize: '0.75rem',
-      fontWeight: 600,
+      padding: '0.25rem 0.65rem',
+      borderRadius: '9999px',
+      fontSize: '0.72rem',
+      fontWeight: 700,
       textTransform: 'uppercase',
-      border: '1px solid currentColor'
+      border: '1px solid transparent',
+      display: 'inline-block'
     };
-    // Rojo para administradores
     if (rol === 'admin') {
-      return <span style={{ ...badgeStyles, background: '#fee2e2', color: '#991b1b' }}>Administrador</span>;
+      return <span style={{ ...badgeStyles, background: 'var(--bg-light)', color: 'var(--role-admin)', borderColor: 'var(--border)' }}>Administrador</span>;
     }
-    // Azul para docentes
     if (rol === 'docente') {
-      return <span style={{ ...badgeStyles, background: '#dbeafe', color: '#1e40af' }}>Docente</span>;
+      return <span style={{ ...badgeStyles, background: '#DCFCE7', color: 'var(--role-docente)', borderColor: '#BBF7D0' }}>Docente</span>;
     }
-    // Verde para familia (rol por defecto)
-    return <span style={{ ...badgeStyles, background: '#d1fae5', color: '#065f46' }}>Familia</span>;
+    return <span style={{ ...badgeStyles, background: '#FEF3C7', color: 'var(--role-familia)', borderColor: '#FDE68A' }}>Familia</span>;
   };
 
-  // Muestra el nombre del estudiante vinculado si el rol es 'familia',
-  // o un guion para roles que no requieren vinculación.
   const renderEstudianteInfo = () => {
     if (u.rol !== 'familia') {
-      return <span style={{ color: '#94a3b8' }}>-</span>;
+      return <span style={{ color: 'var(--text-muted)' }}>-</span>;
     }
     if (u.estudiante_nombre || u.estudiante?.nombre) {
       return (
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-secondary)' }}>
             <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
-          <strong>{u.estudiante_nombre || u.estudiante?.nombre}</strong>
+          <strong style={{ color: 'var(--text)' }}>{u.estudiante_nombre || u.estudiante?.nombre}</strong>
         </span>
       );
     }
-    return <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Sin estudiante</span>;
+    return <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Sin estudiante</span>;
   };
 
   return (
     <tr key={u.id} style={{ 
-      borderBottom: '1px solid #f1f5f9',
-      background: u.eliminado ? '#fff5f5' : '#ffffff',
-      transition: 'background 0.2s'
+      background: u.eliminado ? '#FFF1F2' : '#ffffff',
+      borderBottom: '1px solid var(--border)'
     }}>
-      <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>
+      <td style={{ fontWeight: 700, color: 'var(--text-muted)' }}>
         #{u.id}
       </td>
-      <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#1e293b', fontWeight: 500 }}>
+      <td style={{ fontWeight: 700, color: 'var(--text)' }}>
         {u.nombre}
         {u.eliminado && (
           <span style={{
-            background: '#fee2e2',
-            color: '#b91c1c',
-            fontSize: '0.7rem',
+            background: '#FFE4E6',
+            color: '#BE123C',
+            fontSize: '0.65rem',
             padding: '2px 6px',
             borderRadius: '4px',
             marginLeft: '8px',
-            fontWeight: 600
+            fontWeight: 800,
+            border: '1px solid #FECDD3'
           }}>
             ELIMINADO
           </span>
         )}
       </td>
-      <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
+      <td>
         {u.email}
       </td>
-      <td style={{ padding: '1rem' }}>
+      <td>
         {renderRolBadge(u.rol)}
       </td>
-      <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569' }}>
+      <td>
         {renderEstudianteInfo()}
       </td>
-      <td style={{ padding: '1rem' }}>
+      <td>
         <button
           disabled={u.eliminado}
           onClick={() => handleToggleEstado(u.id, u.activo)}
+          className="status-chip"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '8px',
-            border: 'none',
+            background: u.activo ? '#DCFCE7' : '#FFE4E6',
+            color: u.activo ? '#166534' : '#9F1239',
+            borderColor: u.activo ? '#BBF7D0' : '#FECDD3',
             cursor: u.eliminado ? 'not-allowed' : 'pointer',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            background: u.activo ? '#d1fae5' : '#fee2e2',
-            color: u.activo ? '#065f46' : '#991b1b',
-            transition: 'all 0.15s'
+            padding: '0.25rem 0.65rem',
+            fontSize: '0.75rem',
+            fontWeight: 700
           }}
         >
-          <span style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            background: u.activo ? '#10b981' : '#ef4444'
-          }}></span>
           {u.activo ? 'Activo' : 'Inactivo'}
         </button>
       </td>
-      <td style={{ padding: '1rem' }}>
-        <div style={{ display: 'flex', gap: '8px' }}>
+      <td>
+        <div style={{ display: 'flex', gap: '6px' }}>
           <button
             disabled={u.eliminado}
             onClick={() => abrirModalEditar(u)}
             title="Editar usuario"
+            className="btn btn--secondary"
             style={{
               padding: '6px',
-              background: '#f1f5f9',
-              border: '1px solid #cbd5e1',
-              borderRadius: '6px',
-              color: '#475569',
+              minWidth: 'auto',
+              borderRadius: '8px',
               cursor: u.eliminado ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'all 0.15s'
+              color: 'var(--color-primary-light)'
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
@@ -213,19 +184,16 @@ function UsuarioRow({
             disabled={u.eliminado}
             onClick={() => abrirModalPassword(u.id)}
             title="Cambiar contraseña"
+            className="btn btn--secondary"
             style={{
               padding: '6px',
-              background: '#f1f5f9',
-              border: '1px solid #cbd5e1',
-              borderRadius: '6px',
-              color: '#d97706',
+              minWidth: 'auto',
+              borderRadius: '8px',
               cursor: u.eliminado ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'all 0.15s'
+              color: 'var(--color-warning)'
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
@@ -235,19 +203,18 @@ function UsuarioRow({
             <button
               onClick={() => handleRestore(u.id)}
               title="Restaurar cuenta"
+              className="btn"
               style={{
                 padding: '6px',
-                background: '#ecfdf5',
-                border: '1px solid #10b981',
-                borderRadius: '6px',
-                color: '#10b981',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'all 0.15s'
+                minWidth: 'auto',
+                borderRadius: '8px',
+                background: '#ECFDF5',
+                borderColor: '#10B981',
+                color: '#10B981',
+                cursor: 'pointer'
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
               </svg>
             </button>
@@ -255,19 +222,18 @@ function UsuarioRow({
             <button
               onClick={() => handleSoftDelete(u.id)}
               title="Eliminar lógicamente"
+              className="btn"
               style={{
                 padding: '6px',
-                background: '#fef2f2',
-                border: '1px solid #fca5a5',
-                borderRadius: '6px',
-                color: '#ef4444',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'all 0.15s'
+                minWidth: 'auto',
+                borderRadius: '8px',
+                background: '#FEF2F2',
+                borderColor: '#FCA5A5',
+                color: '#EF4444',
+                cursor: 'pointer'
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6" />
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 <line x1="10" y1="11" x2="10" y2="17" />
@@ -282,8 +248,6 @@ function UsuarioRow({
 }
 
 // ── Componente: Modal de formulario para crear/editar usuario ──────────────
-// Se muestra como overlay con campos: nombre, email, contraseña (solo en creación),
-// selector de rol, vinculación de estudiante (solo rol familia) y checkbox de activo.
 function UsuarioFormModal({
   abierto,
   onClose,
@@ -306,38 +270,17 @@ function UsuarioFormModal({
   if (!abierto) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(15, 23, 42, 0.6)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 10,
-      backdropFilter: 'blur(4px)'
-    }}>
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '16px',
-        width: '100%',
-        maxWidth: '500px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        overflow: 'hidden',
-        border: '1px solid #e2e8f0',
-        animation: 'fadeIn 0.2s ease-out'
-      }}>
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ padding: 0, maxWidth: '480px', overflow: 'hidden' }}>
         <div style={{
-          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+          background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--brand-2) 100%)',
           color: '#ffffff',
           padding: '1.25rem 1.5rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.15rem', fontWeight: 700 }}>
+          <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem', fontWeight: 800, fontFamily: 'Merriweather, serif' }}>
             {editandoId === null ? 'Crear Nuevo Usuario' : 'Editar Usuario'}
           </h3>
           <button 
@@ -356,10 +299,10 @@ function UsuarioFormModal({
         </div>
 
         <form onSubmit={onSubmit} style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'grid', gap: '1.25rem' }}>
-            <div>
-              <label htmlFor="usuarioNombre" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                Nombre Completo <span style={{ color: '#ef4444' }}>*</span>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="usuarioNombre" className="form-label">
+                Nombre Completo <span style={{ color: 'var(--color-error)' }}>*</span>
               </label>
               <input
                 id="usuarioNombre"
@@ -368,13 +311,13 @@ function UsuarioFormModal({
                 onChange={(e) => setNombre(e.target.value)}
                 required
                 placeholder="Ej. Juan Pérez"
-                style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                style={{ borderRadius: '8px' }}
               />
             </div>
 
-            <div>
-              <label htmlFor="usuarioEmail" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                Correo Electrónico <span style={{ color: '#ef4444' }}>*</span>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="usuarioEmail" className="form-label">
+                Correo Electrónico <span style={{ color: 'var(--color-error)' }}>*</span>
               </label>
               <input
                 id="usuarioEmail"
@@ -383,14 +326,14 @@ function UsuarioFormModal({
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="ejemplo@monteverde.edu.co"
-                style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                style={{ borderRadius: '8px' }}
               />
             </div>
 
             {editandoId === null && (
-              <div>
-                <label htmlFor="usuarioPassword" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Contraseña Temporal <span style={{ color: '#ef4444' }}>*</span>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label htmlFor="usuarioPassword" className="form-label">
+                  Contraseña Temporal <span style={{ color: 'var(--color-error)' }}>*</span>
                 </label>
                 <input
                   id="usuarioPassword"
@@ -399,20 +342,20 @@ function UsuarioFormModal({
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Mínimo 6 caracteres"
-                  style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                  style={{ borderRadius: '8px' }}
                 />
               </div>
             )}
 
-            <div>
-              <label htmlFor="usuarioRol" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                Rol del Sistema <span style={{ color: '#ef4444' }}>*</span>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="usuarioRol" className="form-label">
+                Rol del Sistema <span style={{ color: 'var(--color-error)' }}>*</span>
               </label>
               <select
                 id="usuarioRol"
                 value={rolForm}
                 onChange={(e) => setRolForm(e.target.value)}
-                style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                style={{ borderRadius: '8px' }}
               >
                 <option value="admin">Administrador</option>
                 <option value="docente">Docente</option>
@@ -421,15 +364,15 @@ function UsuarioFormModal({
             </div>
 
             {rolForm === 'familia' && (
-              <div>
-                <label htmlFor="usuarioEstudiante" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label htmlFor="usuarioEstudiante" className="form-label">
                   Vincular Estudiante Asociado
                 </label>
                 <select
                   id="usuarioEstudiante"
                   value={estudianteId}
                   onChange={(e) => setEstudianteId(e.target.value)}
-                  style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                  style={{ borderRadius: '8px' }}
                 >
                   <option value="">-- Sin estudiante asignado --</option>
                   {estudiantes.map((est) => (
@@ -438,13 +381,13 @@ function UsuarioFormModal({
                     </option>
                   ))}
                 </select>
-                <small style={{ display: 'block', marginTop: '4px', color: '#64748b' }}>
+                <small style={{ display: 'block', marginTop: '4px', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
                   Las cuentas Familia ven reportes académicos del estudiante vinculado.
                 </small>
               </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '0.25rem' }}>
               <input
                 type="checkbox"
                 id="activoForm"
@@ -452,46 +395,39 @@ function UsuarioFormModal({
                 onChange={(e) => setActivoForm(e.target.checked)}
                 style={{ width: 'auto', cursor: 'pointer' }}
               />
-              <label htmlFor="activoForm" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+              <label htmlFor="activoForm" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 Cuenta de usuario Activa (Permitir acceso inmediato)
               </label>
             </div>
           </div>
 
           <div style={{
-            marginTop: '2rem',
+            marginTop: '1.75rem',
             display: 'flex',
             justifyContent: 'flex-end',
             gap: '10px',
-            borderTop: '1px solid #e2e8f0',
+            borderTop: '1px solid var(--border)',
             paddingTop: '1.25rem'
           }}>
             <button
               type="button"
               onClick={onClose}
+              className="btn btn--secondary"
               style={{
-                padding: '0.6rem 1.2rem',
+                padding: '0.5rem 1.2rem',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
-                color: '#475569',
-                fontWeight: 600,
-                cursor: 'pointer'
+                minWidth: 'auto'
               }}
             >
               Cancelar
             </button>
             <button
               type="submit"
+              className="btn btn--primary"
               style={{
-                padding: '0.6rem 1.5rem',
+                padding: '0.5rem 1.5rem',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
-                color: '#ffffff',
-                border: 'none',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
+                minWidth: 'auto'
               }}
             >
               {editandoId === null ? 'Registrar' : 'Actualizar'}
@@ -504,7 +440,6 @@ function UsuarioFormModal({
 }
 
 // ── Componente: Modal de restablecimiento de contraseña ──────────────────────
-// Permite ingresar una nueva contraseña para un usuario específico.
 function PasswordModal({
   abierto,
   onClose,
@@ -515,38 +450,17 @@ function PasswordModal({
   if (!abierto) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(15, 23, 42, 0.6)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 11,
-      backdropFilter: 'blur(4px)'
-    }}>
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '16px',
-        width: '100%',
-        maxWidth: '400px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        overflow: 'hidden',
-        border: '1px solid #e2e8f0',
-        animation: 'fadeIn 0.2s ease-out'
-      }}>
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ padding: 0, maxWidth: '400px', overflow: 'hidden' }}>
         <div style={{
-          background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+          background: 'linear-gradient(135deg, var(--color-warning) 0%, #92400E 100%)',
           color: '#ffffff',
           padding: '1.25rem 1.5rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.15rem', fontWeight: 700 }}>
+          <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem', fontWeight: 800, fontFamily: 'Merriweather, serif' }}>
             Restablecer Contraseña
           </h3>
           <button 
@@ -565,13 +479,13 @@ function PasswordModal({
         </div>
 
         <form onSubmit={onSubmit} style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'grid', gap: '1.25rem' }}>
-            <p style={{ margin: 0, color: '#475569', fontSize: '0.9rem', lineHeight: '1.5' }}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5' }}>
               Ingresa una nueva contraseña para la cuenta seleccionada. El usuario usará esta clave en su próximo inicio de sesión.
             </p>
 
-            <div>
-              <label htmlFor="nuevaPassword" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="nuevaPassword" className="form-label">
                 Nueva Contraseña
               </label>
               <input
@@ -581,7 +495,7 @@ function PasswordModal({
                 onChange={(e) => setNuevoPassword(e.target.value)}
                 required
                 placeholder="Mínimo 6 caracteres"
-                style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                style={{ borderRadius: '8px' }}
               />
             </div>
           </div>
@@ -591,35 +505,30 @@ function PasswordModal({
             display: 'flex',
             justifyContent: 'flex-end',
             gap: '10px',
-            borderTop: '1px solid #e2e8f0',
+            borderTop: '1px solid var(--border)',
             paddingTop: '1.25rem'
           }}>
             <button
               type="button"
               onClick={onClose}
+              className="btn btn--secondary"
               style={{
-                padding: '0.5rem 1rem',
+                padding: '0.5rem 1.2rem',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
-                color: '#475569',
-                fontWeight: 600,
-                cursor: 'pointer'
+                minWidth: 'auto'
               }}
             >
               Cancelar
             </button>
             <button
               type="submit"
+              className="btn btn--primary"
               style={{
-                padding: '0.5rem 1.25rem',
+                padding: '0.5rem 1.5rem',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                color: '#ffffff',
-                border: 'none',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(217, 119, 6, 0.2)'
+                minWidth: 'auto',
+                background: 'var(--color-warning)',
+                borderColor: 'var(--color-warning)'
               }}
             >
               Restablecer
@@ -632,7 +541,6 @@ function PasswordModal({
 }
 
 // ── Componente: Cabecera de la página de usuarios ────────────────────────────
-// Muestra el título de la sección y un botón para crear un nuevo usuario.
 function UsuarioHeader({ abrirModalCrear }) {
   return (
     <div style={{ 
@@ -640,41 +548,49 @@ function UsuarioHeader({ abrirModalCrear }) {
       justifyContent: 'space-between', 
       alignItems: 'center', 
       marginBottom: '2rem',
-      background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+      background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--brand-2) 100%)',
       padding: '1.5rem 2rem',
       borderRadius: '16px',
       color: '#ffffff',
-      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+      boxShadow: 'var(--shadow-lg)'
     }}>
       <div>
-        <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#ffffff', fontWeight: 700 }}>
+        <h1 style={{ margin: 0, fontSize: '1.6rem', color: '#ffffff', fontWeight: 800, fontFamily: 'Merriweather, serif', letterSpacing: '-0.3px', border: 'none', padding: 0 }}>
           Administración de Usuarios
         </h1>
-        <p style={{ margin: '5px 0 0', color: '#c7d2fe', fontSize: '0.9rem' }}>
+        <p style={{ margin: '5px 0 0', color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.9rem', fontWeight: 500 }}>
           Crea, edita, cambia de estado o realiza restablecimiento de contraseñas de las cuentas.
         </p>
       </div>
       <button 
         onClick={abrirModalCrear}
+        className="btn btn-primary"
         style={{
-          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-          color: '#ffffff',
+          background: '#ffffff',
+          color: 'var(--color-primary)',
           border: 'none',
-          padding: '0.75rem 1.25rem',
+          padding: '0.65rem 1.25rem',
           borderRadius: '10px',
-          fontWeight: 600,
-          fontSize: '0.9rem',
+          fontWeight: 700,
+          fontSize: '0.85rem',
           cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          transition: 'all 0.2s'
+          transition: 'all 0.2s',
+          minWidth: 'auto'
         }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.background = 'var(--brand-light)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.background = '#ffffff';
+        }}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
@@ -685,8 +601,6 @@ function UsuarioHeader({ abrirModalCrear }) {
 }
 
 // ── Componente: Barra de filtros y búsqueda ──────────────────────────────────
-// Incluye campo de texto para búsqueda, selectores para filtrar por rol,
-// estado (activo/inactivo) y número de elementos por página.
 function UsuarioFiltros({
   search,
   setSearch,
@@ -701,32 +615,30 @@ function UsuarioFiltros({
   return (
     <div style={{
       background: '#ffffff',
-      border: '1px solid #e2e8f0',
+      border: '1px solid var(--border)',
       borderRadius: '12px',
       padding: '1.25rem',
       marginBottom: '1.5rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+      boxShadow: 'var(--shadow-sm)'
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem' }}>
-        <div>
-          <label htmlFor="filtroBuscar" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Buscar</label>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label htmlFor="filtroBuscar" className="form-label">Buscar</label>
           <div style={{ position: 'relative' }}>
             <input
               id="filtroBuscar"
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPagina(1); }}
-              placeholder="Nombre o correo electrónico..."
+              placeholder="Nombre o correo..."
               style={{
-                paddingLeft: '2rem',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc'
+                paddingLeft: '2.5rem',
+                borderRadius: '8px'
               }}
             />
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{
               position: 'absolute',
-              left: '0.75rem',
+              left: '0.85rem',
               top: '50%',
               transform: 'translateY(-50%)'
             }}>
@@ -736,13 +648,13 @@ function UsuarioFiltros({
           </div>
         </div>
 
-        <div>
-          <label htmlFor="filtroRol" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Rol</label>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label htmlFor="filtroRol" className="form-label">Filtrar por Rol</label>
           <select 
             id="filtroRol"
             value={rol} 
             onChange={(e) => { setRol(e.target.value); setPagina(1); }}
-            style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
+            style={{ borderRadius: '8px' }}
           >
             <option value="">Todos los Roles</option>
             <option value="admin">Administradores</option>
@@ -751,13 +663,13 @@ function UsuarioFiltros({
           </select>
         </div>
 
-        <div>
-          <label htmlFor="filtroEstado" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Filtrar por Estado</label>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label htmlFor="filtroEstado" className="form-label">Filtrar por Estado</label>
           <select 
             id="filtroEstado"
             value={activo} 
             onChange={(e) => { setActivo(e.target.value); setPagina(1); }}
-            style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
+            style={{ borderRadius: '8px' }}
           >
             <option value="">Todos los Estados</option>
             <option value="true">Activos</option>
@@ -765,13 +677,13 @@ function UsuarioFiltros({
           </select>
         </div>
 
-        <div>
-          <label htmlFor="filtroLimite" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Elementos por Página</label>
+        <div className="form-group" style={{ margin: 0 }}>
+          <label htmlFor="filtroLimite" className="form-label">Elementos por Página</label>
           <select 
             id="filtroLimite"
             value={limite} 
             onChange={(e) => { setLimite(Number.parseInt(e.target.value)); setPagina(1); }}
-            style={{ borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
+            style={{ borderRadius: '8px' }}
           >
             <option value={5}>5 por página</option>
             <option value={10}>10 por página</option>
@@ -785,7 +697,6 @@ function UsuarioFiltros({
 }
 
 // ── Componente: Tabla de usuarios ────────────────────────────────────────────
-// Renderiza la tabla con cabeceras ordenables y delega cada fila al componente UsuarioRow.
 function UsuarioTable({
   usuarios,
   orderBy,
@@ -798,34 +709,34 @@ function UsuarioTable({
   handleSoftDelete
 }) {
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+    <div className="table-container" style={{ margin: 0, borderRadius: 0, border: 'none', boxShadow: 'none' }}>
+      <table>
         <thead>
-          <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-            <th onClick={() => handleSort('id')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              ID {_mostrarIndicadorOrden('id', orderBy, orderDirection)}
+          <tr>
+            <th onClick={() => handleSort('id')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+              ID{_mostrarIndicadorOrden('id', orderBy, orderDirection)}
             </th>
-            <th onClick={() => handleSort('nombre')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              Nombre {_mostrarIndicadorOrden('nombre', orderBy, orderDirection)}
+            <th onClick={() => handleSort('nombre')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+              Nombre{_mostrarIndicadorOrden('nombre', orderBy, orderDirection)}
             </th>
-            <th onClick={() => handleSort('email')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              Email {_mostrarIndicadorOrden('email', orderBy, orderDirection)}
+            <th onClick={() => handleSort('email')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+              Email{_mostrarIndicadorOrden('email', orderBy, orderDirection)}
             </th>
-            <th onClick={() => handleSort('rol')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              Rol {_mostrarIndicadorOrden('rol', orderBy, orderDirection)}
+            <th onClick={() => handleSort('rol')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+              Rol{_mostrarIndicadorOrden('rol', orderBy, orderDirection)}
             </th>
-            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700 }}>
+            <th>
               Vinculación
             </th>
-            <th onClick={() => handleSort('activo')} style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
-              Estado {_mostrarIndicadorOrden('activo', orderBy, orderDirection)}
+            <th onClick={() => handleSort('activo')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+              Estado{_mostrarIndicadorOrden('activo', orderBy, orderDirection)}
             </th>
-            <th style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem', fontWeight: 700 }}>
+            <th>
               Acciones
             </th>
           </tr>
         </thead>
-        <tbody style={{ divideY: '1px solid #e2e8f0' }}>
+        <tbody>
           {usuarios.map((u) => (
             <UsuarioRow
               key={u.id}
@@ -844,7 +755,6 @@ function UsuarioTable({
 }
 
 // ── Componente: Barra de paginación inferior ─────────────────────────────────
-// Muestra el conteo de usuarios y botones para navegar entre páginas.
 function UsuarioPaginacion({
   pagina,
   setPagina,
@@ -855,13 +765,13 @@ function UsuarioPaginacion({
   return (
     <div style={{
       padding: '1rem 1.5rem',
-      borderTop: '1px solid #e2e8f0',
+      borderTop: '1px solid var(--border)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      background: '#f8fafc'
+      background: 'var(--table-header-bg)'
     }}>
-      <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+      <span style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
         Mostrando <strong>{usuariosCount}</strong> de <strong>{total}</strong> usuarios registrados.
       </span>
 
@@ -869,38 +779,30 @@ function UsuarioPaginacion({
         <button
           disabled={pagina === 1}
           onClick={() => setPagina(pagina - 1)}
+          className="btn btn--secondary"
           style={{
             padding: '0.4rem 0.8rem',
-            borderRadius: '6px',
-            border: '1px solid #cbd5e1',
-            background: '#ffffff',
-            color: '#475569',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            cursor: pagina === 1 ? 'not-allowed' : 'pointer',
-            opacity: pagina === 1 ? 0.5 : 1
+            minWidth: 'auto',
+            fontSize: '0.8rem',
+            borderRadius: 'var(--radius-xs)'
           }}
         >
           Anterior
         </button>
 
-        <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>
+        <span style={{ fontSize: '0.825rem', color: 'var(--text)', fontWeight: 700 }}>
           Página {pagina} de {paginasTotales}
         </span>
 
         <button
           disabled={pagina >= paginasTotales}
           onClick={() => setPagina(pagina + 1)}
+          className="btn btn--secondary"
           style={{
             padding: '0.4rem 0.8rem',
-            borderRadius: '6px',
-            border: '1px solid #cbd5e1',
-            background: '#ffffff',
-            color: '#475569',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            cursor: pagina >= paginasTotales ? 'not-allowed' : 'pointer',
-            opacity: pagina >= paginasTotales ? 0.5 : 1
+            minWidth: 'auto',
+            fontSize: '0.8rem',
+            borderRadius: 'var(--radius-xs)'
           }}
         >
           Siguiente
@@ -911,14 +813,9 @@ function UsuarioPaginacion({
 }
 
 // ── Componente principal: Página de Administración de Usuarios ──────────────
-// Orquesta toda la lógica de CRUD de usuarios: listado paginado, creación,
-// edición, eliminación lógica, restauración, cambio de estado y restablecimiento
-// de contraseña. Compone los subcomponentes definidos arriba.
 export default function Usuarios() {
-  // Cliente de React Query para invalidar cachés remotas después de mutaciones
   const queryClient = useQueryClient();
 
-  // ── Estados del listado de usuarios ──
   const [usuarios, setUsuarios] = useState([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
@@ -928,16 +825,14 @@ export default function Usuarios() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // ── Estados de los filtros y ordenación ──
   const [search, setSearch] = useState('');
   const [rol, setRol] = useState('');
   const [activo, setActivo] = useState('');
   const [orderBy, setOrderBy] = useState('nombre');
   const [orderDirection, setOrderDirection] = useState('ASC');
 
-  // ── Estados del modal de creación/edición ──
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [editandoId, setEditandoId] = useState(null);   // null = creación, número = edición
+  const [editandoId, setEditandoId] = useState(null);
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -945,15 +840,12 @@ export default function Usuarios() {
   const [estudianteId, setEstudianteId] = useState('');
   const [activoForm, setActivoForm] = useState(true);
 
-  // ── Estados del modal de restablecimiento de contraseña ──
   const [modalPasswordAbierto, setModalPasswordAbierto] = useState(false);
   const [passwordResetId, setPasswordResetId] = useState(null);
   const [nuevoPassword, setNuevoPassword] = useState('');
 
-  // ── Lista completa de estudiantes para la vinculación de cuentas 'familia' ──
   const [estudiantes, setEstudiantes] = useState([]);
 
-  // Obtiene el listado de usuarios desde la API aplicando filtros, paginación y orden.
   const cargarUsuarios = useCallback(async () => {
     setCargando(true);
     setErrorMsg('');
@@ -980,7 +872,6 @@ export default function Usuarios() {
     }
   }, [pagina, limite, search, rol, activo, orderBy, orderDirection]);
 
-  // Carga la lista completa de estudiantes (sin paginación) para el selector de vinculación.
   const cargarEstudiantes = async () => {
     try {
       const data = await getTodosLosEstudiantes();
@@ -992,26 +883,21 @@ export default function Usuarios() {
     }
   };
 
-  // Efecto que recarga la tabla cada vez que cambian los filtros, paginación u orden.
   useEffect(() => {
     cargarUsuarios();
   }, [cargarUsuarios]);
 
-  // Efecto de montaje: obtiene la lista de estudiantes una sola vez.
   useEffect(() => {
     cargarEstudiantes();
   }, []);
 
-  // Alterna el estado activo/inactivo de un usuario.
   const handleToggleEstado = async (id, activoActual) => {
     try {
       const nuevoEstado = !activoActual;
       const res = await cambiarEstadoUsuario(id, nuevoEstado);
       if (res.success) {
         _mostrarMensajeConTimeout(setSuccessMsg, res.message || 'Estado actualizado con éxito');
-        // Invalida la caché de docentes en React Query
         queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
-        // Actualización optimista del estado local
         setUsuarios(usuarios.map(u => u.id === id ? { ...u, activo: nuevoEstado } : u));
       }
     } catch (error) {
@@ -1020,7 +906,6 @@ export default function Usuarios() {
     }
   };
 
-  // Soft delete: marca un usuario como eliminado (no se borra físicamente de la BD).
   const handleSoftDelete = async (id) => {
     if (!window.confirm('¿Está seguro de eliminar lógicamente este usuario? El usuario no podrá iniciar sesión.')) {
       return;
@@ -1060,7 +945,7 @@ export default function Usuarios() {
     setEditandoId(u.id);
     setNombre(u.nombre || '');
     setEmail(u.email || '');
-    setPassword(''); // Mantener en blanco para no modificar la contraseña actual
+    setPassword('');
     setRolForm(u.rol || 'familia');
     setEstudianteId(u.estudiante_id || '');
     setActivoForm(u.activo !== false);
@@ -1126,7 +1011,6 @@ export default function Usuarios() {
     }
   };
 
-  // Alternar el campo y sentido de ordenación
   const handleSort = (col) => {
     if (orderBy === col) {
       setOrderDirection(orderDirection === 'ASC' ? 'DESC' : 'ASC');
@@ -1140,17 +1024,17 @@ export default function Usuarios() {
   const renderTabla = () => {
     if (cargando) {
       return (
-        <div style={{ padding: '4rem 0', textAlign: 'center', color: '#64748b' }}>
+        <div style={{ padding: '4rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
           <div style={{
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #4f46e5',
+            border: '4px solid var(--border)',
+            borderTop: '4px solid var(--color-primary)',
             borderRadius: '50%',
-            width: '40px',
-            height: '40px',
+            width: '36px',
+            height: '36px',
             animation: 'spin 1s linear infinite',
-            margin: '0 auto 1rem'
+            margin: '0 auto 1.25rem'
           }}></div>
-          <span>Cargando listado de usuarios...</span>
+          <span style={{ fontWeight: 600 }}>Cargando listado de usuarios...</span>
           <style>{`
             @keyframes spin {
               0% { transform: rotate(0deg); }
@@ -1162,17 +1046,17 @@ export default function Usuarios() {
     }
     if (usuarios.length === 0) {
       return (
-        <div style={{ padding: '4rem 0', textAlign: 'center', color: '#64748b' }}>
-          <div style={{ color: '#94a3b8', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <div style={{ padding: '4rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div style={{ color: 'var(--text-muted)', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
           </div>
-          <h3 style={{ margin: '1rem 0 0.5rem', color: '#334155' }}>No se encontraron usuarios</h3>
-          <p style={{ margin: 0, fontSize: '0.9rem' }}>Intente cambiar los filtros o busque otro nombre.</p>
+          <h3 style={{ margin: '1rem 0 0.5rem', color: 'var(--text)', fontFamily: 'Merriweather, serif' }}>No se encontraron usuarios</h3>
+          <p style={{ margin: 0, fontSize: '0.875rem' }}>Intente cambiar los filtros o busque otro nombre.</p>
         </div>
       );
     }
@@ -1192,43 +1076,45 @@ export default function Usuarios() {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ display: 'grid', gap: '1.5rem' }}>
       <UsuarioHeader abrirModalCrear={abrirModalCrear} />
 
-      {/* Notificaciones flotantes del sistema */}
       {successMsg && (
         <div style={{
-          background: '#d1fae5',
-          border: '1px solid #10b981',
-          color: '#065f46',
-          padding: '1rem',
+          background: '#DCFCE7',
+          border: '1px solid #BBF7D0',
+          color: '#166534',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
-          marginBottom: '1.5rem',
-          fontWeight: 500,
+          fontWeight: 600,
+          fontSize: '0.875rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px'
+          gap: '10px',
+          boxShadow: 'var(--shadow-sm)'
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <polyline points="20 6 9 17 4 12" />
           </svg>
           {successMsg}
         </div>
       )}
+      
       {errorMsg && (
         <div style={{
-          background: '#fee2e2',
-          border: '1px solid #ef4444',
-          color: '#991b1b',
-          padding: '1rem',
+          background: '#FFE4E6',
+          border: '1px solid #FECDD3',
+          color: '#9F1239',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
-          marginBottom: '1.5rem',
-          fontWeight: 500,
+          fontWeight: 600,
+          fontSize: '0.875rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px'
+          gap: '10px',
+          boxShadow: 'var(--shadow-sm)'
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
@@ -1249,13 +1135,7 @@ export default function Usuarios() {
       />
 
       {/* Tarjeta que contiene la tabla principal de datos */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
-      }}>
+      <div className="card" style={{ padding: 0, border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
         {renderTabla()}
 
         <UsuarioPaginacion

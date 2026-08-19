@@ -1,4 +1,5 @@
 import { useAuth } from '../hooks/useAuth';
+import logoColegio from '../assets/img/logo-colegio.png';
 
 export default function HeaderBar({ usuario, rol }) {
   const { logout } = useAuth();
@@ -8,36 +9,65 @@ export default function HeaderBar({ usuario, rol }) {
   };
 
   return (
-    <div style={{
+    <header style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: '1rem',
       padding: '1rem 1.5rem',
-      borderBottom: '1px solid rgba(14, 77, 43, .08)',
-      background: '#fff',
+      borderBottom: '1px solid var(--border)',
+      background: '#ffffff',
       position: 'sticky',
       top: 0,
-      zIndex: 10
+      zIndex: 10,
+      boxShadow: 'var(--shadow-sm)'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <img
-          src={`${import.meta.env.BASE_URL}logo-monteverde.png`}
+          src={logoColegio}
           alt="Logo Monteverde School"
-          style={{ height: 38, width: 'auto' }}
+          style={{ 
+            height: '36px', 
+            width: 'auto',
+            objectFit: 'contain',
+            borderRadius: '8px',
+            background: 'var(--brand-light)',
+            padding: '4px'
+          }}
         />
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--brand)' }}>Monteverde School</div>
-          <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>{rol === 'familia' ? 'Familia conectada' : `Bienvenido ${rol}`}</div>
+          <div style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: '0.95rem', letterSpacing: '-0.2px' }}>
+            Monteverde School
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            {rol === 'familia' ? 'Familia conectada' : `Bienvenido ${rol}`}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span className="badge" style={{ backgroundColor: 'rgba(14, 77, 43, .08)', color: 'var(--brand)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span className="badge" style={{ 
+          background: 'var(--brand-light)', 
+          color: 'var(--color-primary)', 
+          borderColor: 'rgba(16, 185, 129, 0.15)',
+          padding: '0.35rem 0.8rem',
+          fontWeight: 700
+        }}>
           {usuario} · {rol}
         </span>
-        <button className="btn btn--secondary" onClick={salir}>Cerrar sesión</button>
+        <button 
+          className="btn btn--secondary" 
+          onClick={salir}
+          style={{
+            padding: '0.45rem 1rem',
+            minWidth: 'auto',
+            borderRadius: 'var(--radius-xs)',
+            fontSize: '0.8rem'
+          }}
+        >
+          Cerrar sesión
+        </button>
       </div>
-    </div>
+    </header>
   );
 }

@@ -40,9 +40,9 @@ const _obtenerEstadisticasPorAsignatura = (calificaciones) => {
 };
 
 const _obtenerColorPromedio = (promedio) => {
-  if (promedio >= 3.5) return '#27ae60';
-  if (promedio >= 3) return '#f39c12';
-  return '#e74c3c';
+  if (promedio >= 3.5) return 'var(--color-success)';
+  if (promedio >= 3) return 'var(--color-warning)';
+  return 'var(--color-error)';
 };
 
 const _filtrarCalificacionesPorPeriodo = (calificaciones, periodoSeleccionado) => {
@@ -117,9 +117,22 @@ export default function ReporteAcademico() {
       <div className="grid">
         <BarraTitulo titulo="Reporte Académico" subtitulo="Cargando..." />
         <Card>
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
-            <p>Cargando reporte académico...</p>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+            <div style={{
+              border: '4px solid var(--border)',
+              borderTop: '4px solid var(--color-primary)',
+              borderRadius: '50%',
+              width: '36px',
+              height: '36px',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 1rem'
+            }}></div>
+            <p style={{ fontWeight: 600 }}>Cargando reporte académico...</p>
+            <style>{`
+              @keyframes spin {
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
           </div>
         </Card>
       </div>
@@ -133,18 +146,11 @@ export default function ReporteAcademico() {
         <Card>
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-            <p style={{ color: '#e74c3c', fontSize: '1.1rem' }}>{error}</p>
+            <p style={{ color: 'var(--color-error)', fontSize: '1.1rem', fontWeight: 600 }}>{error}</p>
             <button 
               onClick={() => globalThis.location.reload()} 
-              style={{
-                marginTop: '1rem',
-                padding: '0.75rem 1.5rem',
-                backgroundColor: '#0e4d2b',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
+              className="btn btn--primary"
+              style={{ marginTop: '1rem' }}
             >
               Recargar página
             </button>
@@ -160,12 +166,12 @@ export default function ReporteAcademico() {
   const colorPromedioGeneral = _obtenerColorPromedio(promedioGeneral);
 
   return (
-    <div className="grid">
+    <div className="grid" style={{ gap: '1.5rem' }}>
       <BarraTitulo 
         titulo="Reporte Académico" 
         subtitulo={primerHijo ? `Calificaciones de ${primerHijo.nombre}` : 'Información académica'}
         derecha={
-          <div style={{ fontSize: '0.9rem', textAlign: 'right', color: '#666' }}>
+          <div style={{ fontSize: '0.85rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
             {primerHijo && (
               <>
                 <div><strong>{primerHijo.curso}</strong> - {primerHijo.grado}</div>
@@ -181,7 +187,7 @@ export default function ReporteAcademico() {
       {dashboardData?.hijos?.length > 1 && (
         <Card title="🧑‍🎓 Seleccionar Estudiante">
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <label htmlFor="student-select" style={{ fontWeight: 'bold', color: '#0e4d2b' }}>
+            <label htmlFor="student-select" style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
               Estudiante:
             </label>
             <select
@@ -192,15 +198,8 @@ export default function ReporteAcademico() {
                 setSelectedHijoIndex(Number.parseInt(e.target.value, 10));
               }}
               style={{
-                padding: '0.5rem 1rem',
-                border: '2px solid #ddd',
-                borderRadius: '6px',
-                fontSize: '0.9rem',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                minWidth: '200px',
-                fontWeight: 600,
-                color: '#0e4d2b'
+                minWidth: '220px',
+                borderRadius: '8px'
               }}
             >
               {dashboardData.hijos.map((hijo, idx) => (
@@ -215,10 +214,10 @@ export default function ReporteAcademico() {
 
       {calificaciones.length === 0 ? (
         <Card>
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📊</div>
-            <h3>No hay calificaciones registradas</h3>
-            <p>Aún no se han registrado calificaciones para este estudiante.</p>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>📊</div>
+            <h3 style={{ fontFamily: 'Merriweather, serif' }}>No hay calificaciones registradas</h3>
+            <p style={{ margin: '0.5rem 0' }}>Aún no se han registrado calificaciones para este estudiante.</p>
             <small>Las calificaciones aparecerán aquí una vez que los docentes las registren.</small>
           </div>
         </Card>
@@ -227,7 +226,7 @@ export default function ReporteAcademico() {
           {/* Filtro por período */}
           <Card title="🔍 Filtrar por Período">
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <label htmlFor="period-select" style={{ fontWeight: 'bold', color: '#0e4d2b' }}>
+              <label htmlFor="period-select" style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
                 Período:
               </label>
               <select
@@ -235,13 +234,8 @@ export default function ReporteAcademico() {
                 value={periodoSeleccionado}
                 onChange={(e) => setPeriodoSeleccionado(e.target.value)}
                 style={{
-                  padding: '0.5rem 1rem',
-                  border: '2px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '0.9rem',
-                  backgroundColor: 'white',
-                  cursor: 'pointer',
-                  minWidth: '150px'
+                  minWidth: '180px',
+                  borderRadius: '8px'
                 }}
               >
                 <option value="todos">📅 Todos los períodos</option>
@@ -251,7 +245,7 @@ export default function ReporteAcademico() {
                   </option>
                 ))}
               </select>
-              <div style={{ fontSize: '0.9rem', color: '#666' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
                 Mostrando <strong>{calificacionesFiltradas.length}</strong> de <strong>{calificaciones.length}</strong> evaluaciones
               </div>
             </div>
@@ -259,15 +253,15 @@ export default function ReporteAcademico() {
 
           {/* Resumen por asignaturas */}
           <Card title={periodoSeleccionado === 'todos' ? '📚 Resumen por Asignaturas' : `📚 Resumen por Asignaturas - ${periodoSeleccionado}`}>
-            <div className="grid grid-3" style={{ gap: '1rem' }}>
+            <div className="grid grid-3" style={{ gap: '1.25rem' }}>
               {Object.entries(estadisticasAsignaturas).map(([asignatura, stats]) => {
                 const promedio = Number.parseFloat(stats.promedio);
                 
-                let colorPromedio = '#e74c3c';
+                let colorPromedio = 'var(--color-error)';
                 if (promedio >= 3.5) {
-                  colorPromedio = '#27ae60';
+                  colorPromedio = 'var(--color-success)';
                 } else if (promedio >= 3) {
-                  colorPromedio = '#f39c12';
+                  colorPromedio = 'var(--color-warning)';
                 }
 
                 let estadoAsignatura = 'REPROBADO';
@@ -281,39 +275,44 @@ export default function ReporteAcademico() {
                   <div 
                     key={asignatura}
                     style={{
-                      padding: '1rem',
-                      border: '2px solid #ddd',
-                      borderRadius: '8px',
-                      backgroundColor: '#f9f9f9',
-                      textAlign: 'center'
+                      padding: '1.25rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      backgroundColor: 'var(--bg-gray-light)',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      boxShadow: 'var(--shadow-sm)'
                     }}
                   >
                     <div style={{ 
-                      fontSize: '1rem', 
-                      fontWeight: 'bold', 
-                      marginBottom: '0.5rem',
-                      color: '#333'
+                      fontSize: '0.9rem', 
+                      fontWeight: 700, 
+                      color: 'var(--text)'
                     }}>
                       📖 {asignatura}
                     </div>
                     <div style={{ 
-                      fontSize: '1.5rem', 
-                      fontWeight: 'bold', 
-                      color: colorPromedio,
-                      marginBottom: '0.25rem'
+                      fontSize: '1.6rem', 
+                      fontWeight: 800, 
+                      color: colorPromedio
                     }}>
                       {stats.promedio}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '0.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
                       {stats.total} evaluaciones
                     </div>
                     <div style={{
-                      padding: '0.25rem 0.5rem',
+                      padding: '0.3rem 0.75rem',
                       backgroundColor: colorPromedio,
                       color: 'white',
-                      borderRadius: '12px',
-                      fontSize: '0.7rem',
-                      fontWeight: 'bold'
+                      borderRadius: '999px',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.3px',
+                      textTransform: 'uppercase'
                     }}>
                       {estadoAsignatura}
                     </div>
@@ -325,42 +324,14 @@ export default function ReporteAcademico() {
 
           {/* Tabla detallada de calificaciones */}
           <Card title={periodoSeleccionado === 'todos' ? '📊 Detalle de Calificaciones' : `📊 Detalle de Calificaciones - ${periodoSeleccionado}`}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="table-container" style={{ margin: 0, border: 'none', borderRadius: 0, boxShadow: 'none' }}>
+              <table>
                 <thead>
-                  <tr style={{ backgroundColor: '#f8f9fa' }}>
-                    <th style={{ 
-                      textAlign: 'left', 
-                      padding: '1rem', 
-                      borderBottom: '2px solid #ddd',
-                      fontWeight: 'bold'
-                    }}>
-                      Asignatura
-                    </th>
-                    <th style={{ 
-                      textAlign: 'center', 
-                      padding: '1rem', 
-                      borderBottom: '2px solid #ddd',
-                      fontWeight: 'bold'
-                    }}>
-                      Período
-                    </th>
-                    <th style={{ 
-                      textAlign: 'right', 
-                      padding: '1rem', 
-                      borderBottom: '2px solid #ddd',
-                      fontWeight: 'bold'
-                    }}>
-                      Nota
-                    </th>
-                    <th style={{ 
-                      textAlign: 'center', 
-                      padding: '1rem', 
-                      borderBottom: '2px solid #ddd',
-                      fontWeight: 'bold'
-                    }}>
-                      Estado
-                    </th>
+                  <tr>
+                    <th>Asignatura</th>
+                    <th style={{ textAlign: 'center' }}>Período</th>
+                    <th style={{ textAlign: 'right' }}>Nota</th>
+                    <th style={{ textAlign: 'center' }}>Estado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -368,55 +339,50 @@ export default function ReporteAcademico() {
                     const nota = Number.parseFloat(cal.nota) || 0;
                     
                     let estado = 'Reprobado';
-                    let colorEstado = '#e74c3c';
+                    let colorEstado = 'var(--color-error)';
                     if (nota >= 3.5) {
                       estado = 'Aprobado';
-                      colorEstado = '#27ae60';
+                      colorEstado = 'var(--color-success)';
                     } else if (nota >= 3) {
                       estado = 'En riesgo';
-                      colorEstado = '#f39c12';
+                      colorEstado = 'var(--color-warning)';
                     }
                     
                     return (
-                      <tr key={cal.id} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ 
-                          padding: '1rem', 
-                          fontWeight: '500'
-                        }}>
+                      <tr key={cal.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ fontWeight: 600 }}>
                           📚 {cal.asignatura}
                         </td>
                         <td style={{ 
-                          padding: '1rem', 
                           textAlign: 'center',
-                          fontSize: '0.9rem',
-                          fontWeight: 'bold',
-                          color: '#0e4d2b'
+                          fontWeight: 700,
+                          color: 'var(--color-primary)'
                         }}>
                           {cal.periodo || 'N/A'}
                         </td>
                         <td style={{ 
                           textAlign: 'right', 
-                          padding: '1rem', 
-                          fontWeight: 'bold',
-                          fontSize: '1.2rem',
+                          fontWeight: 800,
+                          fontSize: '1.15rem',
                           color: colorEstado
                         }}>
                           {nota.toFixed(1)}
                         </td>
-                        <td style={{ 
-                          textAlign: 'center', 
-                          padding: '1rem'
-                        }}>
-                          <span style={{
-                            backgroundColor: colorEstado,
-                            color: 'white',
-                            padding: '0.3rem 0.8rem',
-                            borderRadius: '15px',
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold'
-                          }}>
-                            {estado}
-                          </span>
+                        <td>
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <span style={{
+                              backgroundColor: colorEstado,
+                              color: 'white',
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: '999px',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.2px'
+                            }}>
+                              {estado}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -427,44 +393,45 @@ export default function ReporteAcademico() {
 
             {/* Resumen estadístico */}
             <div style={{ 
-              marginTop: '1.5rem', 
+              marginTop: '1.75rem', 
               padding: '1.5rem', 
-              backgroundColor: '#f8f9fa', 
-              borderRadius: '8px',
+              backgroundColor: 'var(--bg-light)', 
+              borderRadius: '12px',
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '1rem',
-              textAlign: 'center'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '1.25rem',
+              textAlign: 'center',
+              border: '1px solid var(--border)'
             }}>
               <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#0e4d2b' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>
                   {calificacionesFiltradas.length}
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>Evaluaciones Mostradas</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Evaluaciones</div>
               </div>
               <div>
                 <div style={{ 
                   fontSize: '1.5rem', 
-                  fontWeight: 'bold', 
+                  fontWeight: 800, 
                   color: colorPromedioGeneral
                 }}>
                   {_calcularPromedio(calificacionesFiltradas)}
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Promedio {periodoSeleccionado === 'todos' ? 'General' : periodoSeleccionado}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#27ae60' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-success)' }}>
                   {calificacionesFiltradas.filter(c => Number.parseFloat(c.nota) >= 3.5).length}
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>Evaluaciones Aprobadas</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Evaluaciones Aprobadas</div>
               </div>
               <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#e74c3c' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-error)' }}>
                   {calificacionesFiltradas.filter(c => Number.parseFloat(c.nota) < 3).length}
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>Evaluaciones Perdidas</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Evaluaciones Perdidas</div>
               </div>
             </div>
           </Card>

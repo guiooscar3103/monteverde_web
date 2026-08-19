@@ -39,17 +39,17 @@ export default function Dashboard() {
               stats.usuarios.familias || 0
             ],
             backgroundColor: [
-              'rgba(239, 68, 68, 0.85)',   // Rojo suave (Administrador)
-              'rgba(79, 70, 229, 0.85)',   // Índigo suave (Docente)
-              'rgba(16, 185, 129, 0.85)'   // Esmeralda suave (Familia)
+              'rgba(15, 23, 42, 0.85)',   // Slate oscuro (Admin)
+              'rgba(21, 128, 61, 0.85)',   // Emerald (Docente)
+              'rgba(180, 83, 9, 0.85)'     // Warm Amber (Familia)
             ],
             borderColor: [
-              '#ef4444',
-              '#4f46e5',
-              '#10b981'
+              '#0f172a',
+              '#15803d',
+              '#b45309'
             ],
-            borderWidth: 1,
-            hoverOffset: 4
+            borderWidth: 1.5,
+            hoverOffset: 6
           }]
         },
         options: {
@@ -59,8 +59,9 @@ export default function Dashboard() {
             legend: {
               position: 'bottom',
               labels: {
-                boxWidth: 12,
-                font: { size: 12, weight: 600 }
+                boxWidth: 10,
+                padding: 15,
+                font: { size: 11, weight: 600 }
               }
             }
           }
@@ -85,9 +86,9 @@ export default function Dashboard() {
           datasets: [{
             label: 'Cantidad Estudiantes',
             data: dataValues,
-            backgroundColor: 'rgba(79, 70, 229, 0.75)',
-            borderColor: '#4f46e5',
-            borderWidth: 1,
+            backgroundColor: 'rgba(10, 58, 32, 0.75)',
+            borderColor: 'var(--color-primary)',
+            borderWidth: 1.5,
             borderRadius: 6
           }]
         },
@@ -100,7 +101,10 @@ export default function Dashboard() {
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { stepSize: 1 }
+              ticks: { stepSize: 1, font: { weight: 500 } }
+            },
+            x: {
+              ticks: { font: { weight: 500 } }
             }
           }
         }
@@ -134,17 +138,17 @@ export default function Dashboard() {
 
   if (cargando) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 0', color: '#64748b' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6rem 0', color: 'var(--text-secondary)' }}>
         <div style={{
-          border: '4px solid #f3f3f3',
-          borderTop: '4px solid #4f46e5',
+          border: '4px solid var(--border)',
+          borderTop: '4px solid var(--color-primary)',
           borderRadius: '50%',
-          width: '50px',
-          height: '50px',
+          width: '45px',
+          height: '45px',
           animation: 'spin 1s linear infinite',
-          marginBottom: '1rem'
+          marginBottom: '1.25rem'
         }}></div>
-        <span>Calculando estadísticas y bitácoras institucionales...</span>
+        <span style={{ fontWeight: 600 }}>Calculando estadísticas y bitácoras institucionales...</span>
         <style>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -157,17 +161,17 @@ export default function Dashboard() {
 
   if (errorMsg || !stats) {
     return (
-      <div style={{ padding: '2rem', background: '#fee2e2', border: '1px solid #ef4444', color: '#b91c1c', borderRadius: '12px', textAlign: 'center' }}>
-        <div style={{ color: '#ef4444', marginBottom: '1rem' }}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block' }}>
+      <div style={{ padding: '2.5rem 2rem', background: '#FFE4E6', border: '1px solid #FECDD3', color: '#9F1239', borderRadius: '14px', textAlign: 'center', maxWidth: '500px', margin: '3rem auto' }}>
+        <div style={{ color: '#BE123C', marginBottom: '1rem' }}>
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block' }}>
             <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
             <line x1="12" y1="9" x2="12" y2="13" />
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
         </div>
-        <h3 style={{ marginTop: '1rem' }}>Fallo en la comunicación con el Backend</h3>
-        <p>{errorMsg || 'No se han podido cargar las métricas agregadas del panel.'}</p>
-        <button onClick={cargarEstadisticas} className="btn btn--primary" style={{ marginTop: '1rem' }}>Reintentar Conexión</button>
+        <h3 style={{ color: '#9F1239', fontFamily: 'Merriweather, serif', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Fallo en la comunicación con el Backend</h3>
+        <p style={{ color: '#BE123C', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{errorMsg || 'No se han podido cargar las métricas agregadas del panel.'}</p>
+        <button onClick={cargarEstadisticas} className="btn btn--primary" style={{ padding: '0.6rem 1.5rem', borderRadius: '8px' }}>Reintentar Conexión</button>
       </div>
     );
   }
@@ -175,39 +179,35 @@ export default function Dashboard() {
   return (
     <div style={{ display: 'grid', gap: '2rem' }}>
       {/* Dynamic Welcome bar */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
-        padding: '1.5rem 2rem',
-        borderRadius: '16px',
-        color: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-      }}>
+      <div className="dashboard-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.75rem 2rem' }}>
         <div>
-          <h2 style={{ margin: 0, color: '#ffffff', fontSize: '1.6rem', border: 'none', padding: 0 }}>
+          <h2 style={{ margin: 0, color: '#ffffff', fontSize: '1.5rem', border: 'none', padding: 0 }}>
             <DiaTextReveal 
               text="¡Hola de nuevo, Administrador!" 
-              colors={["#11998e", "#38ef7d", "#a8ff78"]} 
+              colors={["#a8ff78", "#78ffb6", "#ffffff"]} 
             />
           </h2>
-          <p style={{ margin: '5px 0 0', color: '#c7d2fe', fontSize: '0.95rem' }}>
+          <p style={{ margin: '6px 0 0', color: 'rgba(255, 255, 255, 0.88)', fontSize: '0.9rem', fontWeight: 500 }}>
             Aquí tienes el resumen institucional y la actividad reciente del Colegio MonteVerde.
           </p>
         </div>
-        <img src={adminImg} alt="Administrador Monteverde" style={{ width: '130px', maxWidth: '120px', objectFit: 'contain' }} />
+        <img 
+          src={adminImg} 
+          alt="Administrador Monteverde" 
+          style={{ 
+            width: '120px', 
+            height: 'auto', 
+            objectFit: 'contain',
+            filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.15))'
+          }} 
+        />
       </div>
 
       {/* Primary KPIs Metrics Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '1.5rem'
-      }}>
+      <div className="dashboard-grid dashboard-grid--4">
         {/* Card 1: Users */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem' }}>
-          <div style={{ background: '#e0e7ff', color: '#4f46e5', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem 1.5rem' }}>
+          <div style={{ background: '#EEF2F6', color: 'var(--role-admin)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifycontent: 'center', flexShrink: 0, justifyContent: 'center' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
@@ -216,28 +216,28 @@ export default function Dashboard() {
             </svg>
           </div>
           <div>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Cuentas Activas</span>
-            <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', color: '#1e293b' }}>{stats.usuarios.activos} / {stats.usuarios.total}</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cuentas Activas</span>
+            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.usuarios.activos} <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>/ {stats.usuarios.total}</span></h3>
           </div>
         </div>
 
         {/* Card 2: Students */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem' }}>
-          <div style={{ background: '#d1fae5', color: '#10b981', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem 1.5rem' }}>
+          <div style={{ background: '#DCFCE7', color: 'var(--color-success)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifycontent: 'center', flexShrink: 0, justifyContent: 'center' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.91a2 2 0 0 0 1.66 0z" />
               <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
             </svg>
           </div>
           <div>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Estudiantes</span>
-            <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', color: '#1e293b' }}>{stats.academia.estudiantes}</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Estudiantes</span>
+            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.academia.estudiantes}</h3>
           </div>
         </div>
 
         {/* Card 3: Attendance Average */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem' }}>
-          <div style={{ background: '#fef3c7', color: '#d97706', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem 1.5rem' }}>
+          <div style={{ background: '#FEF3C7', color: 'var(--color-warning)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifycontent: 'center', flexShrink: 0, justifyContent: 'center' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <line x1="16" y1="2" x2="16" y2="6" />
@@ -246,21 +246,21 @@ export default function Dashboard() {
             </svg>
           </div>
           <div>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Asistencia Promedio</span>
-            <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', color: '#1e293b' }}>{stats.academia.promedio_asistencia}%</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Asistencia Promedio</span>
+            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.academia.promedio_asistencia}%</h3>
           </div>
         </div>
 
         {/* Card 4: Academic Performance */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem' }}>
-          <div style={{ background: '#fee2e2', color: '#ef4444', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem 1.5rem' }}>
+          <div style={{ background: '#FFE4E6', color: '#BE123C', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifycontent: 'center', flexShrink: 0, justifyContent: 'center' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
           </div>
           <div>
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Promedio de Notas</span>
-            <h3 style={{ margin: '2px 0 0', fontSize: '1.5rem', color: '#1e293b' }}>{stats.academia.promedio_notes || stats.academia.promedio_notas} / 5.0</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Promedio General</span>
+            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.academia.promedio_notes || stats.academia.promedio_notas} <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>/ 5.0</span></h3>
           </div>
         </div>
       </div>
@@ -268,12 +268,12 @@ export default function Dashboard() {
       {/* Visual Analytics Charts Section */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 2fr',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
         gap: '1.5rem',
       }}>
         {/* Doughnut Chart Panel */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '380px' }}>
-          <h3 style={{ fontSize: '1.05rem', margin: '0 0 1rem 0', color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+          <h3 className="section-title" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1.25rem', fontSize: '0.95rem' }}>
             Roles en el Sistema
           </h3>
           <div style={{ position: 'relative', flexGrow: 1 }}>
@@ -283,7 +283,7 @@ export default function Dashboard() {
 
         {/* Bar Chart Panel */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '380px' }}>
-          <h3 style={{ fontSize: '1.05rem', margin: '0 0 1rem 0', color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+          <h3 className="section-title" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1.25rem', fontSize: '0.95rem' }}>
             Población Estudiantil por Cursos
           </h3>
           <div style={{ position: 'relative', flexGrow: 1 }}>
@@ -293,26 +293,26 @@ export default function Dashboard() {
       </div>
 
       {/* Audit Bitacora Panel (Recent activities) */}
-      <div className="card" style={{ padding: '1.5rem' }}>
+      <div className="card" style={{ padding: '1.75rem' }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: '1px solid #e2e8f0',
+          borderBottom: '1px solid var(--border)',
           paddingBottom: '0.75rem',
-          marginBottom: '1rem'
+          marginBottom: '1.25rem'
         }}>
-          <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}>
+          <h3 style={{ fontSize: '1rem', margin: 0, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'Merriweather, serif' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-secondary)' }}>
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             Bitácora de Auditoría (Actividad Reciente)
           </h3>
-          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Mostrando los últimos 5 eventos</span>
+          <span className="badge" style={{ fontSize: '0.72rem', fontWeight: 700 }}>Últimos 5 eventos</span>
         </div>
 
         {(!stats.actividades_recientes || stats.actividades_recientes.length === 0) ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontStyle: 'italic' }}>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
             No se registran actividades administrativas recientes en la base de datos.
           </div>
         ) : (
@@ -323,33 +323,35 @@ export default function Dashboard() {
                 alignItems: 'flex-start',
                 gap: '12px',
                 padding: '0.85rem 1rem',
-                background: '#f8fafc',
-                border: '1px solid #f1f5f9',
-                borderRadius: '8px',
+                background: 'var(--bg-gray-light)',
+                border: '1px solid var(--border)',
+                borderRadius: '10px',
                 transition: 'all 0.15s'
               }}>
                 <div style={{
-                  padding: '6px 12px',
+                  padding: '5px 10px',
                   borderRadius: '6px',
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  fontSize: '0.7rem',
                   textTransform: 'uppercase',
+                  letterSpacing: '0.3px',
                   background: 
-                    act.accion.includes('ELIMINAR') || act.accion.includes('DES') ? '#fee2e2' :
-                    act.accion.includes('CREAR') || act.accion.includes('VINCULAR') ? '#d1fae5' : '#fef3c7',
+                    act.accion.includes('ELIMINAR') || act.accion.includes('DES') ? '#FFE4E6' :
+                    act.accion.includes('CREAR') || act.accion.includes('VINCULAR') ? '#DCFCE7' : '#FEF3C7',
                   color:
-                    act.accion.includes('ELIMINAR') || act.accion.includes('DES') ? '#b91c1c' :
-                    act.accion.includes('CREAR') || act.accion.includes('VINCULAR') ? '#065f46' : '#d97706'
+                    act.accion.includes('ELIMINAR') || act.accion.includes('DES') ? '#9F1239' :
+                    act.accion.includes('CREAR') || act.accion.includes('VINCULAR') ? '#15803d' : '#92400E',
+                  border: '1px solid currentColor'
                 }}>
                   {act.accion.replace('_', ' ')}
                 </div>
 
-                <div style={{ flexGrow: 1 }}>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#1e293b', fontWeight: 500 }}>
+                <div style={{ flexGrow: 1, overflow: 'hidden' }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text)', fontWeight: 600 }}>
                     {act.detalles}
                   </p>
-                  <small style={{ color: '#94a3b8', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px' }}>
-                    👤 Administrador: <strong>{act.usuario_nombre}</strong> &bull; 📅 {new Date(act.fecha).toLocaleString()}
+                  <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontWeight: 550 }}>
+                    👤 Administrador: <strong style={{ color: 'var(--text)' }}>{act.usuario_nombre}</strong> &bull; 📅 {new Date(act.fecha).toLocaleString()}
                   </small>
                 </div>
               </div>

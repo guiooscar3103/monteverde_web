@@ -1,23 +1,118 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import HeaderBar from '../components/HeaderBar';
 import { useAuth } from '../hooks/useAuth';
 import MobileBottomNav from '../components/MobileBottomNav';
 import fondoImg from '../assets/img/fondo.png';
+import logoColegio from '../assets/img/logo-colegio.png';
 
 export default function FamiliaLayout() {
-  const { usuario } = useAuth();
+  const { user, usuario, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const navItems = [
+    { 
+      to: '/familia', 
+      label: 'Inicio', 
+      exact: true,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      )
+    },
+    { 
+      to: '/familia/reporte', 
+      label: 'Notas',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="7" />
+          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+        </svg>
+      )
+    },
+    { 
+      to: '/familia/mensajes', 
+      label: 'Mensajes',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      )
+    }
+  ];
+
+  const displayUser = user || usuario;
 
   return (
-    <div className="layout-split" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', minHeight: '100vh' }}>
-      <aside className="sidebar" style={{ borderRight: '1px solid rgba(14, 77, 43, .08)', padding: '1.5rem', background: '#ecfdf5' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem' }}>
-          <img src={`${import.meta.env.BASE_URL}logo-monteverde.png`} alt="Logo Monteverde School" style={{ height: 32, width: 'auto' }} />
+    <div className="layout-split">
+      <aside className="sidebar" style={{ borderRight: '1px solid var(--border)', background: 'var(--bg-white)' }}>
+        <div style={{ 
+          padding: '0.5rem 0.25rem 1.25rem 0.25rem', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px', 
+          borderBottom: '1px solid var(--border)' 
+        }}>
+          <img 
+            src={logoColegio} 
+            alt="Logo Monteverde School" 
+            style={{ 
+              width: '42px', 
+              height: '42px', 
+              objectFit: 'contain',
+              borderRadius: '10px',
+              background: 'var(--brand-light)',
+              padding: '6px',
+              boxShadow: 'var(--shadow-sm)'
+            }} 
+          />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{
+              margin: 0,
+              fontSize: '1.1rem',
+              fontWeight: 800,
+              color: 'var(--color-primary)',
+              letterSpacing: '-0.3px',
+              lineHeight: '1.2',
+              display: 'block'
+            }}>
+              MonteVerde
+            </span>
+            <span style={{
+              fontSize: '0.68rem',
+              color: 'var(--text-muted)',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.8px',
+              display: 'block',
+              marginTop: '2px'
+            }}>
+              Familia
+            </span>
+          </div>
         </div>
-        <nav style={{ display: 'grid', gap: '.75rem', marginTop: '1rem' }}>
-          <NavLink className="nav-link" to="/familia" end>Inicio</NavLink>
-          <NavLink className="nav-link" to="/familia/reporte">Notas</NavLink>
-          <NavLink className="nav-link" to="/familia/mensajes">Mensajes</NavLink>
+
+        <nav style={{ display: 'grid', gap: '6px', marginTop: '0.75rem' }}>
+          {navItems.map((item) => (
+            <NavLink 
+              key={item.to} 
+              className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} 
+              to={item.to} 
+              end={item.exact}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
         </nav>
+
+
       </aside>
 
       <main className="main-content" style={{
@@ -27,10 +122,11 @@ export default function FamiliaLayout() {
         backgroundImage: `url(${fondoImg})`,
         backgroundRepeat: 'no-repeat',
         backgroundSize: 'cover',
-        backgroundPosition: 'center'
+        backgroundPosition: 'center',
+        flexGrow: 1
       }}>
-        <HeaderBar usuario={usuario?.nombre || 'Familia'} rol="Familia" />
-        <div style={{ padding: '1.5rem' }}>
+        <HeaderBar usuario={displayUser?.nombre || 'Familia'} rol="Familia" />
+        <div className="fade-in" style={{ padding: '2rem 1.5rem', flexGrow: 1 }}>
           <Outlet />
         </div>
         <MobileBottomNav />
