@@ -6,6 +6,8 @@ from .calificacion import Calificacion
 from .mensaje import Mensaje
 from .observacion import Observacion
 from .circular import Circular
+from .tarea import Tarea
+from .entrega import Entrega
 
 __all__ = [
     'Usuario',
@@ -15,5 +17,7 @@ __all__ = [
     'Calificacion',
     'Mensaje',
     'Observacion',
-    'Circular'
+    'Circular',
+    'Tarea',
+    'Entrega'
 ]

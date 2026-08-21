@@ -1,8 +1,6 @@
 -- ============================================================
--- Script de migración: Sistema de evaluación por indicadores
--- Versión: 1.0 — Monteverde
--- Ejecutar SOLO en producción. En desarrollo, db.create_all()
--- crea estas tablas automáticamente al iniciar el backend.
+-- Migración 01: Sistema de evaluación por indicadores y bimestres
+-- Versión: 1.0 — Monteverde School
 -- ============================================================
 
 -- Tabla de bimestres académicos
@@ -23,7 +21,6 @@ INSERT IGNORE INTO `bimestres_config` (`nombre`, `anio`, `orden`) VALUES
   ('Bimestre 4', YEAR(NOW()), 4);
 
 -- Tabla de indicadores de logro
--- Un docente define 2 indicadores por (curso, materia, bimestre)
 CREATE TABLE IF NOT EXISTS `indicadores_logro` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `docente_id` INT(11) NOT NULL,
@@ -44,7 +41,6 @@ CREATE TABLE IF NOT EXISTS `indicadores_logro` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Tabla de notas parciales por indicador
--- Cada indicador tiene 3 notas parciales por estudiante (numero_nota = 1, 2, 3)
 CREATE TABLE IF NOT EXISTS `calificaciones_bimestre` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `estudiante_id` INT(11) NOT NULL,

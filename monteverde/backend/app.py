@@ -1,6 +1,19 @@
 import os
 import sys
 from pathlib import Path
+
+# Configurar stdout y stderr en UTF-8 para evitar UnicodeEncodeError en consolas Windows (cp1252)
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+if hasattr(sys.stderr, 'reconfigure'):
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
@@ -32,6 +45,8 @@ from src.models.circular import Circular
 from src.models.bimestre import Bimestre
 from src.models.indicador_logro import IndicadorLogro
 from src.models.calificacion_bimestre import CalificacionBimestre
+from src.models.tarea import Tarea
+from src.models.entrega import Entrega
 
 def create_app():
     app = Flask(__name__)
@@ -85,8 +100,39 @@ def create_app():
                     with db.engine.begin() as conn:
                         conn.execute(text('ALTER TABLE cursos ADD COLUMN descripcion VARCHAR(255) NULL'))
                     print('[INFO] Columna descripcion añadida a la tabla cursos')
+
+            if inspector.has_table('tareas'):
+                columnas_tareas = [col['name'] for col in inspector.get_columns('tareas')]
+                with db.engine.begin() as conn:
+                    if 'califica_bimestre' not in columnas_tareas:
+                        conn.execute(text('ALTER TABLE tareas ADD COLUMN califica_bimestre BOOLEAN NOT NULL DEFAULT 0'))
+                    if 'bimestre_id' not in columnas_tareas:
+                        conn.execute(text('ALTER TABLE tareas ADD COLUMN bimestre_id INT NULL'))
+                    if 'indicador_id' not in columnas_tareas:
+                        conn.execute(text('ALTER TABLE tareas ADD COLUMN indicador_id INT NULL'))
+                    if 'numero_nota' not in columnas_tareas:
+                        conn.execute(text('ALTER TABLE tareas ADD COLUMN numero_nota INT NULL'))
+                    if 'tipo_evaluacion' not in columnas_tareas:
+                        conn.execute(text('ALTER TABLE tareas ADD COLUMN tipo_evaluacion VARCHAR(50) NULL'))
+                print('[INFO] Columnas bimestrales verificadas en la tabla tareas')
+
+            if inspector.has_table('calificaciones_bimestre'):
+                columnas_calif = [col['name'] for col in inspector.get_columns('calificaciones_bimestre')]
+                if 'tarea_id' not in columnas_calif:
+                    with db.engine.begin() as conn:
+                        conn.execute(text('ALTER TABLE calificaciones_bimestre ADD COLUMN tarea_id INT NULL'))
+                    print('[INFO] Columna tarea_id añadida a la tabla calificaciones_bimestre')
+
+            if inspector.has_table('mensajes'):
+                columnas_mensajes = [col['name'] for col in inspector.get_columns('mensajes')]
+                with db.engine.begin() as conn:
+                    if 'eliminado' not in columnas_mensajes:
+                        conn.execute(text('ALTER TABLE mensajes ADD COLUMN eliminado BOOLEAN NOT NULL DEFAULT 0'))
+                    if 'fecha_eliminacion' not in columnas_mensajes:
+                        conn.execute(text('ALTER TABLE mensajes ADD COLUMN fecha_eliminacion DATETIME NULL'))
+                print('[INFO] Columnas de retractación verificadas en la tabla mensajes')
         except Exception as exc:
-            print(f"[WARN] No se pudo actualizar la tabla cursos: {exc}")
+            print(f"[WARN] No se pudo actualizar columnas de la base de datos: {exc}")
 
         if db.engine.name != 'sqlite':
             try:
@@ -126,6 +172,7 @@ def create_app():
     from src.routes.estudiantes import estudiantes_bp
     from src.routes.dashboard import dashboard_bp
     from src.routes.circulares import circulares_bp
+    from src.routes.tareas import tareas_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(usuario_bp, url_prefix='/api/usuarios')
@@ -142,6 +189,7 @@ def create_app():
     app.register_blueprint(estudiantes_bp, url_prefix='/api')
     app.register_blueprint(dashboard_bp, url_prefix='/api')
     app.register_blueprint(circulares_bp, url_prefix='/api')
+    app.register_blueprint(tareas_bp, url_prefix='/api')
     return app
 
 app = create_app()
@@ -190,11 +238,11 @@ if __name__ == '__main__':
     with app.app_context():
         try:
             db.create_all()  # Crear tablas si no existen
-            print("✅ Tablas creadas/verificadas")
+            print("[OK] Tablas creadas/verificadas")
         except Exception as e:
-            print(f"⚠️ Error creando tablas: {e}")
+            print(f"[ERROR] Error creando tablas: {e}")
     
-    print("🚀 MonteVerde API iniciando...")
-    print("🌐 http://localhost:5000")
-    print("🔗 CORS permitido: http://localhost:5173")
+    print("[SERVER] MonteVerde API iniciando...")
+    print("[INFO] http://localhost:5000")
+    print("[INFO] CORS permitido: http://localhost:5173")
     app.run(debug=True, port=5000, host='localhost')

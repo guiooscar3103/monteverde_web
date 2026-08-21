@@ -17,6 +17,7 @@ import AdminLayout from './layouts/AdminLayout';
 // Páginas
 import DocenteHome from './pages/docente/Home';
 import RegistroCalificaciones from './pages/docente/RegistroCalificaciones';
+import TareasDocente from './pages/docente/Tareas';
 
 // Páginas de administración
 import Dashboard from './pages/admin/Dashboard';
@@ -105,6 +106,7 @@ function App() {
         }
       >
         <Route index element={<DocenteHome />} />
+        <Route path="tareas" element={<TareasDocente />} />
         <Route path="calificaciones" element={<RegistroCalificaciones />} />
         <Route path="asistencia" element={<Asistencia />} />
         <Route path="observador" element={<ObservadorAlumno />} />

@@ -40,7 +40,7 @@ export default function DocenteHome() {
 
         if (usuario?.id) {
           try {
-            const dashData = await getDocenteDashboard(usuario.id);
+            const dashData = await getDocenteDashboard();
             setDashboardData(dashData);
           } catch (err) {
             console.warn('Dashboard data no disponible, usando datos por defecto:', err);
@@ -82,11 +82,7 @@ export default function DocenteHome() {
     { hora: '1:30 PM', clase: 'Matemáticas', grado: '8º', sala: 'Aula 5' }
   ];
 
-  const tareasPendientes = dashboardData?.tareas_pendientes || [
-    { titulo: 'Proyecto de Ciencias', grado: '5º', entregas: 12, urgencia: 'hoy' },
-    { titulo: 'Ensayo de Historia', grado: '7º', entregas: 8, urgencia: 'mañana' },
-    { titulo: 'Trabajo de Arte', grado: '6º', entregas: 4, urgencia: 'próxima semana' }
-  ];
+  const tareasPendientes = dashboardData?.tareas_pendientes || [];
 
   return (
     <div className="dashboard-grid" style={{ gap: '1.5rem' }}>
@@ -130,18 +126,35 @@ export default function DocenteHome() {
         <BlurFade delay={0.15} duration={0.4}>
           <Card className="card-slim" title="Tareas Pendientes por Calificar">
             <div style={{ display: 'grid', gap: '0.85rem' }}>
-              {tareasPendientes.map((tarea, index) => (
-                <div key={index} style={{ padding: '1rem', borderRadius: '16px', background: 'var(--surface)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.35rem' }}>
-                    <strong>{tarea.titulo}</strong>
-                    <span style={{ color: '#666' }}>{tarea.entregas} entregas</span>
-                  </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '.95rem' }}>{tarea.grado}</div>
-                  <div className={`status-chip ${tarea.urgencia === 'hoy' ? 'status-chip--red' : tarea.urgencia === 'mañana' ? 'status-chip--yellow' : 'status-chip--green'}`}>
-                    {tarea.urgencia === 'hoy' ? 'Urgente' : tarea.urgencia === 'mañana' ? 'Próximo' : 'Planificado'}
-                  </div>
+              {tareasPendientes.length === 0 ? (
+                <div style={{ color: 'var(--text-secondary)', padding: '1.5rem', textAlign: 'center', fontSize: '0.95rem' }}>
+                  No tienes tareas pendientes
                 </div>
-              ))}
+              ) : (
+                tareasPendientes.map((tarea, index) => (
+                  <div key={tarea.id || index} style={{ padding: '1rem', borderRadius: '16px', background: 'var(--surface)', border: '1px solid rgba(14, 77, 43, .08)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.35rem' }}>
+                      <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{tarea.titulo}</strong>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 600 }}>
+                        {tarea.entregas ?? 0}/{tarea.total_estudiantes ?? 0} entregas
+                      </span>
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '.88rem', marginBottom: '.4rem' }}>
+                      {tarea.curso || tarea.grado} · <span style={{ color: 'var(--brand)', fontWeight: 600 }}>{tarea.asignatura || 'General'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className={`status-chip ${tarea.urgencia === 'hoy' ? 'status-chip--red' : tarea.urgencia === 'mañana' ? 'status-chip--yellow' : 'status-chip--green'}`}>
+                        {tarea.urgencia === 'hoy' ? 'Vence Hoy' : tarea.urgencia === 'mañana' ? 'Vence Mañana' : 'Planificado'}
+                      </span>
+                      {tarea.fecha_vencimiento && (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {formatearFecha(tarea.fecha_vencimiento)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
         </BlurFade>
@@ -149,7 +162,8 @@ export default function DocenteHome() {
         <BlurFade delay={0.2} duration={0.4}>
           <Card className="card-slim" title="Accesos Rápidos">
             <div className="dashboard-grid dashboard-grid--2" style={{ gap: '1rem' }}>
-              <ButtonLink to="/docente/calificaciones" variant="primary">Crear Actividad</ButtonLink>
+              <ButtonLink to="/docente/tareas" variant="primary">Gestionar Tareas</ButtonLink>
+              <ButtonLink to="/docente/calificaciones" variant="primary">Calificaciones</ButtonLink>
               <ButtonLink to="/docente/asistencia" variant="primary">Llamar Asistencia</ButtonLink>
               <ButtonLink to="/docente/mensajes" variant="primary">Ver Mensajes</ButtonLink>
             </div>

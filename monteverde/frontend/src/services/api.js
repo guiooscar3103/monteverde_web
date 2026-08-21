@@ -161,9 +161,9 @@ export const getFamiliaDashboard = async (familiaId) => {
   return await apiRequest(`/familia/dashboard/${familiaId}`);
 };
 
-export const getDocenteDashboard = async (docenteId) => {
-  console.log('🌐 API: Obteniendo dashboard docente para:', docenteId);
-  return await apiRequest(`/docente/dashboard/${docenteId}`);
+export const getDocenteDashboard = async () => {
+  console.log('🌐 API: Obteniendo dashboard docente...');
+  return await apiRequest(`/docente/dashboard`);
 };
 
 // =====================================================
@@ -199,6 +199,33 @@ export const marcarComoLeido = async (mensajeId) => {
     method: 'PUT',
   });
 };
+
+export const getContactosDocente = async (cursoId = null) => {
+  console.log('🌐 API: Obteniendo contactos docentes para curso:', cursoId);
+  const query = cursoId ? `?curso_id=${cursoId}` : '';
+  return await apiRequest(`/mensajes/contactos-docente${query}`);
+};
+
+export const enviarMensajeCurso = async ({ cursoId, asunto, cuerpo }) => {
+  console.log('🌐 API: Enviando difusión masiva al curso:', cursoId);
+  return await apiRequest('/mensajes/enviar-curso', {
+    method: 'POST',
+    body: JSON.stringify({
+      curso_id: cursoId,
+      asunto,
+      cuerpo,
+    }),
+  });
+};
+
+export const eliminarMensaje = async (mensajeId) => {
+  console.log('🌐 API: Retractando mensaje:', mensajeId);
+  return await apiRequest(`/mensajes/${mensajeId}`, {
+    method: 'DELETE',
+  });
+};
+
+export const retractarMensaje = eliminarMensaje;
 
 // =====================================================
 // CALIFICACIONES
@@ -276,6 +303,13 @@ export const agregarAnotacion = async (observacion) => {
   return await apiRequest('/observaciones/agregar', {
     method: 'POST',
     body: JSON.stringify(observacion),
+  });
+};
+
+export const eliminarObservacion = async (observacionId) => {
+  console.log('🌐 API: Eliminando observación:', observacionId);
+  return await apiRequest(`/observaciones/${observacionId}`, {
+    method: 'DELETE',
   });
 };
 
@@ -506,6 +540,7 @@ export const obtenerEstudiantes = getEstudiantesPorCurso;
 export const enviarObservacion = agregarAnotacion;
 export const crearObservacion = agregarAnotacion;
 export const obtenerObservaciones = getObservadorPorCurso;
+export const borrarObservacion = eliminarObservacion;
 
 // Para asistencia (nombres alternativos)
 export const obtenerAsistencia = getAsistenciaPorFecha;
@@ -698,4 +733,64 @@ export const getCalificacionesBimestreFamilia = async (estudianteId) => {
   return await apiRequest(`/calificaciones-bimestre/familia/${estudianteId}`);
 };
 
-// Circulares duplicadas eliminadas para usar las del bloque central.
+// =====================================================
+// TAREAS ACADÉMICAS Y ENTREGAS (DOCENTE)
+// =====================================================
+
+export const getTareasDocente = async (params = {}) => {
+  console.log('🌐 API: Obteniendo tareas del docente...', params);
+  const query = new URLSearchParams();
+  if (params.curso_id) query.append('curso_id', params.curso_id);
+  if (params.materia_id) query.append('materia_id', params.materia_id);
+  if (params.estado) query.append('estado', params.estado);
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return await apiRequest(`/docente/tareas${queryString}`);
+};
+
+export const getTareaDocente = async (tareaId) => {
+  console.log('🌐 API: Obteniendo detalle de tarea:', tareaId);
+  return await apiRequest(`/docente/tareas/${tareaId}`);
+};
+
+export const crearTareaDocente = async (payload) => {
+  console.log('🌐 API: Creando tarea académica:', payload);
+  return await apiRequest('/docente/tareas', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const actualizarTareaDocente = async (tareaId, payload) => {
+  console.log('🌐 API: Actualizando tarea académica:', tareaId, payload);
+  return await apiRequest(`/docente/tareas/${tareaId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const eliminarTareaDocente = async (tareaId) => {
+  console.log('🌐 API: Eliminando tarea académica:', tareaId);
+  return await apiRequest(`/docente/tareas/${tareaId}`, {
+    method: 'DELETE',
+  });
+};
+
+export const getEntregasTarea = async (tareaId) => {
+  console.log('🌐 API: Obteniendo entregas de la tarea:', tareaId);
+  return await apiRequest(`/docente/tareas/${tareaId}/entregas`);
+};
+
+export const calificarEntregaTarea = async (tareaId, payload) => {
+  console.log('🌐 API: Calificando entrega de la tarea:', tareaId, payload);
+  return await apiRequest(`/docente/tareas/${tareaId}/calificar`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const getSemaforoTareasHijo = async (estudianteId) => {
+  console.log('🌐 API: Obteniendo semáforo de tareas para estudiante:', estudianteId);
+  return await apiRequest(`/familia/tareas-semaforo/${estudianteId}`);
+};
+
+

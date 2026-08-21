@@ -1998,3 +1998,21 @@ tbody tr:hover {
 .bc-promedio-val.estado-riesgo    { color: #d97706; }
 .bc-promedio-val.estado-reprobado { color: #dc2626; }
 .bc-promedio-val.estado-pendiente { color: #94a3b8; }
+
+/* =========================================================
+   SCROLLBAR PERSONALIZADO Y ELEGANTE
+   ========================================================= */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+

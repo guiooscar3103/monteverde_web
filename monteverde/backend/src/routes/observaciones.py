@@ -4,7 +4,7 @@ from src.extensions import db
 from src.models.observacion import Observacion
 from src.models.estudiante import Estudiante
 from src.models.usuario import Usuario
-from src.utils.auth_helpers import role_required
+from src.utils.auth_helpers import role_required, get_current_user
 
 observaciones_bp = Blueprint('observaciones_custom', __name__)
 
@@ -94,6 +94,47 @@ def agregar_observacion():
         print(f"❌ Error agregar observación: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@observaciones_bp.route('/observaciones/<int:observacion_id>', methods=['DELETE'])
+@role_required('docente', 'admin')
+def eliminar_observacion(observacion_id):
+    """
+    Eliminar observación por ID.
+    Docente solo puede eliminar sus propias observaciones.
+    Admin puede eliminar cualquier observación.
+    """
+    try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': 'Usuario no autenticado'}), 401
+
+        observacion = Observacion.query.get(observacion_id)
+        if not observacion:
+            return jsonify({'success': False, 'message': 'Observación no encontrada'}), 404
+
+        # Validación de autorización por rol
+        if current_user.rol == 'docente' and observacion.docente_id != current_user.id:
+            return jsonify({
+                'success': False,
+                'message': 'No tienes permisos para eliminar esta observación'
+            }), 403
+
+        db.session.delete(observacion)
+        db.session.commit()
+
+        print(f"✅ Observación {observacion_id} eliminada por usuario {current_user.id} ({current_user.rol})")
+        return jsonify({
+            'success': True,
+            'message': 'Observación eliminada correctamente'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error al eliminar observación: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Error al eliminar la observación'
+        }), 500
+
 @observaciones_bp.route('/familia/hijo-observaciones/<int:estudiante_id>', methods=['GET'])
 @role_required('familia', 'admin')
 def get_observaciones_hijo(estudiante_id):
@@ -120,3 +161,4 @@ def get_observaciones_hijo(estudiante_id):
     except Exception as e:
         print(f"❌ Error observaciones hijo: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+

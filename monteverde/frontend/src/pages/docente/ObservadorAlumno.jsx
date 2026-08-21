@@ -9,7 +9,8 @@ import {
   getCursos,
   getEstudiantesPorCurso,
   getObservadorPorCurso,
-  agregarAnotacion
+  agregarAnotacion,
+  eliminarObservacion
 } from '../../services/api';
 
 const TIPOS_OBSERVACION = [
@@ -40,7 +41,9 @@ const _construirFilasObservaciones = (anotaciones) => {
     fecha: a.fecha,
     estudiante: a.estudiante_nombre || `ID: ${a.estudianteId}`,
     tipo: a.tipo,
-    detalle: a.detalle
+    detalle: a.detalle,
+    docenteId: a.docenteId,
+    docente_nombre: a.docente_nombre
   }));
 };
 
@@ -48,10 +51,10 @@ const _validarFormAnotacion = (form) => {
   return form.estudianteId && form.detalle.trim();
 };
 
-const _crearDatosAnotacion = (form, usuarioId, cursoId) => {
+const _crearDatosAnotacion = (form, usuarioId) => {
   return {
     estudianteId: parseInt(form.estudianteId),
-    docenteId: usuarioId || 2,
+    docenteId: usuarioId,
     fecha: form.fecha,
     tipo: form.tipo,
     detalle: form.detalle.trim()
@@ -75,6 +78,10 @@ export default function ObservadorAlumno() {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
 
+  // Estados para Eliminación
+  const [observacionAEliminar, setObservacionAEliminar] = useState(null);
+  const [eliminandoId, setEliminandoId] = useState(null);
+
   // Cargar cursos
   useEffect(() => {
     const cargarCursos = async () => {
@@ -84,7 +91,7 @@ export default function ObservadorAlumno() {
         console.log('📚 Cursos obtenidos:', cursos);
         
         setCursosOptions(cursos.map(c => ({ 
-          value: c.id.toString(),
+          value: c.id.toString(), 
           label: c.nombre 
         })));
         
@@ -144,9 +151,9 @@ export default function ObservadorAlumno() {
   }, [cursoId]);
 
   const estOptions = useMemo(() => _construirOpcionesEstudiantes(estudiantes), [estudiantes]);
-
   const filas = useMemo(() => _construirFilasObservaciones(anotaciones), [anotaciones]);
 
+  // Columnas con la nueva columna ACCIONES
   const columnas = [
     { key: 'fecha', header: 'Fecha' },
     { key: 'estudiante', header: 'Estudiante' },
@@ -167,9 +174,38 @@ export default function ObservadorAlumno() {
           {valor}
         </div>
       )
+    },
+    {
+      key: 'acciones',
+      header: 'Acciones',
+      render: (_, row) => (
+        <button
+          type="button"
+          onClick={() => setObservacionAEliminar(row)}
+          disabled={eliminandoId === row.id}
+          style={{
+            padding: '0.35rem 0.75rem',
+            backgroundColor: '#fee2e2',
+            color: '#dc2626',
+            border: '1px solid #fca5a5',
+            borderRadius: '6px',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            cursor: eliminandoId === row.id ? 'not-allowed' : 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            transition: 'all 0.15s ease'
+          }}
+          title="Eliminar observación"
+        >
+          {eliminandoId === row.id ? '⏳ Eliminando...' : '🗑️ Eliminar'}
+        </button>
+      )
     }
   ];
 
+  // Agregar observación
   const agregar = async () => {
     if (!_validarFormAnotacion(form)) {
       alert('Por favor selecciona un estudiante y escribe un detalle');
@@ -178,9 +214,10 @@ export default function ObservadorAlumno() {
 
     try {
       setGuardando(true);
-      const datosAEnviar = _crearDatosAnotacion(form, usuario?.id, cursoId);
+      const datosAEnviar = _crearDatosAnotacion(form, usuario?.id);
       await agregarAnotacion(datosAEnviar);
-      alert('✅ Observación agregada correctamente');
+      setMensaje('✅ Observación agregada correctamente.');
+      setTimeout(() => setMensaje(''), 3500);
       
       setForm(prev => ({ 
         ...prev, 
@@ -192,26 +229,54 @@ export default function ObservadorAlumno() {
       setAnotaciones(nuevasObs || []);
       
     } catch (error) {
-      console.error('❌ ERROR COMPLETO:', error);
-      alert('❌ Error: ' + error.message);
+      console.error('❌ Error al agregar observación:', error);
+      setMensaje('❌ Error: ' + (error.message || 'Error al agregar'));
     } finally {
       setGuardando(false);
     }
   };
 
+  // Confirmar y procesar eliminación de observación
+  const handleConfirmarEliminar = async () => {
+    if (!observacionAEliminar || eliminandoId) return;
+
+    const idAEliminar = observacionAEliminar.id;
+    try {
+      setEliminandoId(idAEliminar);
+      setMensaje('');
+
+      await eliminarObservacion(idAEliminar);
+
+      // Actualizar inmediatamente el estado local sin recargar página
+      setAnotaciones(prev => prev.filter(obs => obs.id !== idAEliminar));
+      setObservacionAEliminar(null);
+      setMensaje('✅ Observación eliminada correctamente.');
+      setTimeout(() => setMensaje(''), 4000);
+
+    } catch (error) {
+      console.error('❌ Error al eliminar observación:', error);
+      const msg = error.message || '';
+      
+      if (msg.includes('403') || msg.toLowerCase().includes('permisos') || msg.toLowerCase().includes('acceso denegado')) {
+        setMensaje('❌ No tienes permisos para eliminar esta observación.');
+      } else if (msg.includes('404') || msg.toLowerCase().includes('no encontrada')) {
+        setMensaje('❌ La observación ya no existe o fue eliminada anteriormente.');
+        // Limpiar de la lista local si ya no existe en el backend
+        setAnotaciones(prev => prev.filter(obs => obs.id !== idAEliminar));
+      } else {
+        setMensaje('❌ No fue posible eliminar la observación. Inténtalo nuevamente.');
+      }
+      setObservacionAEliminar(null);
+    } finally {
+      setEliminandoId(null);
+    }
+  };
+
   const cursoActual = cursosOptions.find(c => c.value === cursoId);
-  
   const botonHabilitado = !guardando && !!form.estudianteId && !!form.detalle.trim();
-  console.log('🔘 Estado del botón:', {
-    habilitado: botonHabilitado,
-    guardando,
-    tieneEstudiante: !!form.estudianteId,
-    tieneDetalle: !!form.detalle.trim(),
-    form
-  });
 
   return (
-    <div className="grid">
+    <div className="grid" style={{ gap: '1.25rem' }}>
       <BlurFade delay={0.05} duration={0.3}>
         <BarraTitulo 
           titulo="Observador del Alumno" 
@@ -229,7 +294,7 @@ export default function ObservadorAlumno() {
         />
       </BlurFade>
 
-      {/* 👇 INDICADOR DE CARGA (usa la variable `loading`) */}
+      {/* Indicador de carga */}
       {loading && (
         <BlurFade delay={0.08} duration={0.25}>
           <div style={{ 
@@ -237,15 +302,16 @@ export default function ObservadorAlumno() {
             padding: '2rem', 
             backgroundColor: '#f8f9fa', 
             borderRadius: '8px',
-            marginBottom: '1rem',
+            marginBottom: '0.5rem',
             color: '#666'
           }}>
-            <p>⏳ Cargando datos del curso...</p>
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-brand border-t-transparent mx-auto mb-2"></div>
+            <p>Cargando datos del curso...</p>
           </div>
         </BlurFade>
       )}
 
-      {/* Mensajes */}
+      {/* Mensajes de notificación */}
       {mensaje && (
         <BlurFade delay={0.1} duration={0.25}>
           <div style={{ 
@@ -253,9 +319,11 @@ export default function ObservadorAlumno() {
             backgroundColor: mensaje.includes('✅') ? '#d4edda' : '#f8d7da',
             color: mensaje.includes('✅') ? '#155724' : '#721c24',
             border: '1px solid',
-            borderRadius: '6px',
-            marginBottom: '1rem',
-            textAlign: 'center'
+            borderColor: mensaje.includes('✅') ? '#c3e6cb' : '#f5c6cb',
+            borderRadius: '8px',
+            marginBottom: '0.5rem',
+            textAlign: 'center',
+            fontWeight: 600
           }}>
             {mensaje}
           </div>
@@ -277,7 +345,7 @@ export default function ObservadorAlumno() {
         </Card>
       </BlurFade>
 
-      {/* Historial */}
+      {/* Historial con columna de Acciones */}
       <BlurFade delay={0.18} duration={0.4}>
         <Card title={`Historial - ${cursoActual?.label || 'Curso'}`}>
           {filas.length > 0 ? (
@@ -290,26 +358,28 @@ export default function ObservadorAlumno() {
         </Card>
       </BlurFade>
 
-      {/* Formulario SÚPER SIMPLE */}
+      {/* Formulario para Agregar Nueva Observación */}
       <BlurFade delay={0.24} duration={0.45}>
         <Card title="Agregar Nueva Observación">
           <div style={{ display: 'grid', gap: '1rem' }}>
             
             {/* Estudiante */}
             <div>
-              <label><strong>Estudiante:</strong></label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                Estudiante:
+              </label>
               <select
                 value={form.estudianteId}
                 onChange={(e) => {
-                  console.log('👤 Estudiante cambiado a:', e.target.value);
                   setForm({ ...form, estudianteId: e.target.value });
                 }}
                 style={{
                   padding: '0.75rem',
-                  border: '2px solid #ccc',
-                  borderRadius: '4px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
                   width: '100%',
-                  fontSize: '1rem'
+                  fontSize: '0.95rem',
+                  background: 'var(--bg-white, #fff)'
                 }}
               >
                 <option value="">-- Selecciona un estudiante --</option>
@@ -323,19 +393,21 @@ export default function ObservadorAlumno() {
 
             {/* Tipo */}
             <div>
-              <label><strong>Tipo:</strong></label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                Tipo de Observación:
+              </label>
               <select
                 value={form.tipo}
                 onChange={(e) => {
-                  console.log('📋 Tipo cambiado a:', e.target.value);
                   setForm({ ...form, tipo: e.target.value });
                 }}
                 style={{
                   padding: '0.75rem',
-                  border: '2px solid #ccc',
-                  borderRadius: '4px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
                   width: '100%',
-                  fontSize: '1rem'
+                  fontSize: '0.95rem',
+                  background: 'var(--bg-white, #fff)'
                 }}
               >
                 {TIPOS_OBSERVACION.map(tipo => (
@@ -348,68 +420,123 @@ export default function ObservadorAlumno() {
 
             {/* Detalle */}
             <div>
-              <label><strong>Detalle:</strong></label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                Detalle:
+              </label>
               <textarea
                 rows={4}
-                placeholder="Escribe aquí la observación..."
+                placeholder="Escribe aquí la observación de seguimiento comportamental o académico..."
                 value={form.detalle}
                 onChange={(e) => {
-                  console.log('📝 Detalle cambiado, longitud:', e.target.value.length);
                   setForm({ ...form, detalle: e.target.value });
                 }}
                 style={{
                   padding: '0.75rem',
-                  border: '2px solid #ccc',
-                  borderRadius: '4px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
                   width: '100%',
-                  fontSize: '1rem',
+                  fontSize: '0.95rem',
                   fontFamily: 'inherit',
                   resize: 'vertical'
                 }}
               />
             </div>
 
-            {/* BOTÓN SUPER VISIBLE */}
-            <div style={{ textAlign: 'center' }}>
+            {/* Botón de Envío */}
+            <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
               <button
                 type="button"
-                onClick={(e) => {
-                  console.log('🔴🔴🔴 CLICK CAPTURADO!!! 🔴🔴🔴');
-                  console.log('Event object:', e);
-                  e.preventDefault();
-                  e.stopPropagation();
-                  agregar();
-                }}
+                onClick={agregar}
                 disabled={!botonHabilitado}
                 style={{
-                  padding: '1rem 3rem',
-                  backgroundColor: botonHabilitado ? '#007bff' : '#cccccc',
+                  padding: '0.85rem 2.5rem',
+                  backgroundColor: botonHabilitado ? 'var(--brand, #11998e)' : '#cccccc',
                   color: 'white',
-                  border: '3px solid ' + (botonHabilitado ? '#0056b3' : '#999'),
+                  border: 'none',
                   borderRadius: '8px',
-                  fontSize: '1.2rem',
-                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  fontWeight: 700,
                   cursor: botonHabilitado ? 'pointer' : 'not-allowed',
-                  minWidth: '200px',
-                  textTransform: 'uppercase'
+                  minWidth: '220px',
+                  boxShadow: botonHabilitado ? '0 2px 6px rgba(17, 153, 142, 0.25)' : 'none'
                 }}
               >
-                {guardando ? '⏳ Guardando...' : '📝 AGREGAR OBSERVACIÓN'}
+                {guardando ? '⏳ Guardando...' : '📝 Agregar Observación'}
               </button>
-              
-              <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                Estado: <strong>{botonHabilitado ? '🟢 HABILITADO' : '🔴 DESHABILITADO'}</strong>
-                <br />
-                {!botonHabilitado && (
-                  <span style={{ color: '#dc3545' }}>
-                    Falta: {!form.estudianteId ? 'Estudiante ' : ''}{!form.detalle.trim() ? 'Detalle' : ''}
-                  </span>
-                )}
-              </div>
             </div>
           </div>
         </Card>
       </BlurFade>
+
+      {/* Modal de Confirmación de Eliminación */}
+      {observacionAEliminar && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => !eliminandoId && setObservacionAEliminar(null)}
+        >
+          <div 
+            className="modal-content" 
+            style={{ maxWidth: '440px' }} 
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '1.75rem' }}>⚠️</span>
+              <div>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.15rem', fontWeight: 700 }}>
+                  ¿Eliminar observación?
+                </h3>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                  Estudiante: <strong>{observacionAEliminar.estudiante}</strong>
+                </p>
+              </div>
+            </div>
+            
+            <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+              Esta acción eliminará permanentemente esta observación y no se puede deshacer.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                disabled={!!eliminandoId}
+                onClick={() => setObservacionAEliminar(null)}
+                style={{
+                  padding: '0.55rem 1.15rem',
+                  backgroundColor: '#f1f5f9',
+                  color: '#475569',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: eliminandoId ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!!eliminandoId}
+                onClick={handleConfirmarEliminar}
+                style={{
+                  padding: '0.55rem 1.25rem',
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: eliminandoId ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                {eliminandoId ? '⏳ Eliminando...' : '🗑️ Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

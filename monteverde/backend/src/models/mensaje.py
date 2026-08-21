@@ -12,20 +12,29 @@ class Mensaje(db.Model):
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     leido = db.Column(db.Boolean, default=False)
     
+    # Retractación / Eliminación lógica
+    eliminado = db.Column(db.Boolean, default=False, nullable=False)
+    fecha_eliminacion = db.Column(db.DateTime, nullable=True)
+    
     # Relaciones
     emisor = db.relationship('Usuario', foreign_keys=[emisor_id], backref='mensajes_enviados')
     receptor = db.relationship('Usuario', foreign_keys=[receptor_id], backref='mensajes_recibidos')
     
     def __repr__(self):
-        return f'<Mensaje {self.id}: {self.asunto}>'
+        return f'<Mensaje {self.id}: {self.asunto} (eliminado={self.eliminado})>'
     
     def to_dict(self):
+        cuerpo_mostrar = '🚫 Este mensaje fue eliminado por su remitente.' if self.eliminado else self.cuerpo
         return {
             'id': self.id,
             'emisor_id': self.emisor_id,
+            'emisorId': self.emisor_id,
             'receptor_id': self.receptor_id,
+            'receptorId': self.receptor_id,
             'asunto': self.asunto,
-            'cuerpo': self.cuerpo,
+            'cuerpo': cuerpo_mostrar,
             'fecha': self.fecha.isoformat() if self.fecha else None,
-            'leido': self.leido
+            'leido': self.leido,
+            'eliminado': bool(self.eliminado),
+            'fecha_eliminacion': self.fecha_eliminacion.isoformat() if self.fecha_eliminacion else None
         }

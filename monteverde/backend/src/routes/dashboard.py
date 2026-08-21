@@ -9,7 +9,10 @@ from src.models.mensaje import Mensaje
 from src.models.calificacion import Calificacion
 from src.models.asistencia import Asistencia
 from src.models.observacion import Observacion
-from src.utils.auth_helpers import role_required
+from src.models.docente_asignacion import DocenteAsignacion
+from src.models.tarea import Tarea
+from src.models.entrega import Entrega
+from src.utils.auth_helpers import role_required, get_current_user
 
 dashboard_bp = Blueprint('dashboard_custom', __name__)
 
@@ -54,23 +57,43 @@ def _calcular_estadisticas_estudiante(estudiante):
         'observaciones_mes': observaciones_mes
     }
 
-@dashboard_bp.route('/docente/dashboard/<int:docente_id>', methods=['GET'])
+@dashboard_bp.route('/docente/dashboard', methods=['GET'])
 @role_required('docente', 'admin')
-def get_docente_dashboard(docente_id):
-    """Dashboard del docente."""
+def get_docente_dashboard():
+    """Dashboard del docente.
+
+    El docente_id se obtiene exclusivamente del JWT (get_current_user).
+    No se acepta docente_id desde parámetros de URL, query, ni body.
+    """
     try:
-        # Obtener cursos con conteo de estudiantes
+        docente = get_current_user()
+        if not docente:
+            return jsonify({'success': False, 'message': 'Docente no encontrado'}), 404
+        docente_id = docente.id
+
+        # Obtener los IDs de cursos asignados al docente autenticado
+        curso_ids_asignados = db.session.query(
+            DocenteAsignacion.curso_id
+        ).filter(
+            DocenteAsignacion.docente_id == docente_id
+        ).distinct().scalar_subquery()
+
+        # Obtener cursos del docente con conteo de estudiantes
         cursos = db.session.query(
             Curso.id,
             Curso.nombre,
             Curso.nivel,
             Curso.letra,
             func.count(Estudiante.id).label('total_estudiantes')
-        ).outerjoin(Estudiante).group_by(Curso.id).order_by(Curso.nivel, Curso.letra).limit(5).all()
+        ).outerjoin(
+            Estudiante, Estudiante.curso_id == Curso.id
+        ).filter(
+            Curso.id.in_(curso_ids_asignados)
+        ).group_by(Curso.id).order_by(Curso.nivel, Curso.letra).all()
         
         cursos_data = [{'id': c.id, 'nombre': c.nombre, 'nivel': c.nivel, 'letra': c.letra, 'total_estudiantes': c.total_estudiantes} for c in cursos]
         
-        # Mensajes no leídos para el docente
+        # Mensajes no leídos para el docente autenticado (desde JWT, no desde parámetro)
         mensajes = Mensaje.query.filter_by(receptor_id=docente_id, leido=False).join(Usuario, Mensaje.emisor_id == Usuario.id).limit(3).all()
         mensajes_data = []
         for msg in mensajes:
@@ -79,17 +102,55 @@ def get_docente_dashboard(docente_id):
             msg_dict['emisor'] = emisor.nombre if emisor else 'Desconocido'
             mensajes_data.append(msg_dict)
         
-        # Tareas pendientes estáticas
-        tareas_pendientes = [
-            {'tipo': 'asistencia', 'curso': '7°B', 'descripcion': 'Registrar asistencia', 'urgencia': 'hoy'},
-            {'tipo': 'calificaciones', 'curso': '8°A', 'descripcion': 'Calificar tareas de Matemáticas', 'urgencia': 'vence hoy'},
-            {'tipo': 'boletines', 'curso': 'Todos', 'descripcion': 'Enviar boletines 2025-P2', 'urgencia': 'próximamente'}
-        ]
-        
+        # Tareas pendientes reales obtenidas de la base de datos
+        tareas_query = Tarea.query.filter_by(
+            docente_id=docente_id,
+            estado='PUBLICADA'
+        )
+        total_tareas_pendientes = tareas_query.count()
+        tareas_db = tareas_query.order_by(Tarea.fecha_vencimiento.asc()).limit(5).all()
+
+        tareas_pendientes = []
+        ahora_fecha = datetime.utcnow().date()
+        for t in tareas_db:
+            vence_fecha = t.fecha_vencimiento.date() if isinstance(t.fecha_vencimiento, datetime) else t.fecha_vencimiento
+            delta_dias = (vence_fecha - ahora_fecha).days
+            if delta_dias <= 0:
+                urgencia = 'hoy'
+            elif delta_dias == 1:
+                urgencia = 'mañana'
+            else:
+                urgencia = 'próximamente'
+
+            total_est = len(t.curso.estudiantes) if t.curso and t.curso.estudiantes else 0
+            entregas_list = t.entregas if t.entregas else []
+            total_entregadas = len([e for e in entregas_list if e.estado in ('ENTREGADA', 'CALIFICADA')])
+            entregas_pendientes = max(0, total_est - total_entregadas)
+
+            curso_grado = f"{t.curso.nivel}{t.curso.letra}" if t.curso and t.curso.nivel and t.curso.letra else (t.curso.nombre if t.curso else 'Sin curso')
+
+            tareas_pendientes.append({
+                'id': t.id,
+                'titulo': t.titulo,
+                'descripcion': t.descripcion,
+                'curso': curso_grado,
+                'curso_id': t.curso_id,
+                'curso_nombre': t.curso.nombre if t.curso else None,
+                'asignatura': t.materia.nombre if t.materia else 'General',
+                'materia_id': t.materia_id,
+                'fecha_vencimiento': t.fecha_vencimiento.isoformat() if t.fecha_vencimiento else None,
+                'estado': t.estado,
+                'entregas': total_entregadas,
+                'entregas_pendientes': entregas_pendientes,
+                'total_estudiantes': total_est,
+                'urgencia': urgencia
+            })
+
         payload = {
             'cursos': cursos_data,
             'mensajes_pendientes': mensajes_data,
             'tareas_pendientes': tareas_pendientes,
+            'total_tareas_pendientes': total_tareas_pendientes,
             'estadisticas': {
                 'total_cursos': len(cursos_data),
                 'mensajes_no_leidos': len(mensajes_data),
@@ -137,3 +198,4 @@ def get_familia_dashboard(familia_id):
     except Exception as e:
         print(f"❌ Error dashboard familia: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+

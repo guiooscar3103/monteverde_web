@@ -208,12 +208,35 @@ try:
                 print(f"[OK] Password for user '{email}' was successfully hashed.")
                 hashed_count += 1
                 
-        if hashed_count > 0:
-            print(f"[SUCCESS] Hashed {hashed_count} plain text passwords in the database.")
-        else:
-            print("[INFO] All passwords are already securely hashed.")
-                
-    conn.close()
+        # ====================================================
+        # USUARIOS SEED BÁSICOS
+        # ====================================================
+        try:
+            cursor.execute("SELECT id FROM usuarios WHERE email = 'familia@monteverde.com';")
+            fam_exists = cursor.fetchone()
+            if not fam_exists:
+                cursor.execute("SELECT id FROM estudiantes LIMIT 1;")
+                primer_est = cursor.fetchone()
+                est_id = primer_est[0] if primer_est else None
+                hashed_pass = generate_password_hash('familia123')
+                cursor.execute(
+                    """
+                    INSERT INTO usuarios (nombre, email, password, rol, estudiante_id, activo, eliminado)
+                    VALUES (%s, %s, %s, %s, %s, 1, 0);
+                    """,
+                    ('Familia MonteVerde', 'familia@monteverde.com', hashed_pass, 'familia', est_id)
+                )
+                new_fam_id = cursor.lastrowid
+                if est_id and new_fam_id:
+                    cursor.execute(
+                        "INSERT IGNORE INTO familia_estudiante (familia_id, estudiante_id) VALUES (%s, %s);",
+                        (new_fam_id, est_id)
+                    )
+                print("[OK] Usuario 'familia@monteverde.com' creado con éxito.")
+        except Exception as e:
+            print(f"[WARN] No se pudo verificar o crear usuario familia por defecto: {e}")
+
+        conn.close()
     print("[SUCCESS] Database initialization and migration completed successfully!")
 
 except Exception as e:
