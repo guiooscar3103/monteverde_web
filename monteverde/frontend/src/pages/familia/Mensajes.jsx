@@ -5,16 +5,14 @@ import Card from '../../components/Card';
 import {
   GraduationCap,
   Mail,
-  User,
-  MessageSquare,
   Search,
-  Ban,
-  Undo2,
-  Clock,
-  Send,
   AlertTriangle,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Archive,
+  ArchiveRestore,
+  Inbox,
+  BookOpen
 } from 'lucide-react';
 import {
   getMensajesPorUsuario,
@@ -23,8 +21,16 @@ import {
   marcarComoLeido,
   getUsuariosPorRol,
   getUsuarioPorId,
-  eliminarMensaje
+  eliminarMensaje,
+  archivarConversacion,
+  desarchivarConversacion,
+  getConversacionesArchivadas
 } from '../../services/api';
+import ChatHeader, { getInitials } from '../../components/chat/ChatHeader';
+import ChatComposer from '../../components/chat/ChatComposer';
+import ChatMessageList from '../../components/chat/ChatMessageList';
+import DocentePerfilModal from '../../components/chat/DocentePerfilModal';
+
 
 // Funciones helper para reducir complejidad
 const _crearMapaConversaciones = (mensajes, usuarioId) => {
@@ -71,6 +77,8 @@ const _filtrarDocentes = (lista, filtro, conversaciones) => {
   const q = filtro.trim().toLowerCase();
   return lista.filter(docente => {
     if (docente.nombre?.toLowerCase().includes(q) || docente.email?.toLowerCase().includes(q)) return true;
+    if (docente.materias && docente.materias.some(m => m.toLowerCase().includes(q))) return true;
+    if (docente.cursos && docente.cursos.some(c => c.toLowerCase().includes(q))) return true;
     const conv = conversaciones.find(c => c.contacto.id === docente.id);
     if (conv?.ultimoMensaje?.asunto?.toLowerCase().includes(q)) return true;
     if (conv?.ultimoMensaje?.cuerpo?.toLowerCase().includes(q)) return true;
@@ -83,55 +91,188 @@ function ContactosList({
   setFiltro,
   docentesFiltrados,
   contactoSeleccionado,
-  abrirConversacion
+  abrirConversacion,
+  pestana,
+  setPestana,
+  conteoActivas,
+  conteoArchivadas,
+  handleDesarchivar
 }) {
   return (
-    <Card title="Contactos" style={{ padding: '1rem', overflowY: 'auto', height: '100%' }}>
-      <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
+    <Card title="Docentes" style={{ padding: '1rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Selector de Pestañas: Bandeja Principal | Archivados */}
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.85rem', flexShrink: 0 }}>
+        <button
+          type="button"
+          onClick={() => setPestana('activas')}
+          style={{
+            flex: 1,
+            padding: '0.5rem 0.6rem',
+            borderRadius: '8px',
+            border: pestana === 'activas' ? '1.5px solid var(--color-primary, #0A3A20)' : '1px solid var(--border, #E2E8F0)',
+            background: pestana === 'activas' ? '#ECFDF5' : '#F8FAFC',
+            color: pestana === 'activas' ? 'var(--color-primary, #0A3A20)' : 'var(--text-muted, #64748B)',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <Inbox size={14} />
+          <span>Bandeja ({conteoActivas})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setPestana('archivadas')}
+          style={{
+            flex: 1,
+            padding: '0.5rem 0.6rem',
+            borderRadius: '8px',
+            border: pestana === 'archivadas' ? '1.5px solid var(--color-primary, #0A3A20)' : '1px solid var(--border, #E2E8F0)',
+            background: pestana === 'archivadas' ? '#ECFDF5' : '#F8FAFC',
+            color: pestana === 'archivadas' ? 'var(--color-primary, #0A3A20)' : 'var(--text-muted, #64748B)',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <Archive size={14} />
+          <span>Archivados ({conteoArchivadas})</span>
+        </button>
+      </div>
+
+      <div style={{ marginBottom: '0.85rem', position: 'relative', flexShrink: 0 }}>
         <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
         <input
           type="text"
           value={filtro}
           onChange={e => setFiltro(e.target.value)}
-          placeholder="Buscar docente, asunto o mensaje"
+          placeholder="Buscar docente o materia..."
           style={{
             width: '100%',
-            background: "#f4f4f4",
-            border: '1px solid #ddd',
+            background: "#F8FAFC",
+            border: '1px solid var(--border, #E2E8F0)',
             borderRadius: '8px',
-            padding: '0.5rem 0.85rem 0.5rem 2.2rem',
-            fontSize: '0.92rem'
+            padding: '0.55rem 0.85rem 0.55rem 2.2rem',
+            fontSize: '0.92rem',
+            color: 'var(--text, #0F172A)'
           }}
         />
       </div>
-      <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+
+      <div style={{ flex: 1, overflowY: 'auto', paddingRight: '2px' }}>
         {docentesFiltrados.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#999', padding: '1rem' }}>No hay coincidencias.</div>
-        )}
-        {docentesFiltrados.map(docente => (
-          <div
-            key={`nuevo-${docente.id}`}
-            onClick={() => abrirConversacion(docente)}
-            style={{
-              padding: '0.75rem',
-              border: '1px solid #e0e0e0',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              marginBottom: '0.5rem',
-              backgroundColor: contactoSeleccionado?.id === docente.id ? '#e3f2fd' : '#f9f9f9',
-              transition: 'all 0.2s'
-            }}
-          >
-            <div style={{ fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <GraduationCap size={15} style={{ color: 'var(--brand)' }} />
-              <span>{docente.nombre}</span>
-            </div>
-            <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Mail size={12} />
-              <span>{docente.email}</span>
-            </div>
+          <div style={{ textAlign: 'center', color: 'var(--text-muted, #64748B)', padding: '2rem 1rem', fontSize: '0.88rem' }}>
+            {pestana === 'archivadas' ? 'No tienes conversaciones archivadas.' : 'No hay docentes disponibles.'}
           </div>
-        ))}
+        )}
+        {docentesFiltrados.map(docente => {
+          const isSelected = contactoSeleccionado?.id === docente.id;
+          const iniciales = getInitials(docente.nombre);
+          const materiaDesc = docente.materia_principal || (docente.materias && docente.materias[0]);
+          const cursoDesc = docente.curso_principal || (docente.cursos && docente.cursos[0]);
+          const tagInfo = materiaDesc && cursoDesc ? `${materiaDesc} · ${cursoDesc}` : materiaDesc || (cursoDesc ? `Curso ${cursoDesc}` : 'Docente');
+
+          return (
+            <div
+              key={`doc-${docente.id}`}
+              onClick={() => abrirConversacion(docente)}
+              style={{
+                padding: '0.75rem 0.85rem',
+                border: isSelected ? '1.5px solid var(--color-primary, #0A3A20)' : '1px solid var(--border, #E2E8F0)',
+                borderLeft: isSelected ? '4px solid var(--color-primary, #0A3A20)' : '1px solid var(--border, #E2E8F0)',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                marginBottom: '0.5rem',
+                backgroundColor: isSelected ? '#ECFDF5' : '#FFFFFF',
+                boxShadow: isSelected ? '0 2px 8px rgba(10, 58, 32, 0.08)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: isSelected ? 'var(--color-primary, #0A3A20)' : '#E2E8F0',
+                    color: isSelected ? '#FFFFFF' : 'var(--text, #0F172A)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    flexShrink: 0
+                  }}
+                >
+                  {iniciales}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        color: isSelected ? 'var(--color-primary, #0A3A20)' : 'var(--text, #0F172A)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {docente.nombre}
+                    </div>
+                    {pestana === 'archivadas' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDesarchivar(docente.id);
+                        }}
+                        style={{
+                          background: '#ECFDF5',
+                          border: '1px solid var(--color-primary, #0A3A20)',
+                          color: 'var(--color-primary, #0A3A20)',
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                        title="Desarchivar"
+                      >
+                        <ArchiveRestore size={11} />
+                        <span>Desarchivar</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-primary-light, #166534)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <BookOpen size={11} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tagInfo}</span>
+                  </div>
+
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748B)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Mail size={11} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{docente.email}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Card>
   );
@@ -147,261 +288,86 @@ function ConversacionArea({
   nuevoMensaje,
   setNuevoMensaje,
   enviando,
-  onRetractar
+  onRetractar,
+  archivadasIds,
+  handleArchivar,
+  handleDesarchivar,
+  onVerPerfil
 }) {
   if (!contactoSeleccionado) {
     return (
-      <Card style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Card style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          color: '#666',
+          color: 'var(--text-muted, #64748B)',
           textAlign: 'center',
           flexDirection: 'column',
-          padding: '2rem'
+          padding: '2.5rem 1.5rem'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#94a3b8' }}>
-            <GraduationCap size={48} strokeWidth={1.5} />
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: '#ECFDF5',
+              color: 'var(--color-primary, #0A3A20)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '1rem'
+            }}
+          >
+            <GraduationCap size={36} strokeWidth={1.75} />
           </div>
-          <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-            <strong>Selecciona un docente</strong>
-          </p>
-          <p style={{ fontSize: '0.9rem', color: '#999' }}>
-            Haz clic en cualquier docente de la izquierda<br />
-            para iniciar una conversación
+          <h3 style={{ fontSize: '1.2rem', margin: '0 0 0.4rem 0', fontWeight: 700, color: 'var(--text, #0F172A)' }}>
+            Selecciona un docente
+          </h3>
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted, #64748B)', maxWidth: '320px', lineHeight: '1.45', margin: 0 }}>
+            Elige a un docente de la lista para iniciar una conversación institucional o ver tus consultas.
           </p>
         </div>
       </Card>
     );
   }
 
+  const esArchivada = archivadasIds.includes(contactoSeleccionado.id);
+  const isFirstMessage = conversacionActual.length === 0;
+
   return (
-    <Card style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{
-        padding: '1rem 1.25rem',
-        borderBottom: '1px solid var(--border, #eee)',
-        backgroundColor: '#f8f9fa'
-      }}>
-        <h3 style={{ margin: 0, color: 'var(--brand)', fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MessageSquare size={18} />
-          <span>Conversación con {contactoSeleccionado.nombre}</span>
-        </h3>
-        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#666', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Mail size={12} />
-          <span>{contactoSeleccionado.email}</span>
-          <span>•</span>
-          <User size={12} />
-          <span>{contactoSeleccionado.rol}</span>
-        </p>
-      </div>
-      {/* Mensajes */}
-      <div style={{
-        flex: 1,
-        padding: '1rem',
-        overflowY: 'auto',
-        backgroundColor: '#fafafa'
-      }}>
-        {conversacionActual.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            color: '#666',
-            padding: '2rem',
-            fontSize: '0.9rem'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem', color: '#94a3b8' }}>
-              <MessageSquare size={44} strokeWidth={1.5} />
-            </div>
-            <p>No hay mensajes aún con este docente</p>
-            <small style={{ color: '#94a3b8' }}>¡Envía tu primera consulta!</small>
-          </div>
-        ) : (
-          conversacionActual.map(mensajeItem => {
-            const emisorId = mensajeItem.emisor_id ?? mensajeItem.emisorId;
-            const esMio = emisorId == usuario.id;
-            const estaEliminado = Boolean(mensajeItem.eliminado);
+    <Card style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* 1. Header Contextual del Chat */}
+      <ChatHeader
+        contacto={contactoSeleccionado}
+        esArchivada={esArchivada}
+        onVerPerfil={onVerPerfil}
+        onArchivar={handleArchivar}
+        onDesarchivar={handleDesarchivar}
+        esDocenteViewer={false}
+      />
 
-            return (
-              <div
-                key={mensajeItem.id}
-                style={{
-                  marginBottom: '1rem',
-                  display: 'flex',
-                  justifyContent: esMio ? 'flex-end' : 'flex-start'
-                }}
-              >
-                <div
-                  style={{
-                    maxWidth: '75%',
-                    padding: '0.9rem 1.1rem',
-                    borderRadius: '16px',
-                    backgroundColor: estaEliminado
-                      ? (esMio ? 'rgba(76, 29, 149, 0.08)' : '#f1f5f9')
-                      : (esMio ? '#4c1d95' : '#ffffff'),
-                    color: estaEliminado
-                      ? '#64748b'
-                      : (esMio ? 'white' : 'black'),
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    border: estaEliminado
-                      ? '1px dashed #cbd5e1'
-                      : (esMio ? 'none' : '1px solid #e0e0e0'),
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {!estaEliminado && (
-                    <div style={{
-                      fontWeight: 'bold',
-                      fontSize: '0.85rem',
-                      marginBottom: '0.35rem',
-                      opacity: 0.95,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}>
-                      <Mail size={13} />
-                      <span>{mensajeItem.asunto}</span>
-                    </div>
-                  )}
+      {/* 2. Lista de Mensajes con Scroll Independiente */}
+      <ChatMessageList
+        conversacion={conversacionActual}
+        usuarioActual={usuario}
+        onRetractar={onRetractar}
+        nombreContacto={contactoSeleccionado.nombre}
+        emptySubtext="Envía tu primera consulta o mensaje al docente a continuación."
+      />
 
-                  <div style={{
-                    fontSize: '0.92rem',
-                    lineHeight: '1.45',
-                    marginBottom: '0.4rem',
-                    whiteSpace: 'pre-wrap',
-                    fontStyle: estaEliminado ? 'italic' : 'normal',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    {estaEliminado ? (
-                      <>
-                        <Ban size={14} style={{ flexShrink: 0 }} />
-                        <span>Este mensaje fue eliminado por su remitente.</span>
-                      </>
-                    ) : (
-                      mensajeItem.cuerpo
-                    )}
-                  </div>
-
-                  <div style={{
-                    fontSize: '0.72rem',
-                    opacity: estaEliminado ? 0.7 : (esMio ? 0.85 : 0.6),
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    marginTop: '0.2rem'
-                  }}>
-                    {esMio && !estaEliminado && onRetractar && (
-                      <button
-                        type="button"
-                        onClick={() => onRetractar(mensajeItem)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: esMio ? '#fef08a' : '#ef4444',
-                          fontSize: '0.72rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          padding: 0,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          textDecoration: 'underline'
-                        }}
-                        title="Retractar este mensaje"
-                      >
-                        <Undo2 size={12} />
-                        <span>Retractar mensaje</span>
-                      </button>
-                    )}
-
-                    <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={11} />
-                      <span>{new Date(mensajeItem.fecha).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-      <form
-        onSubmit={enviarNuevoMensaje}
-        style={{
-          padding: '1rem',
-          borderTop: '1px solid var(--border, #eee)',
-          backgroundColor: '#ffffff'
-        }}
-      >
-        <input
-          type="text"
-          placeholder="Asunto de tu consulta"
-          value={asunto}
-          onChange={(e) => setAsunto(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '0.65rem 0.85rem',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            marginBottom: '0.75rem',
-            fontSize: '0.9rem',
-            fontFamily: 'inherit'
-          }}
-        />
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <textarea
-            placeholder="Escribe tu consulta aquí..."
-            value={nuevoMensaje}
-            onChange={(e) => setNuevoMensaje(e.target.value)}
-            style={{
-              flex: 1,
-              padding: '0.65rem 0.85rem',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              resize: 'none',
-              fontSize: '0.9rem',
-              minHeight: '75px',
-              fontFamily: 'inherit'
-            }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                enviarNuevoMensaje(e);
-              }
-            }}
-          />
-          <button
-            type="submit"
-            disabled={enviando || !nuevoMensaje.trim()}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: enviando ? '#ccc' : '#4c1d95',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: enviando ? 'not-allowed' : 'pointer',
-              fontSize: '0.9rem',
-              fontWeight: 'bold',
-              minWidth: '100px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}
-          >
-            <Send size={15} />
-            <span>{enviando ? 'Enviando...' : 'Enviar'}</span>
-          </button>
-        </div>
-      </form>
+      {/* 3. Compositor de Chat Fijo en la Parte Inferior */}
+      <ChatComposer
+        asunto={asunto}
+        setAsunto={setAsunto}
+        nuevoMensaje={nuevoMensaje}
+        setNuevoMensaje={setNuevoMensaje}
+        onEnviar={enviarNuevoMensaje}
+        enviando={enviando}
+        isFirstMessage={isFirstMessage}
+        placeholder={`Escribe un mensaje para ${contactoSeleccionado.nombre}...`}
+      />
     </Card>
   );
 }
@@ -418,6 +384,39 @@ export default function FamiliaMensajes() {
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState('');
   const [filtro, setFiltro] = useState('');
+
+  // Modal Perfil del Docente
+  const [perfilModalOpen, setPerfilModalOpen] = useState(false);
+
+  // Pestañas de mensajería: Bandeja principal vs Archivados
+  const [pestana, setPestana] = useState('activas'); // 'activas' | 'archivadas'
+  const [archivadasIds, setArchivadasIds] = useState([]);
+
+  const handleArchivar = async (contactoId) => {
+    try {
+      await archivarConversacion(contactoId);
+      setArchivadasIds(prev => [...new Set([...prev, contactoId])]);
+      if (contactoSeleccionado?.id === contactoId) {
+        setContactoSeleccionado(null);
+        setConversacionActual([]);
+      }
+      setMensaje('✅ Conversación archivada');
+      setTimeout(() => setMensaje(''), 3000);
+    } catch (error) {
+      setMensaje('❌ Error al archivar conversación: ' + error.message);
+    }
+  };
+
+  const handleDesarchivar = async (contactoId) => {
+    try {
+      await desarchivarConversacion(contactoId);
+      setArchivadasIds(prev => prev.filter(id => id !== contactoId));
+      setMensaje('✅ Conversación desarchivada');
+      setTimeout(() => setMensaje(''), 3000);
+    } catch (error) {
+      setMensaje('❌ Error al desarchivar conversación: ' + error.message);
+    }
+  };
 
   // Retractación de mensajes
   const [mensajeParaRetractar, setMensajeParaRetractar] = useState(null);
@@ -471,11 +470,14 @@ export default function FamiliaMensajes() {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const [mensajes, usuariosDocente] = await Promise.all([
+        const [mensajes, usuariosDocente, archivadasRes] = await Promise.all([
           getMensajesPorUsuario(usuario.id),
-          getUsuariosPorRol('docente').catch(() => [])
+          getUsuariosPorRol('docente').catch(() => []),
+          getConversacionesArchivadas().catch(() => ({ conversaciones: [] }))
         ]);
         setDocentes(usuariosDocente || []);
+        const archList = archivadasRes?.conversaciones || archivadasRes?.data || (Array.isArray(archivadasRes) ? archivadasRes : []);
+        setArchivadasIds(archList.map(a => a.contacto_id));
         await procesarConversaciones(mensajes || []);
       } catch (error) {
         setMensaje('❌ Error al cargar mensajes: ' + error.message);
@@ -494,7 +496,18 @@ export default function FamiliaMensajes() {
     setConversaciones(conversacionesArray);
   };
 
-  const filtrarDocentes = (lista) => _filtrarDocentes(lista, filtro, conversaciones);
+  const conteoActivas = docentes.filter(d => !archivadasIds.includes(d.id)).length;
+  const conteoArchivadas = docentes.filter(d => archivadasIds.includes(d.id)).length;
+
+  const filtrarDocentes = (lista) => {
+    const filtrados = _filtrarDocentes(lista, filtro, conversaciones);
+    return filtrados.filter(docente => {
+      const esArchivado = archivadasIds.includes(docente.id);
+      if (pestana === 'activas') return !esArchivado;
+      if (pestana === 'archivadas') return esArchivado;
+      return true;
+    });
+  };
 
   const abrirConversacion = async (contacto) => {
     setContactoSeleccionado(contacto);
@@ -519,9 +532,8 @@ export default function FamiliaMensajes() {
   };
 
   const enviarNuevoMensaje = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!nuevoMensaje.trim() || !contactoSeleccionado) {
-      setMensaje('⚠️ Escribe un mensaje y selecciona un contacto');
       return;
     }
     setEnviando(true);
@@ -537,12 +549,12 @@ export default function FamiliaMensajes() {
       setConversacionActual(prev => [...prev, mensajeEnviado]);
       setNuevoMensaje('');
       setAsunto('');
+      // Auto-desarchivar en estado local si estaba archivado
+      setArchivadasIds(prev => prev.filter(id => id !== contactoSeleccionado.id));
       try {
         const mensajesActualizados = await getMensajesPorUsuario(usuario.id);
         await procesarConversaciones(mensajesActualizados);
       } catch {}
-      setMensaje('✅ Mensaje enviado correctamente');
-      setTimeout(() => setMensaje(''), 3000);
     } catch (error) {
       setMensaje('❌ Error al enviar mensaje: ' + error.message);
     } finally {
@@ -570,10 +582,10 @@ export default function FamiliaMensajes() {
     <div className="grid">
       <BarraTitulo
         titulo="Mensajes"
-        subtitulo="Comunicación con docentes"
+        subtitulo="Comunicación institucional con docentes"
         derecha={
-          <div style={{ fontSize: '0.9rem', textAlign: 'right', color: '#666' }}>
-            <div><strong>{conversaciones.length}</strong> conversaciones</div>
+          <div style={{ fontSize: '0.9rem', textAlign: 'right', color: 'var(--text-muted, #64748B)' }}>
+            <div><strong>{conversaciones.length}</strong> conversaciones activas</div>
           </div>
         }
       />
@@ -608,7 +620,7 @@ export default function FamiliaMensajes() {
         display: 'grid',
         gridTemplateColumns: '350px 1fr',
         gap: '1rem',
-        height: '70vh'
+        height: '72vh'
       }}>
         <ContactosList
           filtro={filtro}
@@ -616,6 +628,11 @@ export default function FamiliaMensajes() {
           docentesFiltrados={docentesFiltrados}
           contactoSeleccionado={contactoSeleccionado}
           abrirConversacion={abrirConversacion}
+          pestana={pestana}
+          setPestana={setPestana}
+          conteoActivas={conteoActivas}
+          conteoArchivadas={conteoArchivadas}
+          handleDesarchivar={handleDesarchivar}
         />
 
         <ConversacionArea
@@ -629,8 +646,19 @@ export default function FamiliaMensajes() {
           setNuevoMensaje={setNuevoMensaje}
           enviando={enviando}
           onRetractar={(msg) => setMensajeParaRetractar(msg)}
+          archivadasIds={archivadasIds}
+          handleArchivar={handleArchivar}
+          handleDesarchivar={handleDesarchivar}
+          onVerPerfil={() => setPerfilModalOpen(true)}
         />
       </div>
+
+      {/* MODAL PERFIL DEL DOCENTE */}
+      <DocentePerfilModal
+        docente={contactoSeleccionado}
+        isOpen={perfilModalOpen}
+        onClose={() => setPerfilModalOpen(false)}
+      />
 
       {/* MODAL CONFIRMACIÓN RETRACTAR MENSAJE */}
       {mensajeParaRetractar && (

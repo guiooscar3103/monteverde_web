@@ -137,21 +137,26 @@ button:focus-visible, a:focus-visible, input:focus, select:focus, textarea:focus
    ========================================================= */
 h1, h2, h3, h4, h5, h6 {
   margin-bottom: var(--spacing);
-  color: var(--color-primary);
-  font-family: 'Merriweather', Georgia, serif;
+  color: var(--text);
+  font-family: inherit;
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.02em;
 }
 
 h1 { 
-  font-size: var(--font-size-xxl); 
-  margin-bottom: var(--spacing-lg); 
+  font-size: 1.625rem; 
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin-bottom: var(--spacing-md); 
 }
 
 h2 {
-  font-size: var(--font-size-xl);
-  color: var(--color-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
   border-bottom: 2px solid var(--brand-light);
   display: inline-block;
   padding-bottom: 4px;
@@ -159,8 +164,18 @@ h2 {
 }
 
 h3 { 
-  font-size: var(--font-size-lg); 
+  font-size: 1.1rem; 
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
   margin-bottom: var(--spacing-sm); 
+}
+
+h4, h5, h6 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
 }
 
 p { 
@@ -363,10 +378,11 @@ select {
 
 .section-title {
   font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--color-primary);
+  font-weight: 600;
+  color: var(--text);
   margin-bottom: 1rem;
-  font-family: 'Merriweather', Georgia, serif;
+  font-family: inherit;
+  letter-spacing: -0.01em;
 }
 
 /* Banner de Bienvenida */
@@ -522,16 +538,12 @@ tbody tr:hover {
   max-width: 260px;
   flex-shrink: 0;
   background-color: #ffffff;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.965), rgba(255, 255, 255, 0.965)), url('../assets/img/fondo%20barra%20lateral.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
   border-right: 1px solid var(--border);
   padding: 1.5rem 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.01);
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -670,7 +682,7 @@ tbody tr:hover {
   font-size: var(--font-size-lg);
   font-weight: var(--fw-bold);
   text-align: center;
-  font-family: 'Merriweather', serif;
+  font-family: inherit;
 }
 
 .login-body { 

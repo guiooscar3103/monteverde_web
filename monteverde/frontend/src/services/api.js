@@ -227,7 +227,32 @@ export const eliminarMensaje = async (mensajeId) => {
 
 export const retractarMensaje = eliminarMensaje;
 
+export const archivarConversacion = async (contactoId) => {
+  console.log('🌐 API: Archivando conversación con:', contactoId);
+  return await apiRequest(`/mensajes/conversaciones/${contactoId}/archivar`, {
+    method: 'POST',
+  });
+};
+
+export const desarchivarConversacion = async (contactoId) => {
+  console.log('🌐 API: Desarchivando conversación con:', contactoId);
+  return await apiRequest(`/mensajes/conversaciones/${contactoId}/desarchivar`, {
+    method: 'POST',
+  });
+};
+
+export const getConversacionesArchivadas = async () => {
+  console.log('🌐 API: Obteniendo conversaciones archivadas...');
+  return await apiRequest('/mensajes/conversaciones/archivadas');
+};
+
+export const getConversaciones = async (estado = 'activas') => {
+  console.log('🌐 API: Obteniendo conversaciones filtradas:', estado);
+  return await apiRequest(`/mensajes/conversaciones?estado=${estado}`);
+};
+
 // =====================================================
+
 // CALIFICACIONES
 // =====================================================
 

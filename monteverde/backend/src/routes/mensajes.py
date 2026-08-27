@@ -7,7 +7,9 @@ from src.models.mensaje import Mensaje
 from src.models.usuario import Usuario, familia_estudiante
 from src.models.estudiante import Estudiante
 from src.models.docente_asignacion import DocenteAsignacion
+from src.models.conversacion_archivada import ConversacionArchivada
 from src.utils.auth_helpers import role_required, get_current_user
+
 
 mensajes_bp = Blueprint('mensajes_custom', __name__)
 
@@ -169,9 +171,10 @@ def get_conversacion_entre_usuarios(usuario1, usuario2):
 def enviar_mensaje_nuevo():
     """Enviar nuevo mensaje."""
     try:
-        data = request.get_json()
-        emisor_id = data.get('emisorId')
-        receptor_id = data.get('receptorId')
+        current_user = get_current_user()
+        data = request.get_json() or {}
+        emisor_id = current_user.id if current_user else data.get('emisorId')
+        receptor_id = data.get('receptorId') or data.get('receptor_id')
         asunto = data.get('asunto', 'Sin asunto')
         cuerpo = data.get('cuerpo')
         
@@ -188,6 +191,13 @@ def enviar_mensaje_nuevo():
         )
         
         db.session.add(mensaje)
+
+        # Desarchivado automático: Si el receptor tenía archivada la conversación con el emisor, se elimina el archivado
+        ConversacionArchivada.query.filter_by(
+            usuario_id=receptor_id,
+            contacto_id=emisor_id
+        ).delete(synchronize_session=False)
+
         db.session.commit()
         
         print(f"✅ Mensaje creado con ID: {mensaje.id}")
@@ -205,6 +215,7 @@ def enviar_mensaje_curso():
     - Valida que el docente tenga asignado el curso (403 si no).
     - Obtiene destinatarios únicos (DISTINCT familia_id) para no duplicar a familias con varios hijos.
     - Ejecuta el envío en una única transacción atómica con rollback en caso de error.
+    - Desarchiva automáticamente la conversación para cada receptor individual.
     """
     try:
         docente = get_current_user()
@@ -268,6 +279,12 @@ def enviar_mensaje_curso():
             db.session.add(msg)
             mensajes_creados.append(msg)
 
+        # Desarchivado automático individual para cada receptor del curso
+        ConversacionArchivada.query.filter(
+            ConversacionArchivada.usuario_id.in_(destinatarios_ids),
+            ConversacionArchivada.contacto_id == docente.id
+        ).delete(synchronize_session=False)
+
         db.session.commit()
 
         count = len(mensajes_creados)
@@ -281,6 +298,7 @@ def enviar_mensaje_curso():
         db.session.rollback()
         print(f"❌ Error enviar difusión a curso: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @mensajes_bp.route('/mensajes/marcar-leido/<int:mensaje_id>', methods=['PUT'])
 @jwt_required()
@@ -352,6 +370,204 @@ def retractar_mensaje(mensaje_id):
         db.session.rollback()
         print(f"[ERROR] Error al retractar mensaje: {e}")
         return jsonify({'success': False, 'message': 'No fue posible retractar el mensaje. Inténtalo nuevamente.'}), 500
+
+
+# =====================================================
+# ENDPOINTS DE ARCHIVADO DE CONVERSACIONES
+# =====================================================
+
+@mensajes_bp.route('/mensajes/conversaciones/<int:contacto_id>/archivar', methods=['POST'])
+@jwt_required()
+def archivar_conversacion(contacto_id):
+    """
+    Archiva una conversación para el usuario autenticado de forma unidireccional.
+    - Idempotente.
+    - Valida que el contacto exista.
+    - No permite auto-archivado (contacto_id == current_user.id).
+    """
+    try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': 'Usuario no autenticado'}), 401
+
+        if current_user.id == contacto_id:
+            return jsonify({'success': False, 'message': 'No puedes archivar una conversación contigo mismo'}), 400
+
+        contacto = Usuario.query.get(contacto_id)
+        if not contacto or contacto.eliminado:
+            return jsonify({'success': False, 'message': 'Contacto no encontrado'}), 404
+
+        # Buscar si ya existe
+        existente = ConversacionArchivada.query.filter_by(
+            usuario_id=current_user.id,
+            contacto_id=contacto_id
+        ).first()
+
+        if not existente:
+            nueva_archivada = ConversacionArchivada(
+                usuario_id=current_user.id,
+                contacto_id=contacto_id,
+                fecha_archivado=datetime.utcnow()
+            )
+            db.session.add(nueva_archivada)
+            db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Conversación archivada exitosamente'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] Error al archivar conversación: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@mensajes_bp.route('/mensajes/conversaciones/<int:contacto_id>/desarchivar', methods=['POST'])
+@jwt_required()
+def desarchivar_conversacion(contacto_id):
+    """
+    Desarchiva una conversación para el usuario autenticado.
+    - Idempotente (no falla si no estaba archivada).
+    """
+    try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': 'Usuario no autenticado'}), 401
+
+        existente = ConversacionArchivada.query.filter_by(
+            usuario_id=current_user.id,
+            contacto_id=contacto_id
+        ).first()
+
+        if existente:
+            db.session.delete(existente)
+            db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Conversación desarchivada exitosamente'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] Error al desarchivar conversación: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@mensajes_bp.route('/mensajes/conversaciones/archivadas', methods=['GET'])
+@jwt_required()
+def get_conversaciones_archivadas():
+    """
+    Retorna la lista de conversaciones archivadas por el usuario autenticado.
+    """
+    try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': 'Usuario no autenticado'}), 401
+
+        archivadas = ConversacionArchivada.query.filter_by(
+            usuario_id=current_user.id
+        ).order_by(ConversacionArchivada.fecha_archivado.desc()).all()
+
+        return jsonify({
+            'success': True,
+            'conversaciones': [
+                {
+                    'contacto_id': item.contacto_id,
+                    'fecha_archivado': item.fecha_archivado.isoformat() if item.fecha_archivado else None
+                }
+                for item in archivadas
+            ]
+        }), 200
+
+    except Exception as e:
+        print(f"[ERROR] Error al obtener conversaciones archivadas: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@mensajes_bp.route('/mensajes/conversaciones', methods=['GET'])
+@jwt_required()
+def get_conversaciones_filtradas():
+    """
+    Obtiene la lista de conversaciones del usuario autenticado, agrupadas por contacto,
+    con soporte para el filtro de estado (?estado=activas | archivadas | todas).
+    Ordenadas por la fecha del último mensaje.
+    """
+    try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': 'Usuario no autenticado'}), 401
+
+        estado = request.args.get('estado', 'activas').lower()
+
+        # Obtener todos los IDs de contactos archivados por el usuario
+        archivadas = ConversacionArchivada.query.filter_by(usuario_id=current_user.id).all()
+        archivadas_dict = {a.contacto_id: a.fecha_archivado for a in archivadas}
+
+        # Obtener todos los mensajes donde participa el usuario
+        mensajes = Mensaje.query.filter(
+            (Mensaje.receptor_id == current_user.id) | (Mensaje.emisor_id == current_user.id)
+        ).order_by(Mensaje.fecha.asc()).all()
+
+        # Agrupar mensajes por contacto
+        conversaciones_map = {}
+        for msg in mensajes:
+            contacto_id = msg.emisor_id if msg.receptor_id == current_user.id else msg.receptor_id
+            if contacto_id not in conversaciones_map:
+                conversaciones_map[contacto_id] = {
+                    'contacto_id': contacto_id,
+                    'ultimo_mensaje': msg,
+                    'no_leidos': 0
+                }
+            if msg.receptor_id == current_user.id and not msg.leido:
+                conversaciones_map[contacto_id]['no_leidos'] += 1
+            if msg.fecha:
+                if not conversaciones_map[contacto_id]['ultimo_mensaje'].fecha or msg.fecha > conversaciones_map[contacto_id]['ultimo_mensaje'].fecha:
+                    conversaciones_map[contacto_id]['ultimo_mensaje'] = msg
+
+        # Enriquecer con información del contacto y estado archivado
+        resultado = []
+        for contacto_id, data in conversaciones_map.items():
+            contacto = Usuario.query.get(contacto_id)
+            if not contacto or contacto.eliminado:
+                continue
+
+            es_archivado = contacto_id in archivadas_dict
+            fecha_arch = archivadas_dict.get(contacto_id)
+
+            # Aplicar filtro de estado
+            if estado == 'activas' and es_archivado:
+                continue
+            elif estado == 'archivadas' and not es_archivado:
+                continue
+
+            resultado.append({
+                'contacto_id': contacto_id,
+                'contacto': {
+                    'id': contacto.id,
+                    'nombre': contacto.nombre,
+                    'email': contacto.email,
+                    'rol': contacto.rol
+                },
+                'ultimo_mensaje': data['ultimo_mensaje'].to_dict(),
+                'no_leidos': data['no_leidos'],
+                'archivado': es_archivado,
+                'fecha_archivado': fecha_arch.isoformat() if fecha_arch else None
+            })
+
+        # Ordenar por fecha del último mensaje descendente
+        resultado.sort(
+            key=lambda c: c['ultimo_mensaje']['fecha'] or '',
+            reverse=True
+        )
+
+        return jsonify({'success': True, 'data': resultado, 'conversaciones': resultado}), 200
+
+    except Exception as e:
+        print(f"[ERROR] Error al obtener conversaciones: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 
 

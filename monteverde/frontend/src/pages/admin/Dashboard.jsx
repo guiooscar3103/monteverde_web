@@ -175,7 +175,7 @@ export default function Dashboard() {
         <div style={{ color: '#BE123C', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
           <AlertTriangle size={44} />
         </div>
-        <h3 style={{ color: '#9F1239', fontFamily: 'Merriweather, serif', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Fallo en la comunicación con el Backend</h3>
+        <h3 style={{ color: '#9F1239', fontSize: '1.2rem', marginBottom: '0.5rem', fontWeight: 700 }}>Fallo en la comunicación con el Backend</h3>
         <p style={{ color: '#BE123C', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{errorMsg || 'No se han podido cargar las métricas agregadas del panel.'}</p>
         <button onClick={cargarEstadisticas} className="btn btn--primary" style={{ padding: '0.6rem 1.5rem', borderRadius: '8px' }}>Reintentar Conexión</button>
       </div>
@@ -293,7 +293,7 @@ export default function Dashboard() {
           paddingBottom: '0.75rem',
           marginBottom: '1.25rem'
         }}>
-          <h3 style={{ fontSize: '1rem', margin: 0, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'Merriweather, serif' }}>
+          <h3 style={{ fontSize: '1rem', margin: 0, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
             <ShieldCheck size={18} style={{ color: 'var(--text-secondary)' }} />
             Bitácora de Auditoría (Actividad Reciente)
           </h3>

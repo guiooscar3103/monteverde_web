@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import HeaderBar from '../components/HeaderBar';
 import { useAuth } from '../hooks/useAuth';
-import fondoImg from '../assets/img/fondo.png';
 import logoColegio from '../assets/img/logo-colegio.png';
 
 export default function DocenteLayout() {
@@ -126,11 +125,7 @@ export default function DocenteLayout() {
       <main className="main-content" style={{
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--bg-light)',
-        backgroundImage: `url(${fondoImg})`,
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundColor: '#F8FAFC',
         flexGrow: 1
       }}>
         <HeaderBar

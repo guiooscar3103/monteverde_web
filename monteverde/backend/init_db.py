@@ -278,7 +278,29 @@ try:
         except Exception as e:
             print(f"[WARN] No se pudo verificar/crear la tabla 'configuracion_institucional': {e}")
 
+        # ====================================================
+        # TABLA conversaciones_archivadas
+        # ====================================================
+        try:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS conversaciones_archivadas (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    usuario_id INT NOT NULL,
+                    contacto_id INT NOT NULL,
+                    fecha_archivado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT fk_conv_arch_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_conv_arch_contacto FOREIGN KEY (contacto_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                    UNIQUE KEY uq_usuario_contacto_archivado (usuario_id, contacto_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+                """
+            )
+            print("[OK] Tabla 'conversaciones_archivadas' verificada o creada con éxito.")
+        except Exception as e:
+            print(f"[WARN] No se pudo verificar/crear la tabla 'conversaciones_archivadas': {e}")
+
         conn.close()
+
     print("[SUCCESS] Database initialization and migration completed successfully!")
 
 except Exception as e:

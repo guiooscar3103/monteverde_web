@@ -95,4 +95,18 @@ class Usuario(db.Model):
                     est_dict['curso'] = None
                 data['estudiantes'].append(est_dict)
 
+        # Serializar asignaciones académicas si es docente
+        if self.rol == 'docente' and hasattr(self, 'asignaciones_academicas') and self.asignaciones_academicas:
+            data['asignaciones'] = [a.to_dict() for a in self.asignaciones_academicas]
+            materias = [a.materia_nombre for a in self.asignaciones_academicas if a.materia_nombre]
+            materias_unicas = list(dict.fromkeys(materias))
+            cursos_unicos = list(dict.fromkeys([
+                f"{a.curso_nivel}{a.curso_letra}" if a.curso_nivel and a.curso_letra else (a.curso_nombre or '')
+                for a in self.asignaciones_academicas if a.curso_nombre or a.curso_nivel
+            ]))
+            data['materias'] = materias_unicas
+            data['cursos'] = [c for c in cursos_unicos if c]
+            data['materia_principal'] = materias_unicas[0] if materias_unicas else None
+            data['curso_principal'] = data['cursos'][0] if data['cursos'] else None
+
         return data

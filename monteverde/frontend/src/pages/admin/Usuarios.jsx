@@ -295,7 +295,7 @@ function UsuarioFormModal({
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem', fontWeight: 800, fontFamily: 'Merriweather, serif' }}>
+          <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem', fontWeight: 700 }}>
             {editandoId === null ? 'Crear Nuevo Usuario' : 'Editar Usuario'}
           </h3>
           <button 
@@ -477,7 +477,7 @@ function PasswordModal({
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem', fontWeight: 800, fontFamily: 'Merriweather, serif' }}>
+          <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem', fontWeight: 700 }}>
             Restablecer Contraseña
           </h3>
           <button 
@@ -574,7 +574,7 @@ function UsuarioHeader({ abrirModalCrear }) {
       boxShadow: 'var(--shadow-lg)'
     }}>
       <div>
-        <h1 style={{ margin: 0, fontSize: '1.6rem', color: '#ffffff', fontWeight: 800, fontFamily: 'Merriweather, serif', letterSpacing: '-0.3px', border: 'none', padding: 0 }}>
+        <h1 style={{ margin: 0, fontSize: '1.6rem', color: '#ffffff', fontWeight: 700, letterSpacing: '-0.025em', border: 'none', padding: 0 }}>
           Administración de Usuarios
         </h1>
         <p style={{ margin: '5px 0 0', color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.9rem', fontWeight: 500 }}>
@@ -1061,7 +1061,7 @@ export default function Usuarios() {
           <div style={{ color: 'var(--text-muted)', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
             <Users size={44} strokeWidth={1.5} />
           </div>
-          <h3 style={{ margin: '1rem 0 0.5rem', color: 'var(--text)', fontFamily: 'Merriweather, serif' }}>No se encontraron usuarios</h3>
+          <h3 style={{ margin: '1rem 0 0.5rem', color: 'var(--text)' }}>No se encontraron usuarios</h3>
           <p style={{ margin: 0, fontSize: '0.875rem' }}>Intente cambiar los filtros o busque otro nombre.</p>
         </div>
       );

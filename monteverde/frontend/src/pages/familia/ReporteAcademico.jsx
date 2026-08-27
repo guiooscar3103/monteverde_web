@@ -323,7 +323,7 @@ export default function ReporteAcademico() {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: 'var(--text-secondary)' }}>
               <BarChart3 size={48} strokeWidth={1.5} />
             </div>
-            <h3 style={{ fontFamily: 'Merriweather, serif' }}>No hay calificaciones registradas</h3>
+            <h3>No hay calificaciones registradas</h3>
             <p style={{ margin: '0.5rem 0' }}>Aún no se han registrado calificaciones para este estudiante.</p>
             <small>Las calificaciones aparecerán aquí una vez que los docentes las registren.</small>
           </div>

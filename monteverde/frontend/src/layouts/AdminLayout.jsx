@@ -12,7 +12,6 @@ import {
   Bell
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import fondoImg from '../assets/img/fondo.png';
 import logoColegio from '../assets/img/logo-colegio.png';
 
 export default function AdminLayout() {
@@ -205,10 +204,7 @@ export default function AdminLayout() {
         flexDirection: 'column',
         height: '100vh',
         overflowY: 'auto',
-        backgroundImage: `url(${fondoImg})`,
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundColor: '#F8FAFC',
         flexGrow: 1
       }}>
         {/* Barra superior de cabecera */}

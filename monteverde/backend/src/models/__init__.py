@@ -9,6 +9,7 @@ from .circular import Circular
 from .tarea import Tarea
 from .entrega import Entrega
 from .configuracion_institucional import ConfiguracionInstitucional
+from .conversacion_archivada import ConversacionArchivada
 
 __all__ = [
     'Usuario',
@@ -21,5 +22,7 @@ __all__ = [
     'Circular',
     'Tarea',
     'Entrega',
-    'ConfiguracionInstitucional'
+    'ConfiguracionInstitucional',
+    'ConversacionArchivada'
 ]
+

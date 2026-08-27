@@ -6,23 +6,12 @@ import { AuthProvider } from './contexts/AuthContext';
 import App from './App.jsx';
 import './styles/global.css'; 
 
-// Importar fuentes autoalojadas localmente para seguridad/integridad (eliminando dependencias de Google Fonts)
+// Importar familia tipográfica principal autoalojada localmente: Inter (400, 500, 600, 700, 800)
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 import '@fontsource/inter/800.css';
-
-import '@fontsource/outfit/400.css';
-import '@fontsource/outfit/500.css';
-import '@fontsource/outfit/600.css';
-import '@fontsource/outfit/700.css';
-import '@fontsource/outfit/800.css';
-import '@fontsource/outfit/900.css';
-
-import '@fontsource/merriweather/400.css';
-import '@fontsource/merriweather/700.css';
-import '@fontsource/merriweather/900.css';
 
 // =========================================
 // Configuración de React Query v5

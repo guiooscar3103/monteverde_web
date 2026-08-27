@@ -48,7 +48,9 @@ from src.models.calificacion_bimestre import CalificacionBimestre
 from src.models.tarea import Tarea
 from src.models.entrega import Entrega
 from src.models.configuracion_institucional import ConfiguracionInstitucional
+from src.models.conversacion_archivada import ConversacionArchivada
 from src.services.configuracion_service import ConfiguracionService
+
 
 def create_app():
     app = Flask(__name__)
@@ -162,9 +164,21 @@ def create_app():
                         SELECT id, estudiante_id FROM usuarios 
                         WHERE rol = 'familia' AND estudiante_id IS NOT NULL AND eliminado = 0;
                     """))
-                print('[INFO] Tabla familia_estudiante y migración de datos legacy verificadas/creadas con éxito')
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS conversaciones_archivadas (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            usuario_id INT NOT NULL,
+                            contacto_id INT NOT NULL,
+                            fecha_archivado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                            FOREIGN KEY (contacto_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                            UNIQUE KEY uq_usuario_contacto_archivado (usuario_id, contacto_id)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+                    """))
+                print('[INFO] Tablas familia_estudiante y conversaciones_archivadas verificadas/creadas con éxito')
             except Exception as exc:
-                print(f"[WARN] No se pudo verificar/migrar la tabla asociativa familia_estudiante: {exc}")
+                print(f"[WARN] No se pudo verificar/migrar tablas asociativas: {exc}")
+
 
     from src.routes.auth_routes import auth_bp
     from src.routes.usuario_routes import usuario_bp

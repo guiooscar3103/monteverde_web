@@ -6,7 +6,6 @@ import logoColegio from '../assets/img/logo-colegio.png';
 import adminImg from '../assets/img/admin.png';
 import docenteImg from '../assets/img/docente.png';
 import familiaImg from '../assets/img/familia.png';
-import fondoImg from '../assets/img/fondo.png';
 import iconoDocente from '../assets/img/icono docente.png';
 import iconoFamilia from '../assets/img/icono familia.png';
 import BorderBeam from '../components/BorderBeam';
@@ -14,7 +13,7 @@ import BorderBeam from '../components/BorderBeam';
 const ROLE_CREDENTIALS = {
   admin: { email: 'admin@monteverde.com', password: 'admin123' },
   docente: { email: 'docente@monteverde.com', password: 'docente123' },
-  familia: { email: 'familia@monteverde.com', password: 'familia123' }
+  familia: { email: 'familiagonzalez@monteverde.com', password: 'familia123' }
 };
 
 const ROLE_IMAGES = {
@@ -71,10 +70,7 @@ export default function Login() {
     <div 
       className="login-container" 
       style={{
-        backgroundImage: `linear-gradient(135deg, rgba(10, 58, 32, 0.88) 0%, rgba(15, 23, 42, 0.95) 100%), url(${fondoImg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundBlendMode: 'overlay',
+        background: 'linear-gradient(135deg, #0A3A20 0%, #0F172A 100%)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -120,14 +116,13 @@ export default function Login() {
               </div>
             )}
           </div>
-          
+
           <h1 style={{
             margin: 0,
             fontSize: '1.6rem',
             fontWeight: 800,
             color: 'var(--text)',
-            letterSpacing: '-0.5px',
-            fontFamily: "'Merriweather', serif"
+            letterSpacing: '-0.5px'
           }}>
             Plataforma MonteVerde
           </h1>
@@ -152,7 +147,7 @@ export default function Login() {
           }}>
             Selecciona tu perfil de ingreso:
           </label>
-          
+
           <div className="role-selector">
             {Object.entries(ROLE_CREDENTIALS).map(([role, _]) => (
               <button
@@ -165,15 +160,15 @@ export default function Login() {
                   border: activeRole === role ? '1px solid var(--color-primary)' : '1px solid var(--border)'
                 }}
               >
-                <img 
-                  src={ROLE_IMAGES[role]} 
-                  alt={role} 
-                  style={{ 
-                    width: '34px', 
-                    height: '34px', 
+                <img
+                  src={ROLE_IMAGES[role]}
+                  alt={role}
+                  style={{
+                    width: '34px',
+                    height: '34px',
                     objectFit: 'contain',
                     filter: activeRole === role ? 'brightness(0) invert(1)' : 'none'
-                  }} 
+                  }}
                 />
                 <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{ROLE_LABELS[role]}</span>
               </button>
@@ -327,7 +322,8 @@ export default function Login() {
       </div>
 
       {/* Definición clave para la animación de carga del spinner */}
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
