@@ -150,40 +150,41 @@ export default function Circulares() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Banner / Page Header */}
+      {/* Banner / Page Header con Identidad MonteVerde */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: '2rem',
-        background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', // Degradado Indigo/Violeta Premium
+        background: 'linear-gradient(135deg, var(--color-primary, #0A3A20) 0%, var(--color-primary-light, #166534) 100%)',
         padding: '1.5rem 2rem',
         borderRadius: '16px',
         color: '#ffffff',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 10px 15px -3px rgba(10, 58, 32, 0.15)'
       }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#ffffff', fontWeight: 700 }}>
             Gestión de Circulares
           </h1>
-          <p style={{ margin: '5px 0 0', color: '#c7d2fe', fontSize: '0.9rem' }}>
-            Redacta y publica circulares oficiales para mantener comunicados a todos los docentes de la institución.
+          <p style={{ margin: '5px 0 0', color: '#ECFDF5', fontSize: '0.9rem', opacity: 0.95 }}>
+            Redacta y publica circulares oficiales para mantener comunicados a todos los docentes y familias de la institución.
           </p>
         </div>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '68px',
-          height: '68px',
+          width: '64px',
+          height: '64px',
           background: 'rgba(255, 255, 255, 0.15)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
           borderRadius: '14px',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
           backdropFilter: 'blur(4px)',
           flexShrink: 0,
           color: '#ffffff'
         }}>
-          <Megaphone size={32} strokeWidth={2} />
+          <Megaphone size={30} strokeWidth={2} />
         </div>
       </div>
 
@@ -233,19 +234,19 @@ export default function Circulares() {
       }}>
         {/* Formulario (Izquierda) */}
         <div style={{
-          background: '#ffffff',
+          background: 'var(--bg-white, #ffffff)',
           borderRadius: '18px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid var(--border, #e2e8f0)',
           padding: '1.75rem',
           boxShadow: '0 18px 35px rgba(15, 23, 42, 0.04)'
         }}>
-          <h2 style={{ margin: '0 0 1.25rem', fontSize: '1.3rem', color: '#0f172a', fontWeight: 600 }}>
+          <h2 style={{ margin: '0 0 1.25rem', fontSize: '1.3rem', color: 'var(--text, #0f172a)', fontWeight: 700 }}>
             {editandoId ? 'Editar Circular' : 'Redactar Nueva Circular'}
           </h2>
           
           <form onSubmit={handleGuardar} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.92rem', fontWeight: 600, color: '#334155' }}>
+              <label style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>
                 Título de la Circular
               </label>
               <input
@@ -257,20 +258,26 @@ export default function Circulares() {
                 style={{
                   width: '100%',
                   borderRadius: '12px',
-                  border: '1px solid #cbd5e1',
+                  border: '1px solid var(--border, #cbd5e1)',
                   padding: '0.95rem 1rem',
                   fontSize: '0.95rem',
-                  color: '#0f172a',
+                  color: 'var(--text, #0f172a)',
                   outline: 'none',
-                  transition: 'border-color 0.2s',
+                  transition: 'all 0.2s',
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#6366f1'}
-                onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'var(--border, #cbd5e1)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.92rem', fontWeight: 600, color: '#334155' }}>
+              <label style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>
                 Contenido / Cuerpo de la Circular
               </label>
               <textarea
@@ -282,18 +289,24 @@ export default function Circulares() {
                 style={{
                   width: '100%',
                   borderRadius: '12px',
-                  border: '1px solid #cbd5e1',
+                  border: '1px solid var(--border, #cbd5e1)',
                   padding: '0.95rem 1rem',
                   fontSize: '0.95rem',
-                  color: '#0f172a',
+                  color: 'var(--text, #0f172a)',
                   outline: 'none',
                   resize: 'vertical',
                   minHeight: '150px',
-                  transition: 'border-color 0.2s',
+                  transition: 'all 0.2s',
                   fontFamily: 'inherit'
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#6366f1'}
-                onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'var(--border, #cbd5e1)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
@@ -303,7 +316,7 @@ export default function Circulares() {
                 disabled={createMutation.isPending || updateMutation.isPending}
                 style={{
                   flexGrow: 1,
-                  background: '#6366f1',
+                  background: 'var(--color-primary, #0A3A20)',
                   color: '#ffffff',
                   border: 'none',
                   padding: '0.95rem 1.5rem',
@@ -311,7 +324,7 @@ export default function Circulares() {
                   cursor: (createMutation.isPending || updateMutation.isPending) ? 'not-allowed' : 'pointer',
                   fontWeight: 700,
                   fontSize: '0.95rem',
-                  boxShadow: '0 8px 20px rgba(99, 102, 241, 0.15)',
+                  boxShadow: '0 6px 16px rgba(10, 58, 32, 0.2)',
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',
@@ -320,14 +333,14 @@ export default function Circulares() {
                 }}
                 onMouseEnter={(e) => {
                   if (!createMutation.isPending && !updateMutation.isPending) {
-                    e.currentTarget.style.background = '#4f46e5';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(79, 70, 229, 0.25)';
+                    e.currentTarget.style.background = 'var(--color-primary-light, #166534)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(10, 58, 32, 0.28)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!createMutation.isPending && !updateMutation.isPending) {
-                    e.currentTarget.style.background = '#6366f1';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.15)';
+                    e.currentTarget.style.background = 'var(--color-primary, #0A3A20)';
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(10, 58, 32, 0.2)';
                   }
                 }}
               >
@@ -381,24 +394,24 @@ export default function Circulares() {
 
         {/* Historial (Derecha) */}
         <div style={{
-          background: '#ffffff',
+          background: 'var(--bg-white, #ffffff)',
           borderRadius: '18px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid var(--border, #e2e8f0)',
           padding: '1.75rem',
           boxShadow: '0 18px 35px rgba(15, 23, 42, 0.04)',
           display: 'flex',
           flexDirection: 'column',
           maxHeight: '620px'
         }}>
-          <h2 style={{ margin: '0 0 1.25rem', fontSize: '1.3rem', color: '#0f172a', fontWeight: 600 }}>
+          <h2 style={{ margin: '0 0 1.25rem', fontSize: '1.3rem', color: 'var(--text, #0f172a)', fontWeight: 700 }}>
             Historial de Publicaciones
           </h2>
 
           {cargando ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem 0', color: '#64748b' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem 0', color: 'var(--text-muted, #64748b)' }}>
               <div style={{
                 border: '3px solid #f3f3f3',
-                borderTop: '3px solid #6366f1',
+                borderTop: '3px solid var(--color-primary, #0A3A20)',
                 borderRadius: '50%',
                 width: '32px',
                 height: '32px',
@@ -416,7 +429,7 @@ export default function Circulares() {
               padding: '4rem 1rem',
               color: '#64748b',
               textAlign: 'center',
-              border: '2px dashed #e2e8f0',
+              border: '2px dashed var(--border, #e2e8f0)',
               borderRadius: '12px'
             }}>
               <FileText size={44} strokeWidth={1.5} style={{ color: '#cbd5e1', marginBottom: '0.75rem' }} />
@@ -437,7 +450,7 @@ export default function Circulares() {
                   onClick={() => setCircularSeleccionada(circular)}
                   style={{
                     background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid var(--border, #e2e8f0)',
                     borderRadius: '12px',
                     padding: '0.85rem 1.1rem',
                     display: 'flex',
@@ -448,19 +461,19 @@ export default function Circulares() {
                     transition: 'all 0.15s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#6366f1';
-                    e.currentTarget.style.background = 'rgba(99, 102, 241, 0.02)';
+                    e.currentTarget.style.borderColor = 'var(--color-primary, #0A3A20)';
+                    e.currentTarget.style.background = '#ECFDF5';
                     e.currentTarget.style.transform = 'translateX(3px)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.borderColor = 'var(--border, #e2e8f0)';
                     e.currentTarget.style.background = '#f8fafc';
                     e.currentTarget.style.transform = 'none';
                   }}
                 >
                   <span style={{ 
                     fontWeight: 600, 
-                    color: '#1e293b', 
+                    color: 'var(--text, #1e293b)', 
                     fontSize: '0.925rem',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
@@ -471,12 +484,13 @@ export default function Circulares() {
                   </span>
                   <span style={{ 
                     fontSize: '0.75rem', 
-                    color: '#64748b',
+                    color: 'var(--color-primary-light, #166534)',
                     whiteSpace: 'nowrap',
-                    background: 'rgba(99, 102, 241, 0.06)',
+                    background: '#ECFDF5',
+                    border: '1px solid #A7F3D0',
                     padding: '3px 9px',
                     borderRadius: '20px',
-                    fontWeight: 600
+                    fontWeight: 700
                   }}>
                     {circular.fecha_publicacion ? formatearFecha(circular.fecha_publicacion) : ''}
                   </span>
@@ -495,7 +509,7 @@ export default function Circulares() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(15, 23, 42, 0.4)',
+          background: 'rgba(15, 23, 42, 0.45)',
           backdropFilter: 'blur(6px)',
           padding: '1.5rem',
           zIndex: 9999,
@@ -506,13 +520,13 @@ export default function Circulares() {
             maxWidth: '560px',
             background: '#ffffff',
             borderRadius: '24px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-            border: '1px solid #e2e8f0',
+            boxShadow: '0 25px 50px -12px rgba(10, 58, 32, 0.2)',
+            border: '1px solid var(--border, #e2e8f0)',
             overflow: 'hidden'
           }}>
-            {/* Header del Modal */}
+            {/* Header del Modal con Verde Institucional */}
             <div style={{
-              background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)',
+              background: 'linear-gradient(135deg, var(--color-primary, #0A3A20) 0%, var(--color-primary-light, #166534) 100%)',
               padding: '1.5rem 1.75rem',
               color: '#ffffff',
               position: 'relative'
@@ -520,20 +534,21 @@ export default function Circulares() {
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, paddingRight: '2rem' }}>
                 {circularSeleccionada.titulo}
               </h3>
-              <p style={{ margin: '0.35rem 0 0', color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.82rem', fontWeight: 500 }}>
+              <p style={{ margin: '0.35rem 0 0', color: '#ECFDF5', fontSize: '0.82rem', fontWeight: 500, opacity: 0.95 }}>
                 Publicado por: {circularSeleccionada.autor_nombre} · {formatearFechaHora(circularSeleccionada.fecha_publicacion)}
               </p>
               <button 
                 onClick={() => setCircularSeleccionada(null)}
+                aria-label="Cerrar modal"
                 style={{
                   position: 'absolute',
                   top: '1.5rem',
                   right: '1.5rem',
                   background: 'rgba(255, 255, 255, 0.15)',
-                  border: 'none',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
                   color: '#ffffff',
-                  width: '28px',
-                  height: '28px',
+                  width: '30px',
+                  height: '30px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -553,7 +568,7 @@ export default function Circulares() {
               <p style={{
                 margin: 0,
                 fontSize: '0.95rem',
-                color: '#334155',
+                color: 'var(--text-secondary, #334155)',
                 lineHeight: '1.6',
                 whiteSpace: 'pre-wrap'
               }}>
@@ -620,19 +635,19 @@ export default function Circulares() {
               <button
                 onClick={() => setCircularSeleccionada(null)}
                 style={{
-                  background: '#6366f1',
+                  background: 'var(--color-primary, #0A3A20)',
                   color: '#ffffff',
                   border: 'none',
-                  padding: '0.55rem 1.25rem',
+                  padding: '0.55rem 1.35rem',
                   borderRadius: '10px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '0.85rem',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 10px rgba(99, 102, 241, 0.15)',
+                  boxShadow: '0 4px 10px rgba(10, 58, 32, 0.2)',
                   transition: 'background 0.2s'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#4f46e5'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#6366f1'}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-primary-light, #166534)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--color-primary, #0A3A20)'}
               >
                 Cerrar
               </button>

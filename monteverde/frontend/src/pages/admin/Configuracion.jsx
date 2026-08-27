@@ -110,10 +110,10 @@ export default function Configuracion() {
 
   if (cargando) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 0', color: '#64748b' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 0', color: 'var(--text-muted, #64748b)' }}>
         <div style={{
           border: '4px solid #f3f3f3',
-          borderTop: '4px solid #7c3aed',
+          borderTop: '4px solid var(--color-primary, #0A3A20)',
           borderRadius: '50%',
           width: '40px',
           height: '40px',
@@ -133,28 +133,41 @@ export default function Configuracion() {
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-      {/* Banner de cabecera de la página */}
+      {/* Banner de cabecera de la página con Identidad MonteVerde */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: '2.5rem',
-        background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)',
+        marginBottom: '2rem',
+        background: 'linear-gradient(135deg, var(--color-primary, #0A3A20) 0%, var(--color-primary-light, #166534) 100%)',
         padding: '1.5rem 2rem',
         borderRadius: '16px',
         color: '#ffffff',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 10px 15px -3px rgba(10, 58, 32, 0.15)'
       }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#ffffff', fontWeight: 700 }}>
             Configuración del Sistema
           </h1>
-          <p style={{ margin: '5px 0 0', color: '#c7d2fe', fontSize: '0.9rem' }}>
-            Establezca los detalles organizacionales y del período académico (persistencia en Base de Datos).
+          <p style={{ margin: '5px 0 0', color: '#ECFDF5', fontSize: '0.9rem', opacity: 0.95 }}>
+            Establezca los detalles organizacionales y del período académico institucional.
           </p>
         </div>
-        <div style={{ color: '#ffffff', opacity: 0.9 }}>
-          <Settings size={44} />
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '64px',
+          height: '64px',
+          background: 'rgba(255, 255, 255, 0.15)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
+          borderRadius: '14px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+          backdropFilter: 'blur(4px)',
+          flexShrink: 0,
+          color: '#ffffff'
+        }}>
+          <Settings size={32} strokeWidth={2} />
         </div>
       </div>
 
@@ -197,23 +210,23 @@ export default function Configuracion() {
 
       {/* Form Card */}
       <div style={{
-        background: '#ffffff',
-        borderRadius: '16px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+        background: 'var(--bg-white, #ffffff)',
+        borderRadius: '18px',
+        border: '1px solid var(--border, #e2e8f0)',
+        boxShadow: '0 18px 35px rgba(15, 23, 42, 0.04)',
         padding: '2rem'
       }}>
         <form onSubmit={handleSubmit}>
           {/* Section 1: General Info */}
           <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.15rem', color: '#1e293b', fontWeight: 600, borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Building2 size={20} style={{ color: '#4f46e5' }} />
+            <h3 style={{ fontSize: '1.15rem', color: 'var(--text, #1e293b)', fontWeight: 700, borderBottom: '1px solid var(--border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Building2 size={20} style={{ color: 'var(--color-primary-light, #166534)' }} />
               <span>Información General de la Institución</span>
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Nombre Institución *</label>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Nombre Institución *</label>
                 <input
                   type="text"
                   name="nombre_institucion"
@@ -223,19 +236,28 @@ export default function Configuracion() {
                   disabled={guardando}
                   maxLength={150}
                   style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    color: '#334155',
+                    padding: '0.75rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    color: 'var(--text, #0F172A)',
                     outline: 'none',
-                    backgroundColor: guardando ? '#f8fafc' : '#ffffff'
+                    backgroundColor: guardando ? '#f8fafc' : '#ffffff',
+                    transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Director / Rector *</label>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Director / Rector *</label>
                 <input
                   type="text"
                   name="director"
@@ -245,13 +267,22 @@ export default function Configuracion() {
                   disabled={guardando}
                   maxLength={150}
                   style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    color: '#334155',
+                    padding: '0.75rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    color: 'var(--text, #0F172A)',
                     outline: 'none',
-                    backgroundColor: guardando ? '#f8fafc' : '#ffffff'
+                    backgroundColor: guardando ? '#f8fafc' : '#ffffff',
+                    transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -260,14 +291,14 @@ export default function Configuracion() {
 
           {/* Section 2: Academic Period */}
           <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.15rem', color: '#1e293b', fontWeight: 600, borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={20} style={{ color: '#4f46e5' }} />
+            <h3 style={{ fontSize: '1.15rem', color: 'var(--text, #1e293b)', fontWeight: 700, borderBottom: '1px solid var(--border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={20} style={{ color: 'var(--color-primary-light, #166534)' }} />
               <span>Periodo Académico y Ciclos</span>
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Año Escolar Activo *</label>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Año Escolar Activo *</label>
                 <input
                   type="text"
                   name="anio_escolar"
@@ -278,19 +309,28 @@ export default function Configuracion() {
                   maxLength={20}
                   placeholder="ej. 2026"
                   style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    color: '#334155',
+                    padding: '0.75rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    color: 'var(--text, #0F172A)',
                     outline: 'none',
-                    backgroundColor: guardando ? '#f8fafc' : '#ffffff'
+                    backgroundColor: guardando ? '#f8fafc' : '#ffffff',
+                    transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Período Académico Actual *</label>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Período Académico Actual *</label>
                 <select
                   name="periodo_actual"
                   value={config.periodo_actual || 'Primer Trimestre'}
@@ -298,13 +338,23 @@ export default function Configuracion() {
                   required
                   disabled={guardando}
                   style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    color: '#334155',
+                    padding: '0.75rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    color: 'var(--text, #0F172A)',
                     outline: 'none',
-                    background: guardando ? '#f8fafc' : '#ffffff'
+                    background: guardando ? '#f8fafc' : '#ffffff',
+                    transition: 'all 0.2s',
+                    cursor: 'pointer'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
+                    e.target.style.boxShadow = 'none';
                   }}
                 >
                   <option value="Primer Trimestre">Primer Trimestre</option>
@@ -322,15 +372,15 @@ export default function Configuracion() {
           </div>
 
           {/* Section 3: Contact details */}
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ fontSize: '1.15rem', color: '#1e293b', fontWeight: 600, borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Phone size={20} style={{ color: '#4f46e5' }} />
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1.15rem', color: 'var(--text, #1e293b)', fontWeight: 700, borderBottom: '1px solid var(--border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Phone size={20} style={{ color: 'var(--color-primary-light, #166534)' }} />
               <span>Datos de Contacto y Ubicación</span>
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Dirección Física</label>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Dirección Física</label>
                 <input
                   type="text"
                   name="direccion"
@@ -339,20 +389,29 @@ export default function Configuracion() {
                   disabled={guardando}
                   maxLength={255}
                   style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    color: '#334155',
+                    padding: '0.75rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    color: 'var(--text, #0F172A)',
                     outline: 'none',
-                    backgroundColor: guardando ? '#f8fafc' : '#ffffff'
+                    backgroundColor: guardando ? '#f8fafc' : '#ffffff',
+                    transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Teléfono de Contacto</label>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Teléfono de Contacto</label>
                   <input
                     type="text"
                     name="telefono"
@@ -361,19 +420,28 @@ export default function Configuracion() {
                     disabled={guardando}
                     maxLength={50}
                     style={{
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.9rem',
-                      color: '#334155',
+                      padding: '0.75rem 0.85rem',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border, #cbd5e1)',
+                      fontSize: '0.92rem',
+                      color: 'var(--text, #0F172A)',
                       outline: 'none',
-                      backgroundColor: guardando ? '#f8fafc' : '#ffffff'
+                      backgroundColor: guardando ? '#f8fafc' : '#ffffff',
+                      transition: 'all 0.2s'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'var(--border, #cbd5e1)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Correo de Soporte / Contacto</label>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Correo de Soporte / Contacto</label>
                   <input
                     type="email"
                     name="email_contacto"
@@ -382,13 +450,22 @@ export default function Configuracion() {
                     disabled={guardando}
                     maxLength={150}
                     style={{
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.9rem',
-                      color: '#334155',
+                      padding: '0.75rem 0.85rem',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border, #cbd5e1)',
+                      fontSize: '0.92rem',
+                      color: 'var(--text, #0F172A)',
                       outline: 'none',
-                      backgroundColor: guardando ? '#f8fafc' : '#ffffff'
+                      backgroundColor: guardando ? '#f8fafc' : '#ffffff',
+                      transition: 'all 0.2s'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'var(--border, #cbd5e1)';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
                 </div>
@@ -400,18 +477,19 @@ export default function Configuracion() {
           {config.updated_at && (
             <div style={{ 
               marginBottom: '1.5rem', 
-              padding: '0.75rem 1rem', 
-              background: '#f8fafc', 
-              borderRadius: '8px', 
-              fontSize: '0.8rem', 
-              color: '#64748b',
+              padding: '0.85rem 1.1rem', 
+              background: '#ECFDF5', 
+              borderRadius: '10px',
+              border: '1px solid #A7F3D0',
+              fontSize: '0.82rem', 
+              color: 'var(--color-primary-light, #166534)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <Database size={15} style={{ color: '#64748b' }} />
-                <span>Fuente de verdad: <strong>Base de datos MySQL/MariaDB</strong></span>
+                <Database size={15} style={{ color: 'var(--color-primary-light, #166534)' }} />
+                <span>Fuente de verdad: <strong>Base de datos persistente</strong></span>
               </span>
               <span>Última actualización: <strong>{formatearFecha(config.updated_at)}</strong></span>
             </div>
@@ -419,7 +497,7 @@ export default function Configuracion() {
 
           {/* Submit area */}
           <div style={{
-            borderTop: '1px solid #e2e8f0',
+            borderTop: '1px solid var(--border, #e2e8f0)',
             paddingTop: '1.5rem',
             display: 'flex',
             justifyContent: 'flex-end',
@@ -430,11 +508,11 @@ export default function Configuracion() {
               onClick={cargarConfiguracion}
               disabled={guardando}
               style={{
-                background: '#f1f5f9',
-                color: '#475569',
-                border: '1px solid #cbd5e1',
-                padding: '0.6rem 1.25rem',
-                borderRadius: '8px',
+                background: '#f8fafc',
+                color: 'var(--text-secondary, #475569)',
+                border: '1px solid var(--border, #cbd5e1)',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '10px',
                 fontSize: '0.9rem',
                 fontWeight: 600,
                 cursor: guardando ? 'not-allowed' : 'pointer',
@@ -445,39 +523,45 @@ export default function Configuracion() {
                 gap: '6px'
               }}
               onMouseEnter={(e) => { if (!guardando) e.currentTarget.style.background = '#e2e8f0'; }}
-              onMouseLeave={(e) => { if (!guardando) e.currentTarget.style.background = '#f1f5f9'; }}
+              onMouseLeave={(e) => { if (!guardando) e.currentTarget.style.background = '#f8fafc'; }}
             >
               <RotateCw size={15} />
-              <span>Recargar de BD</span>
+              <span>Recargar</span>
             </button>
 
             <button
               type="submit"
               disabled={guardando}
               style={{
-                background: guardando ? '#94a3b8' : 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                background: guardando ? '#94a3b8' : 'var(--color-primary, #0A3A20)',
                 color: '#ffffff',
                 border: 'none',
-                padding: '0.6rem 1.75rem',
-                borderRadius: '8px',
-                fontSize: '0.9rem',
-                fontWeight: 600,
+                padding: '0.65rem 1.75rem',
+                borderRadius: '10px',
+                fontSize: '0.92rem',
+                fontWeight: 700,
                 cursor: guardando ? 'not-allowed' : 'pointer',
-                boxShadow: guardando ? 'none' : '0 4px 6px -1px rgba(79, 70, 229, 0.25)',
+                boxShadow: guardando ? 'none' : '0 4px 14px rgba(10, 58, 32, 0.25)',
                 transition: 'all 0.15s',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px'
               }}
               onMouseEnter={(e) => {
-                if (!guardando) e.currentTarget.style.filter = 'brightness(1.1)';
+                if (!guardando) {
+                  e.currentTarget.style.background = 'var(--color-primary-light, #166534)';
+                  e.currentTarget.style.boxShadow = '0 6px 18px rgba(10, 58, 32, 0.3)';
+                }
               }}
               onMouseLeave={(e) => {
-                if (!guardando) e.currentTarget.style.filter = 'none';
+                if (!guardando) {
+                  e.currentTarget.style.background = 'var(--color-primary, #0A3A20)';
+                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(10, 58, 32, 0.25)';
+                }
               }}
             >
               <Save size={16} />
-              <span>{guardando ? 'Guardando en BD...' : 'Guardar Configuración'}</span>
+              <span>{guardando ? 'Guardando...' : 'Guardar Configuración'}</span>
             </button>
           </div>
         </form>

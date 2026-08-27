@@ -30,6 +30,7 @@ import ChatHeader, { getInitials } from '../../components/chat/ChatHeader';
 import ChatComposer from '../../components/chat/ChatComposer';
 import ChatMessageList from '../../components/chat/ChatMessageList';
 import DocentePerfilModal from '../../components/chat/DocentePerfilModal';
+import ChatEmptyState from '../../components/chat/ChatEmptyState';
 
 
 // Funciones helper para reducir complejidad
@@ -292,43 +293,20 @@ function ConversacionArea({
   archivadasIds,
   handleArchivar,
   handleDesarchivar,
-  onVerPerfil
+  onVerPerfil,
+  docentes,
+  onAplicarPlantilla,
+  onAbrirConversacion
 }) {
   if (!contactoSeleccionado) {
     return (
       <Card style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          color: 'var(--text-muted, #64748B)',
-          textAlign: 'center',
-          flexDirection: 'column',
-          padding: '2.5rem 1.5rem'
-        }}>
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              backgroundColor: '#ECFDF5',
-              color: 'var(--color-primary, #0A3A20)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '1rem'
-            }}
-          >
-            <GraduationCap size={36} strokeWidth={1.75} />
-          </div>
-          <h3 style={{ fontSize: '1.2rem', margin: '0 0 0.4rem 0', fontWeight: 700, color: 'var(--text, #0F172A)' }}>
-            Selecciona un docente
-          </h3>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted, #64748B)', maxWidth: '320px', lineHeight: '1.45', margin: 0 }}>
-            Elige a un docente de la lista para iniciar una conversación institucional o ver tus consultas.
-          </p>
-        </div>
+        <ChatEmptyState
+          docentes={docentes}
+          contactoSeleccionado={null}
+          onAplicarPlantilla={onAplicarPlantilla}
+          onSeleccionarDocente={onAbrirConversacion}
+        />
       </Card>
     );
   }
@@ -348,13 +326,21 @@ function ConversacionArea({
         esDocenteViewer={false}
       />
 
-      {/* 2. Lista de Mensajes con Scroll Independiente */}
+      {/* 2. Lista de Mensajes con Scroll Independiente o Empty State con Acciones Rápidas */}
       <ChatMessageList
         conversacion={conversacionActual}
         usuarioActual={usuario}
         onRetractar={onRetractar}
         nombreContacto={contactoSeleccionado.nombre}
         emptySubtext="Envía tu primera consulta o mensaje al docente a continuación."
+        emptyStateComponent={
+          <ChatEmptyState
+            docentes={[contactoSeleccionado]}
+            contactoSeleccionado={contactoSeleccionado}
+            onAplicarPlantilla={onAplicarPlantilla}
+            onSeleccionarDocente={onAbrirConversacion}
+          />
+        }
       />
 
       {/* 3. Compositor de Chat Fijo en la Parte Inferior */}
@@ -576,6 +562,14 @@ export default function FamiliaMensajes() {
     );
   }
 
+  const handleAplicarPlantilla = async ({ asunto: asuntoTexto, texto, docente }) => {
+    if (docente && (!contactoSeleccionado || contactoSeleccionado.id !== docente.id)) {
+      await abrirConversacion(docente);
+    }
+    setAsunto(asuntoTexto || '');
+    setNuevoMensaje(texto || '');
+  };
+
   const docentesFiltrados = filtrarDocentes(docentes);
 
   return (
@@ -650,6 +644,9 @@ export default function FamiliaMensajes() {
           handleArchivar={handleArchivar}
           handleDesarchivar={handleDesarchivar}
           onVerPerfil={() => setPerfilModalOpen(true)}
+          docentes={docentesFiltrados}
+          onAplicarPlantilla={handleAplicarPlantilla}
+          onAbrirConversacion={abrirConversacion}
         />
       </div>
 

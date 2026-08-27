@@ -118,7 +118,7 @@ export default function Docentes() {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 0', color: '#64748b' }}>
         <div style={{
           border: '4px solid #f3f3f3',
-          borderTop: '4px solid #4f46e5',
+          borderTop: '4px solid var(--color-primary, #0A3A20)',
           borderRadius: '50%',
           width: '40px',
           height: '40px',

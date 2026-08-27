@@ -6,7 +6,8 @@ export default function ChatMessageList({
   usuarioActual,
   onRetractar,
   nombreContacto = 'este contacto',
-  emptySubtext = '¡Envía tu primer mensaje a continuación!'
+  emptySubtext = '¡Envía tu primer mensaje a continuación!',
+  emptyStateComponent = null
 }) {
   const messagesEndRef = useRef(null);
 
@@ -16,6 +17,10 @@ export default function ChatMessageList({
   }, [conversacion]);
 
   if (!conversacion || conversacion.length === 0) {
+    if (emptyStateComponent) {
+      return emptyStateComponent;
+    }
+
     return (
       <div
         style={{

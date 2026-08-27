@@ -22,8 +22,8 @@ import iconoFamilia from '../../assets/img/icono familia.png';
 // Constantes de estilos
 const CARD_STYLES = {
   container: {
-    background: '#ffffff',
-    border: '1px solid #e2e8f0',
+    background: 'var(--bg-white, #ffffff)',
+    border: '1px solid var(--border, #e2e8f0)',
     borderRadius: '16px',
     padding: '1.5rem',
     display: 'flex',
@@ -93,7 +93,7 @@ function StudentDropdown({
 
   if (filtered.length === 0) {
     return (
-      <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: '#64748b', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+      <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
         <SearchX size={16} />
         <span>Sin coincidencias disponibles</span>
       </div>
@@ -107,7 +107,7 @@ function StudentDropdown({
   };
 
   const handleMouseEnter = (e) => {
-    e.currentTarget.style.backgroundColor = '#eff6ff';
+    e.currentTarget.style.backgroundColor = '#ECFDF5';
   };
 
   const handleMouseLeave = (e) => {
@@ -121,9 +121,9 @@ function StudentDropdown({
           key={est.id}
           onMouseDown={() => handleSelect(est)}
           style={{
-            padding: '0.6rem 0.9rem',
+            padding: '0.65rem 0.9rem',
             fontSize: '0.85rem',
-            color: '#334155',
+            color: 'var(--text, #0F172A)',
             cursor: 'pointer',
             borderBottom: '1px solid #f1f5f9',
             transition: 'background 0.15s',
@@ -132,11 +132,11 @@ function StudentDropdown({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <div style={{ fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <GraduationCap size={15} style={{ color: 'var(--color-primary)' }} />
+          <div style={{ fontWeight: 700, color: 'var(--text, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <GraduationCap size={15} style={{ color: 'var(--color-primary, #0A3A20)' }} />
             <span>{est.nombre}</span>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', paddingLeft: '21px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '2px', paddingLeft: '21px' }}>
             Curso: {est.curso_nombre || 'Sin curso'} · ID: #{est.id}
           </div>
         </div>
@@ -237,10 +237,10 @@ export default function Familias() {
 
   if (cargando) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 0', color: '#64748b' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 0', color: 'var(--text-muted, #64748b)' }}>
         <div style={{
           border: '4px solid #f3f3f3',
-          borderTop: '4px solid #3b82f6',
+          borderTop: '4px solid var(--color-primary, #0A3A20)',
           borderRadius: '50%',
           width: '40px',
           height: '40px',
@@ -260,33 +260,34 @@ export default function Familias() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Page Header */}
+      {/* Page Header con Identidad MonteVerde */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: '2rem',
-        background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)', // Elegante color azul real profundo
+        background: 'linear-gradient(135deg, var(--color-primary, #0A3A20) 0%, var(--color-primary-light, #166534) 100%)',
         padding: '1.5rem 2rem',
         borderRadius: '16px',
         color: '#ffffff',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 10px 15px -3px rgba(10, 58, 32, 0.15)'
       }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#ffffff', fontWeight: 700 }}>
             Vínculos Familiares
           </h1>
-          <p style={{ margin: '5px 0 0', color: '#bfdbfe', fontSize: '0.9rem' }}>
-            Vincule cuentas del rol Familia con sus respectivos alumnos matriculados para permitirles ver calificaciones y reportes de asistencia.
+          <p style={{ margin: '5px 0 0', color: '#ECFDF5', fontSize: '0.9rem', opacity: 0.95 }}>
+            Vincule cuentas del rol Familia con sus respectivos alumnos matriculados para permitirles ver calificaciones y reportes académicos.
           </p>
         </div>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '68px',
-          height: '68px',
+          width: '64px',
+          height: '64px',
           background: 'rgba(255, 255, 255, 0.15)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
           borderRadius: '14px',
           padding: '6px',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
@@ -344,17 +345,17 @@ export default function Familias() {
 
       {/* Filter and Search Bar */}
       <div style={{
-        background: '#ffffff',
-        padding: '1rem 1.5rem',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
+        background: 'var(--bg-white, #ffffff)',
+        padding: '0.85rem 1.25rem',
+        borderRadius: '14px',
+        border: '1px solid var(--border, #e2e8f0)',
         marginBottom: '2rem',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
       }}>
-        <Search size={18} strokeWidth={2.2} style={{ color: '#94a3b8', flexShrink: 0 }} />
+        <Search size={18} strokeWidth={2.2} style={{ color: 'var(--text-muted, #94a3b8)', flexShrink: 0 }} />
         <input
           type="text"
           placeholder="Buscar familia por nombre o correo electrónico..."
@@ -364,20 +365,21 @@ export default function Familias() {
             border: 'none',
             outline: 'none',
             fontSize: '0.95rem',
-            color: '#1e293b',
-            width: '100%'
+            color: 'var(--text, #0f172a)',
+            width: '100%',
+            backgroundColor: 'transparent'
           }}
         />
       </div>
 
       {/* Grid List */}
       {familiasFiltradas.length === 0 ? (
-        <div style={{ padding: '4rem 0', textAlign: 'center', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#64748b' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#64748b' }}>
+        <div style={{ padding: '4rem 0', textAlign: 'center', background: 'var(--bg-white, #ffffff)', borderRadius: '12px', border: '1px solid var(--border, #e2e8f0)', color: 'var(--text-muted, #64748b)' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: 'var(--text-muted, #64748b)' }}>
             <Users size={44} strokeWidth={1.5} />
           </div>
-          <h3 style={{ margin: '1rem 0 0.5rem', color: '#334155' }}>No se encontraron cuentas familiares</h3>
-          <p style={{ margin: 0, fontSize: '0.9rem' }}>Cree usuarios con rol Familia en la sección "Gestión Usuarios" o ajuste su búsqueda.</p>
+          <h3 style={{ margin: '1rem 0 0.5rem', color: 'var(--text, #0f172a)' }}>No se encontraron cuentas familiares</h3>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted, #64748b)' }}>Cree usuarios con rol Familia en la sección "Gestión Usuarios" o ajuste su búsqueda.</p>
         </div>
       ) : (
         <div style={{
@@ -387,8 +389,8 @@ export default function Familias() {
         }}>
           {familiasFiltradas.map((fam) => (
             <div key={fam.id} style={{
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              background: 'var(--bg-white, #ffffff)',
+              border: '1px solid var(--border, #e2e8f0)',
               borderRadius: '16px',
               padding: '1.5rem',
               display: 'flex',
@@ -401,20 +403,21 @@ export default function Familias() {
                 {/* Header card details */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#1e293b', fontWeight: 700 }}>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text, #0f172a)', fontWeight: 700 }}>
                       {fam.nombre}
                     </h3>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)' }}>
                       {fam.email}
                     </span>
                   </div>
                   <span style={{
                     fontSize: '0.75rem',
-                    background: '#eff6ff',
-                    color: '#1d4ed8',
+                    background: '#ECFDF5',
+                    color: 'var(--color-primary-light, #166534)',
+                    border: '1px solid #A7F3D0',
                     padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontWeight: 600
+                    borderRadius: '6px',
+                    fontWeight: 700
                   }}>
                     ID: #{fam.id}
                   </span>
@@ -422,7 +425,7 @@ export default function Familias() {
 
                 {/* Assigned Student Section */}
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary, #475569)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     Estudiantes Vinculados
                   </label>
                   
@@ -449,16 +452,16 @@ export default function Familias() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           background: '#f8fafc',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border, #cbd5e1)',
                           padding: '0.6rem 0.85rem',
                           borderRadius: '10px'
                         }}>
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <GraduationCap size={16} style={{ color: 'var(--color-primary)' }} />
+                            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text, #0f172a)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <GraduationCap size={16} style={{ color: 'var(--color-primary, #0A3A20)' }} />
                               <span>{est.nombre}</span>
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', paddingLeft: '22px' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '2px', paddingLeft: '22px' }}>
                               Grado: {est.curso ? `${est.curso.nivel}°${est.curso.letra} - ${est.curso.nombre}` : 'Sin Curso'} (ID Estudiante: #{est.id})
                             </div>
                           </div>
@@ -517,7 +520,7 @@ export default function Familias() {
                       position: 'absolute',
                       left: '12px',
                       pointerEvents: 'none',
-                      color: '#94a3b8'
+                      color: 'var(--text-muted, #94a3b8)'
                     }} />
                     <input
                       type="text"
@@ -527,7 +530,6 @@ export default function Familias() {
                         if (estudiantes.length > 0) setActiveDropdownFamId(fam.id);
                       }}
                       onBlur={() => {
-                        // El delay de 250ms es fundamental para que el evento onMouseDown del dropdown ocurra antes del cierre
                         setTimeout(() => setActiveDropdownFamId(null), 250);
                       }}
                       onChange={(e) => {
@@ -541,10 +543,10 @@ export default function Familias() {
                         fontSize: '0.85rem',
                         padding: '0.55rem 2rem 0.55rem 2.25rem',
                         borderRadius: '10px',
-                        border: seleccionEstudiante[fam.id] ? '2px solid #22c55e' : '1px solid #cbd5e1',
+                        border: seleccionEstudiante[fam.id] ? '2px solid var(--color-primary, #0A3A20)' : '1px solid var(--border, #cbd5e1)',
                         background: '#ffffff',
                         outline: 'none',
-                        color: '#334155',
+                        color: 'var(--text, #0f172a)',
                         transition: 'all 0.15s'
                       }}
                       disabled={estudiantes.length === 0}
@@ -575,7 +577,7 @@ export default function Familias() {
                     )}
                   </div>
 
-                  {/* Panel flotante de sugerencias Autocomplete (desplegado hacia arriba para evitar desbordamiento del contenedor) */}
+                  {/* Panel flotante de sugerencias Autocomplete */}
                   {activeDropdownFamId === fam.id && (
                     <div style={{
                       position: 'absolute',
@@ -584,7 +586,7 @@ export default function Familias() {
                       right: 0,
                       zIndex: 1000,
                       background: '#ffffff',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid var(--border, #cbd5e1)',
                       borderRadius: '12px',
                       boxShadow: '0 -10px 15px -3px rgba(0,0,0,0.1), 0 -4px 6px -4px rgba(0,0,0,0.1)',
                       maxHeight: '180px',
@@ -607,16 +609,16 @@ export default function Familias() {
                 <button
                   onClick={() => handleVincular(fam.id)}
                   style={{
-                    background: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)',
+                    background: 'var(--color-primary, #0A3A20)',
                     color: '#ffffff',
                     border: 'none',
-                    padding: '0.45rem 1rem',
-                    borderRadius: '8px',
+                    padding: '0.55rem 1.1rem',
+                    borderRadius: '10px',
                     fontSize: '0.85rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
+                    fontWeight: 700,
+                    cursor: estudiantes.length === 0 ? 'not-allowed' : 'pointer',
                     whiteSpace: 'nowrap',
-                    boxShadow: '0 2px 4px rgba(29, 78, 216, 0.2)',
+                    boxShadow: '0 2px 6px rgba(10, 58, 32, 0.25)',
                     transition: 'all 0.15s',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -624,10 +626,16 @@ export default function Familias() {
                   }}
                   disabled={estudiantes.length === 0}
                   onMouseEnter={(e) => {
-                    if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)';
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.background = 'var(--color-primary-light, #166534)';
+                      e.currentTarget.style.boxShadow = '0 4px 10px rgba(10, 58, 32, 0.3)';
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'none';
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.background = 'var(--color-primary, #0A3A20)';
+                      e.currentTarget.style.boxShadow = '0 2px 6px rgba(10, 58, 32, 0.25)';
+                    }
                   }}
                 >
                   <UserPlus size={15} />
