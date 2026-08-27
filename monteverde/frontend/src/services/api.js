@@ -350,14 +350,14 @@ export const getEstadisticasGenerales = async () => {
 };
 
 export const getConfiguracion = async () => {
-  console.log('🌐 API: Obteniendo configuración...');
+  console.log('🌐 API: Obteniendo configuración institucional persistente...');
   return await apiRequest('/admin/configuracion');
 };
 
 export const guardarConfiguracion = async (config) => {
-  console.log('🌐 API: Guardando configuración...', config);
+  console.log('🌐 API: Guardando configuración institucional en BD...', config);
   return await apiRequest('/admin/configuracion', {
-    method: 'POST',
+    method: 'PUT',
     body: JSON.stringify(config),
   });
 };

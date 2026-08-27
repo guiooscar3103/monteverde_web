@@ -3,6 +3,18 @@ import Card from '../../components/Card';
 import BlurFade from '../../components/BlurFade';
 import BarraTitulo from '../../components/BarraTitulo';
 import {
+  ClipboardList,
+  Target,
+  BarChart3,
+  Pencil,
+  Trash2,
+  X,
+  AlertTriangle,
+  MapPin,
+  Info,
+  Plus
+} from 'lucide-react';
+import {
   getTareasDocente,
   crearTareaDocente,
   actualizarTareaDocente,
@@ -394,7 +406,9 @@ export default function TareasDocente() {
       <BlurFade delay={0.15} duration={0.35}>
         {tareasFiltradas.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', background: '#fff', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <span style={{ fontSize: '2.5rem' }}>📝</span>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
+              <ClipboardList size={44} strokeWidth={1.5} />
+            </div>
             <h3 style={{ marginTop: '0.5rem', color: 'var(--text-primary)' }}>No hay tareas registradas</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Crea una nueva tarea para comenzar a recibir entregas.</p>
           </div>
@@ -459,9 +473,9 @@ export default function TareasDocente() {
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '5px'
+                    gap: '6px'
                   }}>
-                    <span>🎯</span>
+                    <Target size={14} style={{ flexShrink: 0 }} />
                     <span>
                       {tarea.bimestre_nombre || 'Bimestre'} · Indicador {tarea.indicador_numero || tarea.indicador_id} (Nota {tarea.numero_nota})
                     </span>
@@ -519,10 +533,15 @@ export default function TareasDocente() {
                       borderRadius: '8px',
                       fontWeight: 600,
                       fontSize: '0.85rem',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
                     }}
                   >
-                    📊 Entregas y Calificar
+                    <BarChart3 size={15} />
+                    <span>Entregas y Calificar</span>
                   </button>
                   <button
                     onClick={() => abrirEditar(tarea)}
@@ -535,10 +554,15 @@ export default function TareasDocente() {
                       borderRadius: '8px',
                       fontWeight: 600,
                       fontSize: '0.85rem',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
                     }}
                   >
-                    ✏️ Editar
+                    <Pencil size={14} />
+                    <span>Editar</span>
                   </button>
                   <button
                     onClick={() => handleEliminar(tarea.id)}
@@ -550,11 +574,14 @@ export default function TareasDocente() {
                       borderRadius: '8px',
                       fontWeight: 700,
                       fontSize: '0.85rem',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}
                     title="Eliminar tarea"
                   >
-                    🗑️
+                    <Trash2 size={15} />
                   </button>
                 </div>
               </div>
@@ -601,16 +628,16 @@ export default function TareasDocente() {
               </h3>
               <button
                 onClick={() => { setModalCrear(false); setModalEditar(null); }}
-                style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
               >
-                ✕
+                <X size={20} />
               </button>
             </div>
 
             <form onSubmit={modalCrear ? handleGuardarCrear : handleGuardarEditar} style={{ padding: '1.5rem', display: 'grid', gap: '1.15rem' }}>
               {mensajeError && (
-                <div style={{ background: '#fef2f2', color: '#ef4444', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.88rem', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>⚠️</span>
+                <div style={{ background: '#fef2f2', color: '#ef4444', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.88rem', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertTriangle size={16} style={{ flexShrink: 0 }} />
                   <span>{mensajeError}</span>
                 </div>
               )}
@@ -767,7 +794,7 @@ export default function TareasDocente() {
                   {/* Encabezado de la sección */}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.98rem', color: '#0f766e' }}>
-                      <span>📊</span>
+                      <BarChart3 size={18} />
                       <span>Configuración de calificación bimestral</span>
                     </div>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
@@ -782,14 +809,7 @@ export default function TareasDocente() {
                     </label>
                     <select
                       value={formData.bimestre_id}
-                      onChange={e => {
-                        setFormData({
-                          ...formData,
-                          bimestre_id: e.target.value,
-                          indicador_id: '',
-                          numero_nota: ''
-                        });
-                      }}
+                      onChange={e => setFormData({ ...formData, bimestre_id: e.target.value, indicador_id: '', numero_nota: '' })}
                       disabled={cargandoBimestres}
                       style={{
                         width: '100%',
@@ -800,7 +820,7 @@ export default function TareasDocente() {
                         background: '#fff'
                       }}
                     >
-                      <option value="">[ Seleccionar bimestre ▼ ]</option>
+                      <option value="">-- Seleccionar bimestre --</option>
                       {bimestresList.map(b => (
                         <option key={b.id} value={b.id}>
                           {b.nombre} {b.anio ? `(${b.anio})` : ''}
@@ -840,7 +860,7 @@ export default function TareasDocente() {
                           ? 'Cargando indicadores...'
                           : indicadoresList.length === 0
                           ? 'No hay indicadores configurados para esta combinación'
-                          : '[ Seleccionar indicador ▼ ]'}
+                          : '-- Seleccionar indicador --'}
                       </option>
                       {indicadoresList.map(ind => (
                         <option key={ind.id} value={ind.id}>
@@ -885,7 +905,7 @@ export default function TareasDocente() {
                         }}
                       >
                         <option value="">
-                          {!formData.indicador_id ? 'Selecciona primero un indicador' : '[ Seleccionar nota ▼ ]'}
+                          {!formData.indicador_id ? 'Selecciona primero un indicador' : '-- Seleccionar nota --'}
                         </option>
                         {formData.indicador_id && (
                           <>
@@ -933,7 +953,8 @@ export default function TareasDocente() {
                     fontSize: '0.85rem'
                   }}>
                     <div style={{ fontWeight: 700, color: '#0f766e', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📍 Destino de calificación</span>
+                      <MapPin size={15} />
+                      <span>Destino de calificación</span>
                     </div>
                     {resumenValido ? (
                       <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: '0.84rem', color: '#1e293b', lineHeight: '1.6' }}>
@@ -967,7 +988,7 @@ export default function TareasDocente() {
                       alignItems: 'flex-start',
                       gap: '8px'
                     }}>
-                      <span style={{ fontSize: '1.1rem', lineHeight: '1' }}>ℹ️</span>
+                      <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                       <div>
                         <span>Esta tarea utilizará la calificación obtenida por cada estudiante como:</span>
                         <div style={{ fontWeight: 700, marginTop: '2px' }}>
@@ -1062,17 +1083,18 @@ export default function TareasDocente() {
                 <small style={{ opacity: 0.9 }}>
                   {modalEntregas.curso_grado || modalEntregas.curso_nombre} · {modalEntregas.materia_nombre}
                   {modalEntregas.califica_bimestre && (
-                    <span style={{ marginLeft: '8px', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>
-                      🎯 Sincroniza: Indicador {modalEntregas.indicador_numero || modalEntregas.indicador_id} (Nota {modalEntregas.numero_nota})
+                    <span style={{ marginLeft: '8px', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Target size={12} />
+                      <span>Sincroniza: Indicador {modalEntregas.indicador_numero || modalEntregas.indicador_id} (Nota {modalEntregas.numero_nota})</span>
                     </span>
                   )}
                 </small>
               </div>
               <button
                 onClick={() => { setModalEntregas(null); setEntregasData(null); }}
-                style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.3rem', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
               >
-                ✕
+                <X size={20} />
               </button>
             </div>
 

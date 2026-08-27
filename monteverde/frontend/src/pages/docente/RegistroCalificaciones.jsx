@@ -6,6 +6,13 @@ import SelectSimple from '../../components/SelectSimple';
 import PanelIndicadores from '../../components/PanelIndicadores';
 import MatrizCalificaciones from '../../components/MatrizCalificaciones';
 import {
+  Save,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  ClipboardList
+} from 'lucide-react';
+import {
   getMyCoursesAndSubjects,
   getBimestres,
   getIndicadoresBimestre,
@@ -59,10 +66,10 @@ function BarraGuardado({ status, mensaje, onGuardar, celdasModificadas }) {
     [SAVE_STATUS.ERROR]: '#dc2626',
   };
   const iconMap = {
-    [SAVE_STATUS.IDLE]: '💾',
-    [SAVE_STATUS.SAVING]: '⏳',
-    [SAVE_STATUS.OK]: '✅',
-    [SAVE_STATUS.ERROR]: '❌',
+    [SAVE_STATUS.IDLE]: <Save size={16} />,
+    [SAVE_STATUS.SAVING]: <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />,
+    [SAVE_STATUS.OK]: <CheckCircle2 size={16} />,
+    [SAVE_STATUS.ERROR]: <AlertCircle size={16} />,
   };
   const labelMap = {
     [SAVE_STATUS.IDLE]: celdasModificadas > 0 ? `${celdasModificadas} cambio(s) sin guardar` : 'Sin cambios',
@@ -73,7 +80,7 @@ function BarraGuardado({ status, mensaje, onGuardar, celdasModificadas }) {
 
   return (
     <div className="barra-guardado" style={{ borderTopColor: colorMap[status] }}>
-      <div className="bg-estado" style={{ color: colorMap[status] }}>
+      <div className="bg-estado" style={{ color: colorMap[status], display: 'flex', alignItems: 'center', gap: '6px' }}>
         <span>{iconMap[status]}</span>
         <span>{labelMap[status]}</span>
       </div>
@@ -81,8 +88,10 @@ function BarraGuardado({ status, mensaje, onGuardar, celdasModificadas }) {
         className="btn-guardar-matriz"
         onClick={onGuardar}
         disabled={status === SAVE_STATUS.SAVING || celdasModificadas === 0}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
       >
-        {status === SAVE_STATUS.SAVING ? 'Guardando...' : 'Guardar calificaciones'}
+        <Save size={15} />
+        <span>{status === SAVE_STATUS.SAVING ? 'Guardando...' : 'Guardar calificaciones'}</span>
       </button>
     </div>
   );
@@ -426,7 +435,7 @@ export default function RegistroCalificaciones() {
       {filtros.cursoId && filtros.materiaId && filtros.bimestreId && !indicadoresListos && !loadingMatriz && (
         <BlurFade delay={0.18} duration={0.3}>
           <div className="aviso-indicadores">
-            <span className="aviso-icon">📋</span>
+            <ClipboardList size={22} className="aviso-icon" />
             <div>
               <strong>Define los indicadores primero</strong>
               <p>Debes configurar los 2 indicadores de logro del bimestre antes de ingresar notas.</p>

@@ -2,7 +2,66 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
+import {
+  GraduationCap,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Clock,
+  BookOpen,
+  BarChart3,
+  Calculator,
+  FlaskConical,
+  Globe,
+  Languages,
+  Palette,
+  Activity,
+  Music,
+  Laptop,
+  Compass,
+  Calendar,
+  Layers
+} from 'lucide-react';
 import { getFamiliaDashboard, getCalificacionesHijo, getCalificacionesBimestreFamilia } from '../../services/api';
+
+// Configuración visual por asignatura (Icono profesional Lucide + paleta institucional sutil)
+const _obtenerConfigAsignatura = (nombre = '') => {
+  const n = (nombre || '').toLowerCase().trim();
+  if (n.includes('matemát') || n.includes('calcul') || n.includes('geometr') || n.includes('álgebr') || n.includes('math')) {
+    return { icon: Calculator, color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', label: 'Matemáticas' };
+  }
+  if (n.includes('lengua') || n.includes('español') || n.includes('literat') || n.includes('castell') || n.includes('lenguaje')) {
+    return { icon: BookOpen, color: '#047857', bg: '#ecfdf5', border: '#a7f3d0', label: 'Lengua Castellana' };
+  }
+  if (n.includes('natural') || n.includes('biolog') || n.includes('químic') || n.includes('físic') || n.includes('cienc')) {
+    return { icon: FlaskConical, color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', label: 'Ciencias Naturales' };
+  }
+  if (n.includes('social') || n.includes('histori') || n.includes('geograf') || n.includes('ciudadan')) {
+    return { icon: Globe, color: '#b45309', bg: '#fffbeb', border: '#fde68a', label: 'Ciencias Sociales' };
+  }
+  if (n.includes('ingl') || n.includes('idiom') || n.includes('english') || n.includes('extranj')) {
+    return { icon: Languages, color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe', label: 'Inglés' };
+  }
+  if (n.includes('arte') || n.includes('artístic') || n.includes('plástic') || n.includes('dibuj')) {
+    return { icon: Palette, color: '#be185d', bg: '#fdf2f8', border: '#fbcfe8', label: 'Educación Artística' };
+  }
+  if (n.includes('deport') || n.includes('recreac') || n.includes('educación física') || n.includes('ed. física')) {
+    return { icon: Activity, color: '#059669', bg: '#ecfdf5', border: '#a7f3d0', label: 'Educación Física' };
+  }
+  if (n.includes('músic')) {
+    return { icon: Music, color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe', label: 'Música' };
+  }
+  if (n.includes('tecnol') || n.includes('informát') || n.includes('sistem') || n.includes('comput')) {
+    return { icon: Laptop, color: '#0f766e', bg: '#f0fdfa', border: '#99f6e4', label: 'Tecnología' };
+  }
+  if (n.includes('étic') || n.includes('valor') || n.includes('relig') || n.includes('filosof') || n.includes('conviv')) {
+    return { icon: Compass, color: '#c2410c', bg: '#fff7ed', border: '#ffedd5', label: 'Ética y Valores' };
+  }
+  return { icon: GraduationCap, color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', label: nombre || 'Asignatura' };
+};
 
 // Funciones helper
 const _extraerPeriodosUnicos = (calificaciones) => {
@@ -28,19 +87,19 @@ const _agruparPorAsignatura = (calificaciones) => {
 };
 
 const _estadoNota = (nota) => {
-  if (nota === null || nota === undefined) return { label: 'Pendiente', clase: 'estado-pendiente', icono: '⏳' };
-  if (nota >= 3.5) return { label: 'Aprobado', clase: 'estado-aprobado', icono: '🟢' };
-  if (nota >= 3.0) return { label: 'En riesgo', clase: 'estado-riesgo', icono: '🟠' };
-  return { label: 'Reprobado', clase: 'estado-reprobado', icono: '🔴' };
+  if (nota === null || nota === undefined) return { label: 'Pendiente', clase: 'estado-pendiente', IconComponent: Clock };
+  if (nota >= 3.5) return { label: 'Aprobado', clase: 'estado-aprobado', IconComponent: CheckCircle2 };
+  if (nota >= 3.0) return { label: 'En riesgo', clase: 'estado-riesgo', IconComponent: AlertTriangle };
+  return { label: 'Reprobado', clase: 'estado-reprobado', IconComponent: XCircle };
 };
 
 const _tendencia = (notas) => {
   const vals = notas.filter(n => n !== null && n !== undefined);
   if (vals.length < 2) return null;
   const diff = vals[vals.length - 1] - vals[0];
-  if (diff > 0.2) return { icono: '↗', clase: 'tend-sube', label: 'Mejorando' };
-  if (diff < -0.2) return { icono: '↘', clase: 'tend-baja', label: 'Bajando' };
-  return { icono: '→', clase: 'tend-igual', label: 'Estable' };
+  if (diff > 0.2) return { IconComponent: TrendingUp, clase: 'tend-sube', label: 'Mejorando' };
+  if (diff < -0.2) return { IconComponent: TrendingDown, clase: 'tend-baja', label: 'Bajando' };
+  return { IconComponent: Minus, clase: 'tend-igual', label: 'Estable' };
 };
 
 const _obtenerColorPromedio = (promedio) => {
@@ -162,7 +221,7 @@ export default function ReporteAcademico() {
         <BarraTitulo titulo="Reporte Académico" subtitulo="Error" />
         <Card>
           <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+            <AlertTriangle size={48} style={{ color: 'var(--color-error)', margin: '0 auto 1rem' }} />
             <p style={{ color: 'var(--color-error)', fontSize: '1.1rem', fontWeight: 600 }}>{error}</p>
             <button 
               onClick={() => globalThis.location.reload()} 
@@ -226,7 +285,12 @@ export default function ReporteAcademico() {
 
       {/* Selector premium de hijo (hermanos vinculados) */}
       {dashboardData?.hijos?.length > 1 && (
-        <Card title="🧑‍🎓 Seleccionar Estudiante">
+        <Card title={
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <GraduationCap size={20} />
+            <span>Seleccionar Estudiante</span>
+          </span>
+        }>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <label htmlFor="student-select" style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
               Estudiante:
@@ -256,7 +320,9 @@ export default function ReporteAcademico() {
       {calificaciones.length === 0 ? (
         <Card>
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-            <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>📊</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+              <BarChart3 size={48} strokeWidth={1.5} />
+            </div>
             <h3 style={{ fontFamily: 'Merriweather, serif' }}>No hay calificaciones registradas</h3>
             <p style={{ margin: '0.5rem 0' }}>Aún no se han registrado calificaciones para este estudiante.</p>
             <small>Las calificaciones aparecerán aquí una vez que los docentes las registren.</small>
@@ -330,23 +396,28 @@ export default function ReporteAcademico() {
                 : null;
               const tendencia = _tendencia(notasOrdenadas);
               const estadoGlobal = _estadoNota(promedioAsig);
+              const EstadoIcon = estadoGlobal.IconComponent;
+              const TendenciaIcon = tendencia?.IconComponent;
 
               return (
                 <div key={asignatura} className={`boletin-card boletin-card--${estadoGlobal.clase}`}>
                   {/* Cabecera de tarjeta */}
                   <div className="bc-header">
                     <div className="bc-asig">
-                      <span className="bc-asig-icon">📚</span>
+                      <span className="bc-asig-icon">
+                        <BookOpen size={16} />
+                      </span>
                       <span className="bc-asig-nombre">{asignatura}</span>
                     </div>
                     <div className="bc-header-right">
                       {tendencia && (
-                        <span className={`bc-tend ${tendencia.clase}`} title={tendencia.label}>
-                          {tendencia.icono}
+                        <span className={`bc-tend ${tendencia.clase}`} title={tendencia.label} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                          <TendenciaIcon size={14} />
                         </span>
                       )}
-                      <span className={`bc-estado-badge ${estadoGlobal.clase}`}>
-                        {estadoGlobal.icono} {estadoGlobal.label}
+                      <span className={`bc-estado-badge ${estadoGlobal.clase}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <EstadoIcon size={12} />
+                        <span>{estadoGlobal.label}</span>
                       </span>
                     </div>
                   </div>
@@ -374,6 +445,7 @@ export default function ReporteAcademico() {
                       const nota = notasPorPeriodo[periodo];
                       const estado = _estadoNota(nota ?? null);
                       const nombreLegible = periodo.replace('2025-', '').replace('P', 'Bimestre ');
+                      const FilaEstadoIcon = estado.IconComponent;
                       return (
                         <div key={periodo} className="bc-periodo-fila">
                           <span className="bc-periodo-nombre">{nombreLegible}</span>
@@ -381,8 +453,9 @@ export default function ReporteAcademico() {
                             <span className={`bc-nota ${estado.clase}`}>
                               {nota !== undefined && nota !== null ? nota.toFixed(1) : 'Pendiente'}
                             </span>
-                            <span className={`bc-estado-chip ${estado.clase}`}>
-                              {estado.icono} {estado.label}
+                            <span className={`bc-estado-chip ${estado.clase}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <FilaEstadoIcon size={12} />
+                              <span>{estado.label}</span>
                             </span>
                           </div>
                         </div>
@@ -405,50 +478,115 @@ export default function ReporteAcademico() {
       )}
 
 
-      {/* ─── Sección de calificaciones por indicadores de logro ─── */}
+      {/* ─── Sección de calificaciones por asignatura e indicadores de logro ─── */}
       {bimestreData.length > 0 && (
-        <Card title="Calificaciones por Indicadores de Logro">
+        <Card title={
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <Layers size={20} style={{ color: 'var(--color-primary)' }} />
+            <span>Calificaciones por Asignatura e Indicadores de Logro</span>
+          </span>
+        }>
           <div className="bim-familia-wrapper">
-            {bimestreData.map((bim, idx) => (
-              <div key={idx} className="bim-bloque">
-                <div className="bim-bloque-header">
-                  <span className="bim-badge">{bim.bimestre}</span>
-                  <span className="bim-anio">{bim.anio}</span>
-                  {bim.definitiva !== null && (
-                    <span className={`bim-definitiva ${bim.definitiva >= 3 ? 'bim-def-aprobada' : 'bim-def-reprobada'}`}>
-                      Definitiva: <strong>{bim.definitiva.toFixed(2)}</strong>
-                    </span>
-                  )}
-                </div>
+            {bimestreData
+              .filter(bim => {
+                if (periodoSeleccionado === 'todos') return true;
+                const pNum = periodoSeleccionado.replace(/[^0-9]/g, '');
+                const bNum = (bim.bimestre || '').replace(/[^0-9]/g, '');
+                if (pNum && bNum && pNum === bNum) return true;
+                return (bim.bimestre || '').toLowerCase().includes(periodoSeleccionado.toLowerCase());
+              })
+              .map((bim, idx) => {
+                const nombreAsignatura = bim.asignatura || bim.materia_nombre || bim.materia || 'Asignatura';
+                const configAsig = _obtenerConfigAsignatura(nombreAsignatura);
+                const IconoAsignatura = configAsig.icon;
+                const defVal = bim.definitiva !== null && bim.definitiva !== undefined ? parseFloat(bim.definitiva) : null;
 
-                <div className="bim-indicadores-grid">
-                  {(bim.indicadores || []).map((ind, i) => (
-                    <div key={i} className={`bim-ind-card bim-ind-card--${ind.numero}`}>
-                      <div className="bim-ind-header">
-                        <span className={`bim-ind-num bim-ind-num--${ind.numero}`}>{ind.numero}</span>
-                        <span className="bim-ind-desc" title={ind.descripcion}>{ind.descripcion}</span>
-                      </div>
-                      <div className="bim-ind-notas">
-                        {[1, 2, 3].map(n => (
-                          <div key={n} className="bim-nota-item">
-                            <span className="bim-nota-label">Nota {n}</span>
-                            <span className={`bim-nota-val ${ind[`nota_${n}`] !== null ? (ind[`nota_${n}`] >= 3 ? 'nota-ap' : 'nota-rp') : ''}`}>
-                              {ind[`nota_${n}`] !== null ? parseFloat(ind[`nota_${n}`]).toFixed(2) : '—'}
+                return (
+                  <div key={`${bim.materia_id || nombreAsignatura}-${bim.bimestre_id || bim.bimestre}-${idx}`} className="asig-card">
+                    {/* Encabezado: Nivel 1 (Asignatura) + Nivel 2 (Bimestre) + Nivel 3 (Definitiva) */}
+                    <div className="asig-card-header">
+                      <div className="asig-title-group">
+                        <span 
+                          className="asig-icon-badge" 
+                          style={{ 
+                            color: configAsig.color, 
+                            backgroundColor: configAsig.bg, 
+                            borderColor: configAsig.border 
+                          }}
+                        >
+                          <IconoAsignatura size={22} strokeWidth={2.2} />
+                        </span>
+                        <div className="asig-header-text">
+                          <h3 className="asig-nombre">{nombreAsignatura}</h3>
+                          <div className="asig-meta">
+                            <span className="asig-bimestre-badge">
+                              <Calendar size={13} />
+                              <span>{bim.bimestre || 'Bimestre 1'}{bim.anio ? ` · ${bim.anio}` : ''}</span>
                             </span>
                           </div>
-                        ))}
-                        <div className="bim-nota-item bim-nota-prom">
-                          <span className="bim-nota-label">Promedio</span>
-                          <span className={`bim-nota-val bim-nota-val--prom ${ind.promedio !== null ? (ind.promedio >= 3 ? 'nota-ap' : 'nota-rp') : ''}`}>
-                            {ind.promedio !== null ? ind.promedio.toFixed(2) : '—'}
-                          </span>
                         </div>
                       </div>
+
+                      <div className="asig-definitiva-container">
+                        {defVal !== null ? (
+                          <div className={`asig-definitiva-pill ${defVal >= 3.5 ? 'def-aprobada' : defVal >= 3.0 ? 'def-riesgo' : 'def-reprobada'}`}>
+                            <span className="def-label">Definitiva:</span>
+                            <span className="def-valor">{defVal.toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <div className="asig-definitiva-pill def-pendiente">
+                            <span className="def-label">Definitiva:</span>
+                            <span className="def-valor">Pendiente</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+
+                    {/* Nivel 4: Indicadores de logro con Notas 1, 2, 3 y Promedio */}
+                    <div className="asig-indicadores-list">
+                      {(bim.indicadores || []).map((ind, i) => {
+                        const numInd = ind.numero || (i + 1);
+                        const promInd = ind.promedio !== null && ind.promedio !== undefined ? parseFloat(ind.promedio) : null;
+
+                        return (
+                          <div key={ind.indicador_id || i} className={`asig-indicador-item ind-num--${numInd}`}>
+                            <div className="asig-indicador-info">
+                              <div className="asig-ind-tag">
+                                <span className="asig-ind-badge">Indicador {numInd}</span>
+                              </div>
+                              <p className="asig-ind-descripcion">{ind.descripcion || 'Sin descripción registrada'}</p>
+                            </div>
+
+                            <div className="asig-notas-grid">
+                              {[1, 2, 3].map(numNota => {
+                                const notaVal = ind[`nota_${numNota}`];
+                                const tieneNota = notaVal !== null && notaVal !== undefined && notaVal !== '';
+                                const notaNum = tieneNota ? parseFloat(notaVal) : null;
+
+                                return (
+                                  <div key={numNota} className="asig-nota-cell">
+                                    <span className="asig-nota-label">Nota {numNota}</span>
+                                    <span className={`asig-nota-valor ${notaNum !== null ? (notaNum >= 3.0 ? 'nota-aprobada' : 'nota-reprobada') : 'nota-vacia'}`}>
+                                      {notaNum !== null ? notaNum.toFixed(2) : '—'}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+
+                              <div className="asig-nota-cell asig-nota-cell--promedio">
+                                <span className="asig-nota-label">Promedio</span>
+                                <span className={`asig-nota-valor asig-nota-valor--promedio ${promInd !== null ? (promInd >= 3.0 ? 'nota-aprobada' : 'nota-reprobada') : 'nota-vacia'}`}>
+                                  {promInd !== null ? promInd.toFixed(2) : '—'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </Card>
       )}

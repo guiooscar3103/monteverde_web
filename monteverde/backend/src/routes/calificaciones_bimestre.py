@@ -10,6 +10,7 @@ from src.models.indicador_logro import IndicadorLogro
 from src.models.calificacion_bimestre import CalificacionBimestre
 from src.models.estudiante import Estudiante
 from src.models.docente_asignacion import DocenteAsignacion
+from src.models.materia import Materia
 from src.utils.auth_helpers import role_required, get_current_user
 
 calificaciones_bimestre_bp = Blueprint('calificaciones_bimestre', __name__)
@@ -381,28 +382,33 @@ def get_calificaciones_familia(estudiante_id):
         notas_db = db.session.query(
             CalificacionBimestre,
             IndicadorLogro,
-            Bimestre
+            Bimestre,
+            Materia
         ).join(
             IndicadorLogro, CalificacionBimestre.indicador_id == IndicadorLogro.id
         ).join(
             Bimestre, IndicadorLogro.bimestre_id == Bimestre.id
+        ).outerjoin(
+            Materia, IndicadorLogro.materia_id == Materia.id
         ).filter(
             CalificacionBimestre.estudiante_id == estudiante_id
         ).order_by(
-            Bimestre.anio.desc(), Bimestre.orden, IndicadorLogro.numero
+            Bimestre.anio.desc(), Bimestre.orden, Materia.nombre, IndicadorLogro.numero
         ).all()
 
         # Agrupar por bimestre → materia → indicador
         agrupado = {}
-        for calif, ind, bimestre in notas_db:
+        for calif, ind, bimestre, materia in notas_db:
+            materia_nombre = materia.nombre if materia else (getattr(ind, 'materia_nombre', None) or 'Asignatura')
             key_bimestre = (bimestre.id, bimestre.nombre, bimestre.anio)
             if key_bimestre not in agrupado:
                 agrupado[key_bimestre] = {}
 
-            key_materia = ind.materia_id
+            key_materia = (ind.materia_id, materia_nombre)
             if key_materia not in agrupado[key_bimestre]:
                 agrupado[key_bimestre][key_materia] = {
                     'materia_id': ind.materia_id,
+                    'materia_nombre': materia_nombre,
                     'indicadores': {}
                 }
 
@@ -419,7 +425,7 @@ def get_calificaciones_familia(estudiante_id):
         # Serializar a lista plana para el frontend
         resultado = []
         for (bimestre_id, bimestre_nombre, anio), materias in agrupado.items():
-            for materia_id, materia_data in materias.items():
+            for (materia_id, materia_nombre), materia_data in materias.items():
                 promedios_ind = []
                 indicadores_out = []
                 for ind_id, ind_info in materia_data['indicadores'].items():
@@ -441,6 +447,8 @@ def get_calificaciones_familia(estudiante_id):
                     'bimestre': bimestre_nombre,
                     'anio': anio,
                     'materia_id': materia_id,
+                    'materia_nombre': materia_nombre,
+                    'asignatura': materia_nombre,
                     'indicadores': sorted(indicadores_out, key=lambda x: x['numero']),
                     'definitiva': definitiva
                 })

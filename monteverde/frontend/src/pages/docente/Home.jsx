@@ -3,6 +3,13 @@ import ButtonLink from '../../components/ButtonLink';
 import BlurFade from '../../components/BlurFade';
 import DiaTextReveal from '../../components/DiaTextReveal';
 import { useEffect, useState } from 'react';
+import {
+  X,
+  ClipboardList,
+  BookOpen,
+  CalendarCheck,
+  MessageSquare
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { getCursos, getDocenteDashboard, getMensajes, getCirculares, formatearFecha, formatearFechaHora } from '../../services/api';
 import docenteImg from '../../assets/img/docente.png';
@@ -162,10 +169,22 @@ export default function DocenteHome() {
         <BlurFade delay={0.2} duration={0.4}>
           <Card className="card-slim" title="Accesos Rápidos">
             <div className="dashboard-grid dashboard-grid--2" style={{ gap: '1rem' }}>
-              <ButtonLink to="/docente/tareas" variant="primary">Gestionar Tareas</ButtonLink>
-              <ButtonLink to="/docente/calificaciones" variant="primary">Calificaciones</ButtonLink>
-              <ButtonLink to="/docente/asistencia" variant="primary">Llamar Asistencia</ButtonLink>
-              <ButtonLink to="/docente/mensajes" variant="primary">Ver Mensajes</ButtonLink>
+              <ButtonLink to="/docente/tareas" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <ClipboardList size={18} />
+                <span>Gestionar Tareas</span>
+              </ButtonLink>
+              <ButtonLink to="/docente/calificaciones" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <BookOpen size={18} />
+                <span>Calificaciones</span>
+              </ButtonLink>
+              <ButtonLink to="/docente/asistencia" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <CalendarCheck size={18} />
+                <span>Llamar Asistencia</span>
+              </ButtonLink>
+              <ButtonLink to="/docente/mensajes" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <MessageSquare size={18} />
+                <span>Ver Mensajes</span>
+              </ButtonLink>
             </div>
           </Card>
         </BlurFade>
@@ -310,13 +329,12 @@ export default function DocenteHome() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
                   transition: 'background 0.2s'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
 

@@ -3,7 +3,7 @@ import os
 import json
 # Trigger backend reload to connect to started MySQL db
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import decode_token
+from flask_jwt_extended import decode_token, jwt_required, get_jwt_identity
 from src.extensions import db
 from src.models.usuario import Usuario
 from src.models.curso import Curso
@@ -12,6 +12,7 @@ from src.models.materia import Materia
 from src.models.docente_asignacion import DocenteAsignacion
 from src.models.docente_curso import DocenteCurso
 from src.services.admin_service import AdminService
+from src.services.configuracion_service import ConfiguracionService
 
 admin_bp = Blueprint('admin_routes', __name__)
 
@@ -318,58 +319,50 @@ def desvincular_estudiante():
 
 
 @admin_bp.route('/configuracion', methods=['GET'])
+@admin_bp.route('/configuracion-institucional', methods=['GET'])
 def get_configuracion():
-    """Obtener la configuración institucional de MonteVerde"""
+    """Obtener la configuración institucional de MonteVerde desde la base de datos"""
     try:
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config_institucion.json')
-        if not os.path.exists(config_path):
-            # Crear valor por defecto
-            default_config = {
-                "nombre_institucion": "Colegio MonteVerde",
-                "director": "Dr. Fernando MonteVerde",
-                "anio_escolar": "2026",
-                "periodo_actual": "Primer Trimestre",
-                "direccion": "Calle de la Arboleda #45, Ciudad Jardín",
-                "telefono": "+57 (601) 456-7890",
-                "email_contacto": "contacto@monteverde.edu.co"
-            }
-            with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(default_config, f, ensure_ascii=False, indent=2)
-            return jsonify({'success': True, 'data': default_config}), 200
-        
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config_data = json.load(f)
-            
+        config_data = ConfiguracionService.get_configuracion()
         return jsonify({'success': True, 'data': config_data}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Error interno al consultar la configuración institucional'}), 500
 
-@admin_bp.route('/configuracion', methods=['POST'])
+
+@admin_bp.route('/configuracion', methods=['POST', 'PUT'])
+@admin_bp.route('/configuracion-institucional', methods=['POST', 'PUT'])
+@jwt_required()
 def save_configuracion():
-    """Actualizar la configuración institucional de MonteVerde"""
+    """Actualizar la configuración institucional de MonteVerde con validación y persistencia en BD"""
     try:
-        admin_id = get_current_admin_id()
-        data = request.get_json() or {}
-        
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config_institucion.json')
-        
-        # Validar campos mínimos
-        required = ["nombre_institucion", "director", "anio_escolar", "periodo_actual"]
-        for field in required:
-            if not data.get(field):
-                return jsonify({'success': False, 'message': f'El campo {field} es requerido'}), 400
-                
-        # Guardar
-        with open(config_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            
-        # Log de auditoría
-        AdminService.log_actividad(
-            usuario_id=admin_id,
-            accion='ACTUALIZAR_CONFIGURACION',
-            detalles=f"Se actualizó la configuración de la institución. Nombre: {data.get('nombre_institucion')}, Director: {data.get('director')}"
+        user_id = get_jwt_identity()
+        user = Usuario.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
+
+        if user.rol != 'admin':
+            return jsonify({
+                'success': False,
+                'message': 'Acceso denegado. Solo un usuario con rol de administrador puede modificar la configuración.'
+            }), 403
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'El cuerpo de la solicitud no contiene datos válidos'}), 400
+
+        success, result, status_code = ConfiguracionService.update_configuracion(
+            data=data,
+            usuario_id=user.id
         )
-        
-        return jsonify({'success': True, 'message': 'Configuración institucional guardada exitosamente'}), 200
+
+        if not success:
+            return jsonify({'success': False, 'message': result}), status_code
+
+        return jsonify({
+            'success': True,
+            'message': 'Configuración institucional guardada exitosamente',
+            'data': result
+        }), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Error interno al guardar la configuración institucional'}), 500
+

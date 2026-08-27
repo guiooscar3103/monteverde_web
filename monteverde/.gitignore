@@ -24,3 +24,7 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Institutional local configuration (use database in production)
+config_institucion.json
+backend/src/config_institucion.json

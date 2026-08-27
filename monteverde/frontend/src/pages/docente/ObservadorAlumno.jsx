@@ -4,6 +4,15 @@ import SelectSimple from '../../components/SelectSimple';
 import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
 import BlurFade from '../../components/BlurFade';
+import {
+  Trash2,
+  PlusCircle,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  FileText,
+  Loader2
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import {
   getCursos,
@@ -99,8 +108,8 @@ export default function ObservadorAlumno() {
           setCursoId(cursos[0].id.toString());
         }
       } catch (error) {
-        console.error('❌ Error al cargar cursos:', error);
-        setMensaje('❌ Error al cargar los cursos');
+        console.error('Error al cargar cursos:', error);
+        setMensaje('Error al cargar los cursos');
       }
     };
     cargarCursos();
@@ -115,20 +124,20 @@ export default function ObservadorAlumno() {
       setMensaje('');
       
       try {
-        console.log('🔍 Cargando datos para curso:', cursoId);
+        console.log('Cargando datos para curso:', cursoId);
         
         // Cargar estudiantes
         const estudiantesData = await getEstudiantesPorCurso(parseInt(cursoId));
-        console.log('👥 Estudiantes cargados:', estudiantesData);
+        console.log('Estudiantes cargados:', estudiantesData);
         setEstudiantes(estudiantesData || []);
 
         // Cargar observaciones
         try {
           const anotacionesData = await getObservadorPorCurso(parseInt(cursoId));
-          console.log('📝 Observaciones cargadas:', anotacionesData);
+          console.log('Observaciones cargadas:', anotacionesData);
           setAnotaciones(anotacionesData || []);
         } catch (obsError) {
-          console.warn('⚠️ No se pudieron cargar observaciones:', obsError);
+          console.warn('No se pudieron cargar observaciones:', obsError);
           setAnotaciones([]);
         }
 
@@ -140,8 +149,8 @@ export default function ObservadorAlumno() {
         }));
 
       } catch (error) {
-        console.error('❌ Error general:', error);
-        setMensaje('❌ Error al cargar datos: ' + error.message);
+        console.error('Error general:', error);
+        setMensaje('Error al cargar datos: ' + error.message);
       } finally {
         setLoading(false);
       }
@@ -199,7 +208,17 @@ export default function ObservadorAlumno() {
           }}
           title="Eliminar observación"
         >
-          {eliminandoId === row.id ? '⏳ Eliminando...' : '🗑️ Eliminar'}
+          {eliminandoId === row.id ? (
+            <>
+              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              <span>Eliminando...</span>
+            </>
+          ) : (
+            <>
+              <Trash2 size={14} />
+              <span>Eliminar</span>
+            </>
+          )}
         </button>
       )
     }
@@ -216,7 +235,7 @@ export default function ObservadorAlumno() {
       setGuardando(true);
       const datosAEnviar = _crearDatosAnotacion(form, usuario?.id);
       await agregarAnotacion(datosAEnviar);
-      setMensaje('✅ Observación agregada correctamente.');
+      setMensaje('Observación agregada correctamente.');
       setTimeout(() => setMensaje(''), 3500);
       
       setForm(prev => ({ 
@@ -229,8 +248,8 @@ export default function ObservadorAlumno() {
       setAnotaciones(nuevasObs || []);
       
     } catch (error) {
-      console.error('❌ Error al agregar observación:', error);
-      setMensaje('❌ Error: ' + (error.message || 'Error al agregar'));
+      console.error('Error al agregar observación:', error);
+      setMensaje('Error: ' + (error.message || 'Error al agregar'));
     } finally {
       setGuardando(false);
     }
@@ -250,21 +269,21 @@ export default function ObservadorAlumno() {
       // Actualizar inmediatamente el estado local sin recargar página
       setAnotaciones(prev => prev.filter(obs => obs.id !== idAEliminar));
       setObservacionAEliminar(null);
-      setMensaje('✅ Observación eliminada correctamente.');
+      setMensaje('Observación eliminada correctamente.');
       setTimeout(() => setMensaje(''), 4000);
 
     } catch (error) {
-      console.error('❌ Error al eliminar observación:', error);
+      console.error('Error al eliminar observación:', error);
       const msg = error.message || '';
       
       if (msg.includes('403') || msg.toLowerCase().includes('permisos') || msg.toLowerCase().includes('acceso denegado')) {
-        setMensaje('❌ No tienes permisos para eliminar esta observación.');
+        setMensaje('No tienes permisos para eliminar esta observación.');
       } else if (msg.includes('404') || msg.toLowerCase().includes('no encontrada')) {
-        setMensaje('❌ La observación ya no existe o fue eliminada anteriormente.');
+        setMensaje('La observación ya no existe o fue eliminada anteriormente.');
         // Limpiar de la lista local si ya no existe en el backend
         setAnotaciones(prev => prev.filter(obs => obs.id !== idAEliminar));
       } else {
-        setMensaje('❌ No fue posible eliminar la observación. Inténtalo nuevamente.');
+        setMensaje('No fue posible eliminar la observación. Inténtalo nuevamente.');
       }
       setObservacionAEliminar(null);
     } finally {
@@ -315,17 +334,25 @@ export default function ObservadorAlumno() {
       {mensaje && (
         <BlurFade delay={0.1} duration={0.25}>
           <div style={{ 
-            padding: '0.75rem 1rem',
-            backgroundColor: mensaje.includes('✅') ? '#d4edda' : '#f8d7da',
-            color: mensaje.includes('✅') ? '#155724' : '#721c24',
+            padding: '0.75rem 1.25rem',
+            backgroundColor: mensaje.includes('Error') || mensaje.includes('No') ? '#fee2e2' : '#d1fae5',
+            color: mensaje.includes('Error') || mensaje.includes('No') ? '#991b1b' : '#065f46',
             border: '1px solid',
-            borderColor: mensaje.includes('✅') ? '#c3e6cb' : '#f5c6cb',
-            borderRadius: '8px',
+            borderColor: mensaje.includes('Error') || mensaje.includes('No') ? '#ef4444' : '#10b981',
+            borderRadius: '10px',
             marginBottom: '0.5rem',
-            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
             fontWeight: 600
           }}>
-            {mensaje}
+            {mensaje.includes('Error') || mensaje.includes('No') ? (
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+            ) : (
+              <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+            )}
+            <span>{mensaje}</span>
           </div>
         </BlurFade>
       )}
@@ -458,10 +485,24 @@ export default function ObservadorAlumno() {
                   fontWeight: 700,
                   cursor: botonHabilitado ? 'pointer' : 'not-allowed',
                   minWidth: '220px',
-                  boxShadow: botonHabilitado ? '0 2px 6px rgba(17, 153, 142, 0.25)' : 'none'
+                  boxShadow: botonHabilitado ? '0 2px 6px rgba(17, 153, 142, 0.25)' : 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
               >
-                {guardando ? '⏳ Guardando...' : '📝 Agregar Observación'}
+                {guardando ? (
+                  <>
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Guardando...</span>
+                  </>
+                ) : (
+                  <>
+                    <PlusCircle size={16} />
+                    <span>Agregar Observación</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -480,7 +521,7 @@ export default function ObservadorAlumno() {
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '1.75rem' }}>⚠️</span>
+              <AlertTriangle size={28} style={{ color: '#dc2626', flexShrink: 0 }} />
               <div>
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.15rem', fontWeight: 700 }}>
                   ¿Eliminar observación?
@@ -531,7 +572,17 @@ export default function ObservadorAlumno() {
                   gap: '0.4rem'
                 }}
               >
-                {eliminandoId ? '⏳ Eliminando...' : '🗑️ Eliminar'}
+                {eliminandoId ? (
+                  <>
+                    <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Eliminando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={15} />
+                    <span>Eliminar</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

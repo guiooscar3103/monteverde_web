@@ -1,4 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Search,
+  SearchX,
+  GraduationCap,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  UserMinus,
+  UserPlus,
+  X
+} from 'lucide-react';
 import { 
   getFamiliasConVinculos, 
   getEstudiantesDisponibles, 
@@ -81,8 +93,9 @@ function StudentDropdown({
 
   if (filtered.length === 0) {
     return (
-      <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: '#64748b', textAlign: 'center' }}>
-        😞 Sin coincidencias disponibles
+      <div style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: '#64748b', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+        <SearchX size={16} />
+        <span>Sin coincidencias disponibles</span>
       </div>
     );
   }
@@ -119,10 +132,11 @@ function StudentDropdown({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <div style={{ fontWeight: 700, color: '#1e293b' }}>
-            🧑‍🎓 {est.nombre}
+          <div style={{ fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <GraduationCap size={15} style={{ color: 'var(--color-primary)' }} />
+            <span>{est.nombre}</span>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', paddingLeft: '21px' }}>
             Curso: {est.curso_nombre || 'Sin curso'} · ID: #{est.id}
           </div>
         </div>
@@ -297,12 +311,16 @@ export default function Familias() {
           background: '#d1fae5',
           border: '1px solid #10b981',
           color: '#065f46',
-          padding: '1rem',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
-          fontWeight: 500
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          ✅ {successMsg}
+          <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+          <span>{successMsg}</span>
         </div>
       )}
 
@@ -311,12 +329,16 @@ export default function Familias() {
           background: '#fee2e2',
           border: '1px solid #ef4444',
           color: '#991b1b',
-          padding: '1rem',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
-          fontWeight: 500
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          ❌ {errorMsg}
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -332,10 +354,7 @@ export default function Familias() {
         gap: '12px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
       }}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <Search size={18} strokeWidth={2.2} style={{ color: '#94a3b8', flexShrink: 0 }} />
         <input
           type="text"
           placeholder="Buscar familia por nombre o correo electrónico..."
@@ -354,7 +373,9 @@ export default function Familias() {
       {/* Grid List */}
       {familiasFiltradas.length === 0 ? (
         <div style={{ padding: '4rem 0', textAlign: 'center', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#64748b' }}>
-          <span style={{ fontSize: '2.5rem' }}>👥</span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#64748b' }}>
+            <Users size={44} strokeWidth={1.5} />
+          </div>
           <h3 style={{ margin: '1rem 0 0.5rem', color: '#334155' }}>No se encontraron cuentas familiares</h3>
           <p style={{ margin: 0, fontSize: '0.9rem' }}>Cree usuarios con rol Familia en la sección "Gestión Usuarios" o ajuste su búsqueda.</p>
         </div>
@@ -417,7 +438,8 @@ export default function Familias() {
                       borderRadius: '8px',
                       fontSize: '0.85rem'
                     }}>
-                      <span>⚠️ Sin estudiantes asociados actualmente.</span>
+                      <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                      <span>Sin estudiantes asociados actualmente.</span>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -432,10 +454,11 @@ export default function Familias() {
                           borderRadius: '10px'
                         }}>
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>
-                              🧑‍🎓 {est.nombre}
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <GraduationCap size={16} style={{ color: 'var(--color-primary)' }} />
+                              <span>{est.nombre}</span>
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', paddingLeft: '22px' }}>
                               Grado: {est.curso ? `${est.curso.nivel}°${est.curso.letra} - ${est.curso.nombre}` : 'Sin Curso'} (ID Estudiante: #{est.id})
                             </div>
                           </div>
@@ -463,7 +486,8 @@ export default function Familias() {
                             }}
                             title="Remover vinculación"
                           >
-                            Desvincular
+                            <UserMinus size={13} />
+                            <span>Desvincular</span>
                           </button>
                         </div>
                       ))}
@@ -488,18 +512,13 @@ export default function Familias() {
                   display: 'flex',
                   flexDirection: 'column'
                 }}>
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    <span style={{
+                  <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+                    <Search size={15} style={{
                       position: 'absolute',
                       left: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
                       pointerEvents: 'none',
-                      fontSize: '1rem',
                       color: '#94a3b8'
-                    }}>
-                      🔍
-                    </span>
+                    }} />
                     <input
                       type="text"
                       placeholder={estudiantes.length === 0 ? "No hay estudiantes disponibles" : "Buscar alumno por nombre, curso..."}
@@ -540,19 +559,18 @@ export default function Familias() {
                         style={{
                           position: 'absolute',
                           right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
                           background: 'none',
                           border: 'none',
                           cursor: 'pointer',
                           color: '#94a3b8',
                           padding: '4px',
-                          fontWeight: 'bold',
-                          fontSize: '0.85rem'
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
                         }}
                         title="Limpiar búsqueda"
                       >
-                        ✕
+                        <X size={14} />
                       </button>
                     )}
                   </div>
@@ -599,7 +617,10 @@ export default function Familias() {
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                     boxShadow: '0 2px 4px rgba(29, 78, 216, 0.2)',
-                    transition: 'all 0.15s'
+                    transition: 'all 0.15s',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                   disabled={estudiantes.length === 0}
                   onMouseEnter={(e) => {
@@ -609,7 +630,8 @@ export default function Familias() {
                     if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'none';
                   }}
                 >
-                  Vincular
+                  <UserPlus size={15} />
+                  <span>Vincular</span>
                 </button>
               </div>
             </div>

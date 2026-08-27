@@ -1,5 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  Pencil,
+  KeyRound,
+  RotateCcw,
+  Trash2,
+  Plus,
+  Search,
+  User,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  ChevronUp,
+  ChevronDown
+} from 'lucide-react';
 import { 
   getUsuariosPaginados,       // Obtiene usuarios con paginación, búsqueda y filtros
   crearUsuario,               // Crea una nueva cuenta de usuario
@@ -57,8 +72,12 @@ const _mostrarMensajeConTimeout = (setter, mensaje, timeout = 3000) => {
 };
 
 const _mostrarIndicadorOrden = (col, orderBy, orderDirection) => {
-  if (orderBy !== col) return '';
-  return orderDirection === 'ASC' ? ' ▲' : ' ▼';
+  if (orderBy !== col) return null;
+  return orderDirection === 'ASC' ? (
+    <ChevronUp size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: '4px' }} />
+  ) : (
+    <ChevronDown size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: '4px' }} />
+  );
 };
 
 // ── Componente: Fila individual de la tabla de usuarios ─────────────────────
@@ -96,10 +115,7 @@ function UsuarioRow({
     if (u.estudiante_nombre || u.estudiante?.nombre) {
       return (
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-secondary)' }}>
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
+          <User size={14} style={{ color: 'var(--text-secondary)' }} />
           <strong style={{ color: 'var(--text)' }}>{u.estudiante_nombre || u.estudiante?.nombre}</strong>
         </span>
       );
@@ -171,13 +187,13 @@ function UsuarioRow({
               minWidth: 'auto',
               borderRadius: '8px',
               cursor: u.eliminado ? 'not-allowed' : 'pointer',
-              color: 'var(--color-primary-light)'
+              color: 'var(--color-primary-light)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
+            <Pencil size={15} />
           </button>
 
           <button
@@ -190,13 +206,13 @@ function UsuarioRow({
               minWidth: 'auto',
               borderRadius: '8px',
               cursor: u.eliminado ? 'not-allowed' : 'pointer',
-              color: 'var(--color-warning)'
+              color: 'var(--color-warning)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
+            <KeyRound size={15} />
           </button>
 
           {u.eliminado ? (
@@ -211,12 +227,13 @@ function UsuarioRow({
                 background: '#ECFDF5',
                 borderColor: '#10B981',
                 color: '#10B981',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-              </svg>
+              <RotateCcw size={15} />
             </button>
           ) : (
             <button
@@ -230,15 +247,13 @@ function UsuarioRow({
                 background: '#FEF2F2',
                 borderColor: '#FCA5A5',
                 color: '#EF4444',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                <line x1="10" y1="11" x2="10" y2="17" />
-                <line x1="14" y1="11" x2="14" y2="17" />
-              </svg>
+              <Trash2 size={15} />
             </button>
           )}
         </div>
@@ -289,12 +304,14 @@ function UsuarioFormModal({
               background: 'transparent',
               border: 'none',
               color: '#ffffff',
-              fontSize: '1.5rem',
               cursor: 'pointer',
-              lineHeight: '1'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px'
             }}
           >
-            &times;
+            <X size={20} />
           </button>
         </div>
 
@@ -469,12 +486,14 @@ function PasswordModal({
               background: 'transparent',
               border: 'none',
               color: '#ffffff',
-              fontSize: '1.5rem',
               cursor: 'pointer',
-              lineHeight: '1'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px'
             }}
           >
-            &times;
+            <X size={20} />
           </button>
         </div>
 
@@ -564,7 +583,7 @@ function UsuarioHeader({ abrirModalCrear }) {
       </div>
       <button 
         onClick={abrirModalCrear}
-        className="btn btn-primary"
+        className="btn btn-primary btn-icon"
         style={{
           background: '#ffffff',
           color: 'var(--color-primary)',
@@ -575,9 +594,6 @@ function UsuarioHeader({ abrirModalCrear }) {
           fontSize: '0.85rem',
           cursor: 'pointer',
           boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
           transition: 'all 0.2s',
           minWidth: 'auto'
         }}
@@ -590,11 +606,8 @@ function UsuarioHeader({ abrirModalCrear }) {
           e.currentTarget.style.background = '#ffffff';
         }}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        Nuevo Usuario
+        <Plus size={16} strokeWidth={2.5} />
+        <span>Nuevo Usuario</span>
       </button>
     </div>
   );
@@ -624,7 +637,7 @@ function UsuarioFiltros({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
         <div className="form-group" style={{ margin: 0 }}>
           <label htmlFor="filtroBuscar" className="form-label">Buscar</label>
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <input
               id="filtroBuscar"
               type="text"
@@ -633,18 +646,16 @@ function UsuarioFiltros({
               placeholder="Nombre o correo..."
               style={{
                 paddingLeft: '2.5rem',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                width: '100%'
               }}
             />
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{
+            <Search size={15} style={{
               position: 'absolute',
               left: '0.85rem',
-              top: '50%',
-              transform: 'translateY(-50%)'
-            }}>
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+              color: 'var(--text-muted)',
+              pointerEvents: 'none'
+            }} />
           </div>
         </div>
 
@@ -1048,12 +1059,7 @@ export default function Usuarios() {
       return (
         <div style={{ padding: '4rem 0', textAlign: 'center', color: 'var(--text-muted)' }}>
           <div style={{ color: 'var(--text-muted)', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
+            <Users size={44} strokeWidth={1.5} />
           </div>
           <h3 style={{ margin: '1rem 0 0.5rem', color: 'var(--text)', fontFamily: 'Merriweather, serif' }}>No se encontraron usuarios</h3>
           <p style={{ margin: 0, fontSize: '0.875rem' }}>Intente cambiar los filtros o busque otro nombre.</p>
@@ -1093,10 +1099,8 @@ export default function Usuarios() {
           gap: '10px',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          {successMsg}
+          <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+          <span>{successMsg}</span>
         </div>
       )}
       
@@ -1114,11 +1118,8 @@ export default function Usuarios() {
           gap: '10px',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-          {errorMsg}
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{errorMsg}</span>
         </div>
       )}
 

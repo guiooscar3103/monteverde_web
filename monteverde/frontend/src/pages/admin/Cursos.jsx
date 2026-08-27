@@ -1,4 +1,12 @@
 import React, { useState } from 'react';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCursos, createCurso, updateCurso, deleteCurso } from '../../services/api';
 
@@ -163,18 +171,21 @@ export default function Cursos() {
 
         <button
           onClick={() => abrirModal()}
+          className="btn-icon"
           style={{
             background: '#10b981',
             color: '#ffffff',
             border: 'none',
-            padding: '0.85rem 1.2rem',
+            padding: '0.75rem 1.25rem',
             borderRadius: '10px',
             cursor: 'pointer',
             boxShadow: '0 12px 24px rgba(16, 185, 129, 0.18)',
-            fontWeight: 700
+            fontWeight: 700,
+            fontSize: '0.9rem'
           }}
         >
-          + Nuevo Curso
+          <Plus size={18} />
+          <span>Nuevo Curso</span>
         </button>
       </div>
 
@@ -183,11 +194,16 @@ export default function Cursos() {
           marginBottom: '1rem',
           background: '#dcfce7',
           color: '#166534',
-          padding: '1rem 1.2rem',
+          padding: '0.85rem 1.2rem',
           borderRadius: '12px',
-          border: '1px solid #4ade80'
+          border: '1px solid #4ade80',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontWeight: 600
         }}>
-          ✅ {successMsg}
+          <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+          <span>{successMsg}</span>
         </div>
       )}
 
@@ -196,11 +212,16 @@ export default function Cursos() {
           marginBottom: '1rem',
           background: '#fee2e2',
           color: '#991b1b',
-          padding: '1rem 1.2rem',
+          padding: '0.85rem 1.2rem',
           borderRadius: '12px',
-          border: '1px solid #f87171'
+          border: '1px solid #f87171',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontWeight: 600
         }}>
-          ❌ {errorMsg}
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -254,15 +275,17 @@ export default function Cursos() {
                     <td style={tableCellStyle}>
                       <button
                         onClick={() => abrirModal(curso)}
-                        style={actionButtonStyle}
+                        style={{ ...actionButtonStyle, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
-                        Editar
+                        <Pencil size={14} />
+                        <span>Editar</span>
                       </button>
                       <button
                         onClick={() => handleEliminar(curso.id)}
-                        style={deleteButtonStyle}
+                        style={{ ...deleteButtonStyle, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
-                        Eliminar
+                        <Trash2 size={14} />
+                        <span>Eliminar</span>
                       </button>
                     </td>
                   </tr>
@@ -285,8 +308,20 @@ export default function Cursos() {
                   {editandoCurso ? 'Actualiza los datos del curso existente.' : 'Registra un nuevo curso para la institución.'}
                 </p>
               </div>
-              <button onClick={cerrarModal} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#475569', fontSize: '1.1rem' }}>
-                ✕
+              <button 
+                onClick={cerrarModal} 
+                style={{ 
+                  border: 'none', 
+                  background: 'transparent', 
+                  cursor: 'pointer', 
+                  color: '#475569', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '4px'
+                }}
+              >
+                <X size={20} />
               </button>
             </div>
 

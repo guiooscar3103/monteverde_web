@@ -1,4 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  CheckCircle2,
+  AlertCircle,
+  GraduationCap,
+  X,
+  Plus
+} from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDocentesConCursos, getCursos, getMaterias, asignarCursoADocente, desasignarCursoDeDocente } from '../../services/api';
 import iconoDocente from '../../assets/img/docente.png';
@@ -183,12 +190,16 @@ export default function Docentes() {
           background: '#d1fae5',
           border: '1px solid #10b981',
           color: '#065f46',
-          padding: '1rem',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
-          fontWeight: 500
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          ✅ {successMsg}
+          <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+          <span>{successMsg}</span>
         </div>
       )}
 
@@ -197,19 +208,25 @@ export default function Docentes() {
           background: '#fee2e2',
           border: '1px solid #ef4444',
           color: '#991b1b',
-          padding: '1rem',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
-          fontWeight: 500
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          ❌ {errorMsg}
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Docentes Grid */}
       {docentes.length === 0 ? (
         <div style={{ padding: '4rem 0', textAlign: 'center', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#64748b' }}>
-          <span style={{ fontSize: '2.5rem' }}>🧑‍🏫</span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#64748b' }}>
+            <GraduationCap size={44} strokeWidth={1.5} />
+          </div>
           <h3 style={{ margin: '1rem 0 0.5rem', color: '#334155' }}>No se registran docentes</h3>
           <p style={{ margin: 0, fontSize: '0.9rem' }}>Cree cuentas con rol Docente en la sección "Gestión Usuarios".</p>
         </div>
@@ -288,14 +305,13 @@ export default function Docentes() {
                               color: '#ef4444',
                               cursor: 'pointer',
                               padding: 0,
-                              fontSize: '0.9rem',
-                              fontWeight: 700,
                               display: 'flex',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              justifyContent: 'center'
                             }}
                             title="Quitar curso"
                           >
-                            &times;
+                            <X size={14} />
                           </button>
                         </div>
                       ))}

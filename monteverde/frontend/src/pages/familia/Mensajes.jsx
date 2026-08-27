@@ -3,6 +3,20 @@ import { useAuth } from '../../hooks/useAuth';
 import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
 import {
+  GraduationCap,
+  Mail,
+  User,
+  MessageSquare,
+  Search,
+  Ban,
+  Undo2,
+  Clock,
+  Send,
+  AlertTriangle,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
+import {
   getMensajesPorUsuario,
   getConversacion,
   enviarMensaje,
@@ -73,19 +87,20 @@ function ContactosList({
 }) {
   return (
     <Card title="Contactos" style={{ padding: '1rem', overflowY: 'auto', height: '100%' }}>
-      <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
+        <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
         <input
           type="text"
           value={filtro}
           onChange={e => setFiltro(e.target.value)}
-          placeholder="🔍 Buscar docente, asunto o mensaje"
+          placeholder="Buscar docente, asunto o mensaje"
           style={{
             width: '100%',
             background: "#f4f4f4",
             border: '1px solid #ddd',
-            borderRadius: '6px',
-            padding: '0.5rem 0.85rem',
-            fontSize: '0.97rem'
+            borderRadius: '8px',
+            padding: '0.5rem 0.85rem 0.5rem 2.2rem',
+            fontSize: '0.92rem'
           }}
         />
       </div>
@@ -107,11 +122,13 @@ function ContactosList({
               transition: 'all 0.2s'
             }}
           >
-            <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
-              👨‍🏫 {docente.nombre}
+            <div style={{ fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <GraduationCap size={15} style={{ color: 'var(--brand)' }} />
+              <span>{docente.nombre}</span>
             </div>
-            <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
-              📧 {docente.email}
+            <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Mail size={12} />
+              <span>{docente.email}</span>
             </div>
           </div>
         ))}
@@ -142,9 +159,12 @@ function ConversacionArea({
           height: '100%',
           color: '#666',
           textAlign: 'center',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          padding: '2rem'
         }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👨‍🏫</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#94a3b8' }}>
+            <GraduationCap size={48} strokeWidth={1.5} />
+          </div>
           <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
             <strong>Selecciona un docente</strong>
           </p>
@@ -160,15 +180,20 @@ function ConversacionArea({
   return (
     <Card style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{
-        padding: '1rem',
-        borderBottom: '2px solid #eee',
+        padding: '1rem 1.25rem',
+        borderBottom: '1px solid var(--border, #eee)',
         backgroundColor: '#f8f9fa'
       }}>
-        <h3 style={{ margin: 0, color: 'var(--brand)', fontSize: '1.2rem' }}>
-          💬 Conversación con {contactoSeleccionado.nombre}
+        <h3 style={{ margin: 0, color: 'var(--brand)', fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <MessageSquare size={18} />
+          <span>Conversación con {contactoSeleccionado.nombre}</span>
         </h3>
-        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#666' }}>
-          📧 {contactoSeleccionado.email} • 👤 {contactoSeleccionado.rol}
+        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#666', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Mail size={12} />
+          <span>{contactoSeleccionado.email}</span>
+          <span>•</span>
+          <User size={12} />
+          <span>{contactoSeleccionado.rol}</span>
         </p>
       </div>
       {/* Mensajes */}
@@ -185,9 +210,11 @@ function ConversacionArea({
             padding: '2rem',
             fontSize: '0.9rem'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💭</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem', color: '#94a3b8' }}>
+              <MessageSquare size={44} strokeWidth={1.5} />
+            </div>
             <p>No hay mensajes aún con este docente</p>
-            <small>¡Envía tu primera consulta!</small>
+            <small style={{ color: '#94a3b8' }}>¡Envía tu primera consulta!</small>
           </div>
         ) : (
           conversacionActual.map(mensajeItem => {
@@ -227,9 +254,13 @@ function ConversacionArea({
                       fontWeight: 'bold',
                       fontSize: '0.85rem',
                       marginBottom: '0.35rem',
-                      opacity: 0.95
+                      opacity: 0.95,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
                     }}>
-                      📧 {mensajeItem.asunto}
+                      <Mail size={13} />
+                      <span>{mensajeItem.asunto}</span>
                     </div>
                   )}
 
@@ -244,7 +275,10 @@ function ConversacionArea({
                     gap: '6px'
                   }}>
                     {estaEliminado ? (
-                      <span>🚫 Este mensaje fue eliminado por su remitente.</span>
+                      <>
+                        <Ban size={14} style={{ flexShrink: 0 }} />
+                        <span>Este mensaje fue eliminado por su remitente.</span>
+                      </>
                     ) : (
                       mensajeItem.cuerpo
                     )}
@@ -278,17 +312,19 @@ function ConversacionArea({
                         }}
                         title="Retractar este mensaje"
                       >
-                        ↩ Retractar mensaje
+                        <Undo2 size={12} />
+                        <span>Retractar mensaje</span>
                       </button>
                     )}
 
-                    <span style={{ marginLeft: 'auto' }}>
-                      🕐 {new Date(mensajeItem.fecha).toLocaleString('es-ES', {
+                    <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={11} />
+                      <span>{new Date(mensajeItem.fecha).toLocaleString('es-ES', {
                         day: '2-digit',
                         month: '2-digit',
                         hour: '2-digit',
                         minute: '2-digit'
-                      })}
+                      })}</span>
                     </span>
                   </div>
                 </div>
@@ -301,18 +337,18 @@ function ConversacionArea({
         onSubmit={enviarNuevoMensaje}
         style={{
           padding: '1rem',
-          borderTop: '2px solid #eee',
+          borderTop: '1px solid var(--border, #eee)',
           backgroundColor: '#ffffff'
         }}
       >
         <input
           type="text"
-          placeholder="📧 Asunto de tu consulta"
+          placeholder="Asunto de tu consulta"
           value={asunto}
           onChange={(e) => setAsunto(e.target.value)}
           style={{
             width: '100%',
-            padding: '0.75rem',
+            padding: '0.65rem 0.85rem',
             border: '1px solid #ddd',
             borderRadius: '8px',
             marginBottom: '0.75rem',
@@ -322,17 +358,17 @@ function ConversacionArea({
         />
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <textarea
-            placeholder="✍️ Escribe tu consulta aquí..."
+            placeholder="Escribe tu consulta aquí..."
             value={nuevoMensaje}
             onChange={(e) => setNuevoMensaje(e.target.value)}
             style={{
               flex: 1,
-              padding: '0.75rem',
+              padding: '0.65rem 0.85rem',
               border: '1px solid #ddd',
               borderRadius: '8px',
               resize: 'none',
               fontSize: '0.9rem',
-              minHeight: '80px',
+              minHeight: '75px',
               fontFamily: 'inherit'
             }}
             onKeyPress={(e) => {
@@ -354,10 +390,15 @@ function ConversacionArea({
               cursor: enviando ? 'not-allowed' : 'pointer',
               fontSize: '0.9rem',
               fontWeight: 'bold',
-              minWidth: '100px'
+              minWidth: '100px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
             }}
           >
-            {enviando ? '📤...' : '📤 Enviar'}
+            <Send size={15} />
+            <span>{enviando ? 'Enviando...' : 'Enviar'}</span>
           </button>
         </div>
       </form>
@@ -539,16 +580,27 @@ export default function FamiliaMensajes() {
 
       {mensaje && (
         <div style={{
-          padding: '0.75rem 1rem',
-          backgroundColor: mensaje.includes('✅') ? '#d4edda' : mensaje.includes('⚠️') ? '#fff3cd' : '#f8d7da',
-          color: mensaje.includes('✅') ? '#155724' : mensaje.includes('⚠️') ? '#856404' : '#721c24',
+          padding: '0.75rem 1.25rem',
+          backgroundColor: mensaje.includes('Error') ? '#fee2e2' : mensaje.includes('Escribe') ? '#fef3c7' : '#d1fae5',
+          color: mensaje.includes('Error') ? '#991b1b' : mensaje.includes('Escribe') ? '#92400e' : '#065f46',
           border: '1px solid',
-          borderColor: mensaje.includes('✅') ? '#c3e6cb' : mensaje.includes('⚠️') ? '#ffeaa7' : '#f5c6cb',
-          borderRadius: '6px',
+          borderColor: mensaje.includes('Error') ? '#ef4444' : mensaje.includes('Escribe') ? '#f59e0b' : '#10b981',
+          borderRadius: '10px',
           marginBottom: '1rem',
-          textAlign: 'center'
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          fontWeight: 600
         }}>
-          {mensaje}
+          {mensaje.includes('Error') ? (
+            <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          ) : mensaje.includes('Escribe') ? (
+            <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+          ) : (
+            <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+          )}
+          <span>{mensaje.replace(/^[✅❌⚠️]\s*/, '')}</span>
         </div>
       )}
 
@@ -603,7 +655,7 @@ export default function FamiliaMensajes() {
             border: '1px solid var(--border)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '1.75rem' }}>⚠️</span>
+              <AlertTriangle size={24} style={{ color: '#dc2626', flexShrink: 0 }} />
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 ¿Estás seguro de que deseas retractar este mensaje?
               </h3>

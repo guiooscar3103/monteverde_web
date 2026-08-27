@@ -47,6 +47,8 @@ from src.models.indicador_logro import IndicadorLogro
 from src.models.calificacion_bimestre import CalificacionBimestre
 from src.models.tarea import Tarea
 from src.models.entrega import Entrega
+from src.models.configuracion_institucional import ConfiguracionInstitucional
+from src.services.configuracion_service import ConfiguracionService
 
 def create_app():
     app = Flask(__name__)
@@ -91,6 +93,13 @@ def create_app():
         except Exception as exc:
             db.session.rollback()
             print(f'[WARN] No se pudo crear seed de bimestres: {exc}')
+
+        # ----- Seed de configuración institucional por defecto -----
+        try:
+            ConfiguracionService.get_or_create_default()
+        except Exception as exc:
+            db.session.rollback()
+            print(f'[WARN] No se pudo verificar seed de configuracion institucional: {exc}')
 
         try:
             inspector = inspect(db.engine)

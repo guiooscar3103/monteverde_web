@@ -1,4 +1,14 @@
 import React, { useState } from 'react';
+import {
+  CheckCircle2,
+  AlertCircle,
+  Megaphone,
+  Pencil,
+  Trash2,
+  X,
+  Send,
+  FileText
+} from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCirculares, crearCircular, actualizarCircular, eliminarCircular, formatearFecha, formatearFechaHora } from '../../services/api';
 
@@ -173,12 +183,7 @@ export default function Circulares() {
           flexShrink: 0,
           color: '#ffffff'
         }}>
-          {/* Elegant megaphone SVG */}
-          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 5L6 9H2v6h4l5 4V5z" />
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-          </svg>
+          <Megaphone size={32} strokeWidth={2} />
         </div>
       </div>
 
@@ -188,12 +193,16 @@ export default function Circulares() {
           background: '#d1fae5',
           border: '1px solid #10b981',
           color: '#065f46',
-          padding: '1rem',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
-          fontWeight: 500
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          ✅ {successMsg}
+          <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+          <span>{successMsg}</span>
         </div>
       )}
 
@@ -202,12 +211,16 @@ export default function Circulares() {
           background: '#fee2e2',
           border: '1px solid #ef4444',
           color: '#991b1b',
-          padding: '1rem',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
-          fontWeight: 500
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          ❌ {errorMsg}
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -406,13 +419,7 @@ export default function Circulares() {
               border: '2px dashed #e2e8f0',
               borderRadius: '12px'
             }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem' }}>
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
+              <FileText size={44} strokeWidth={1.5} style={{ color: '#cbd5e1', marginBottom: '0.75rem' }} />
               <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem', color: '#475569' }}>Sin Circulares</h3>
               <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>No has publicado ninguna circular institucional todavía.</p>
             </div>
@@ -532,13 +539,12 @@ export default function Circulares() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
                   transition: 'background 0.2s'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'}
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
 
@@ -576,12 +582,16 @@ export default function Circulares() {
                     fontWeight: 600,
                     fontSize: '0.85rem',
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = '#cbd5e1'}
                   onMouseLeave={(e) => e.currentTarget.style.background = '#e2e8f0'}
                 >
-                  Editar
+                  <Pencil size={14} />
+                  <span>Editar</span>
                 </button>
                 <button
                   onClick={() => handleEliminar(circularSeleccionada.id)}
@@ -594,12 +604,16 @@ export default function Circulares() {
                     fontWeight: 600,
                     fontSize: '0.85rem',
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = '#fca5a5'}
                   onMouseLeave={(e) => e.currentTarget.style.background = '#fee2e2'}
                 >
-                  Eliminar
+                  <Trash2 size={14} />
+                  <span>Eliminar</span>
                 </button>
               </div>
 

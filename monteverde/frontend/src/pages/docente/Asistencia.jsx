@@ -5,6 +5,16 @@ import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
 import BlurFade from '../../components/BlurFade';
 import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  FileText,
+  Save,
+  Lightbulb,
+  Calendar,
+  AlertCircle
+} from 'lucide-react';
+import {
   getCursos,
   getEstudiantesPorCurso,
   getAsistenciaPorFecha,
@@ -13,10 +23,10 @@ import {
 } from '../../services/api';
 
 const ESTADOS = [
-  { value: 'PRESENTE', label: 'Presente', color: '#28a745', icon: '✅' },
-  { value: 'AUSENTE', label: 'Ausente', color: '#dc3545', icon: '❌' },
-  { value: 'TARDE', label: 'Tarde', color: '#ffc107', icon: '⏰' },
-  { value: 'JUSTIFICADO', label: 'Justificado', color: '#17a2b8', icon: '📝' }
+  { value: 'PRESENTE', label: 'Presente', color: '#28a745', IconComponent: CheckCircle2 },
+  { value: 'AUSENTE', label: 'Ausente', color: '#dc3545', IconComponent: XCircle },
+  { value: 'TARDE', label: 'Tarde', color: '#d97706', IconComponent: Clock },
+  { value: 'JUSTIFICADO', label: 'Justificado', color: '#0284c7', IconComponent: FileText }
 ];
 
 export default function Asistencia() {
@@ -40,7 +50,7 @@ export default function Asistencia() {
         if (cursos.length > 0) setCursoId(cursos[0].id.toString());
       } catch (error) {
         console.error('Error al cargar cursos:', error);
-        setMensaje('❌ Error al cargar cursos');
+        setMensaje('Error al cargar cursos');
       }
     };
     cargarCursos();
@@ -81,7 +91,7 @@ export default function Asistencia() {
         setMarcas(marcasIniciales);
       } catch (error) {
         console.error('Error al cargar asistencia:', error);
-        setMensaje('❌ Error al cargar los datos de asistencia: ' + error.message);
+        setMensaje('Error al cargar los datos de asistencia: ' + error.message);
       } finally {
         setLoading(false);
       }
@@ -129,21 +139,19 @@ export default function Asistencia() {
                 padding: '0.5rem',
                 borderRadius: '6px',
                 border: '1px solid #ccc',
-                fontSize: '1rem',
+                fontSize: '0.9rem',
                 minWidth: '140px',
                 backgroundColor: estadoConfig?.color + '20' || '#fff'
               }}
             >
               {ESTADOS.map(es => (
                 <option key={es.value} value={es.value}>
-                  {es.icon} {es.label}
+                  {es.label}
                 </option>
               ))}
             </select>
             {estadoConfig && (
-              <span style={{ color: estadoConfig.color, fontSize: '1.2rem' }}>
-                {estadoConfig.icon}
-              </span>
+              <estadoConfig.IconComponent size={18} style={{ color: estadoConfig.color }} />
             )}
           </div>
         );
@@ -169,7 +177,7 @@ export default function Asistencia() {
     try {
       const resultado = await guardarAsistencia(marcas);
       if (resultado) {
-        setMensaje('✅ Asistencia guardada correctamente');
+        setMensaje('Asistencia guardada correctamente');
         // Recargar estadísticas después de guardar
         setTimeout(async () => {
           try {
@@ -184,7 +192,7 @@ export default function Asistencia() {
       }
     } catch (error) {
       console.error('Error al guardar asistencia:', error);
-      setMensaje('❌ Error al guardar asistencia: ' + error.message);
+      setMensaje('Error al guardar asistencia: ' + error.message);
     } finally {
       setGuardando(false);
     }
@@ -220,16 +228,21 @@ export default function Asistencia() {
       {mensaje && (
         <BlurFade delay={0.08} duration={0.25}>
           <div style={{ 
-            padding: '0.75rem 1rem',
-            backgroundColor: mensaje.includes('✅') ? '#d4edda' : '#f8d7da',
-            color: mensaje.includes('✅') ? '#155724' : '#721c24',
+            padding: '0.75rem 1.25rem',
+            backgroundColor: mensaje.includes('Error') ? '#fee2e2' : '#d1fae5',
+            color: mensaje.includes('Error') ? '#991b1b' : '#065f46',
             border: '1px solid',
-            borderColor: mensaje.includes('✅') ? '#c3e6cb' : '#f5c6cb',
-            borderRadius: '6px',
+            borderColor: mensaje.includes('Error') ? '#ef4444' : '#10b981',
+            borderRadius: '10px',
             marginBottom: '1rem',
-            textAlign: 'center'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontWeight: 600
           }}>
-            {mensaje}
+            {mensaje.includes('Error') ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+            <span>{mensaje}</span>
           </div>
         </BlurFade>
       )}
@@ -265,18 +278,22 @@ export default function Asistencia() {
               onClick={handleGuardar}
               disabled={loading || guardando || marcas.length === 0}
               style={{
-                padding: '0.75rem 2rem',
-                backgroundColor: guardando ? '#6c757d' : '#28a745',
+                padding: '0.75rem 1.5rem',
+                backgroundColor: guardando ? '#6c757d' : 'var(--color-primary, #28a745)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '6px',
-                fontSize: '1rem',
+                borderRadius: '8px',
+                fontSize: '0.95rem',
                 fontWeight: 'bold',
                 cursor: guardando ? 'not-allowed' : 'pointer',
-                opacity: guardando ? 0.7 : 1
+                opacity: guardando ? 0.7 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
             >
-              {guardando ? '💾 Guardando...' : `💾 Guardar Asistencia (${marcas.length})`}
+              <Save size={16} />
+              <span>{guardando ? 'Guardando...' : `Guardar Asistencia (${marcas.length})`}</span>
             </button>
           </div>
         </Card>
@@ -290,29 +307,37 @@ export default function Asistencia() {
                 <strong style={{ color: '#28a745', fontSize: '1.5rem' }}>
                   {estadisticas.por_estado.PRESENTE || 0}
                 </strong>
-                <br />
-                <small>✅ Presentes</small>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                  <CheckCircle2 size={13} style={{ color: '#28a745' }} />
+                  <small style={{ fontWeight: 600 }}>Presentes</small>
+                </div>
               </div>
               <div>
                 <strong style={{ color: '#dc3545', fontSize: '1.5rem' }}>
                   {estadisticas.por_estado.AUSENTE || 0}
                 </strong>
-                <br />
-                <small>❌ Ausentes</small>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                  <XCircle size={13} style={{ color: '#dc3545' }} />
+                  <small style={{ fontWeight: 600 }}>Ausentes</small>
+                </div>
               </div>
               <div>
-                <strong style={{ color: '#ffc107', fontSize: '1.5rem' }}>
+                <strong style={{ color: '#d97706', fontSize: '1.5rem' }}>
                   {estadisticas.por_estado.TARDE || 0}
                 </strong>
-                <br />
-                <small>⏰ Tarde</small>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                  <Clock size={13} style={{ color: '#d97706' }} />
+                  <small style={{ fontWeight: 600 }}>Tarde</small>
+                </div>
               </div>
               <div>
-                <strong style={{ color: '#17a2b8', fontSize: '1.5rem' }}>
+                <strong style={{ color: '#0284c7', fontSize: '1.5rem' }}>
                   {estadisticas.por_estado.JUSTIFICADO || 0}
                 </strong>
-                <br />
-                <small>📝 Justificado</small>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                  <FileText size={13} style={{ color: '#0284c7' }} />
+                  <small style={{ fontWeight: 600 }}>Justificado</small>
+                </div>
               </div>
             </div>
             
@@ -349,8 +374,9 @@ export default function Asistencia() {
         <BlurFade delay={0.24} duration={0.45}>
           <Card title={`Lista de Asistencia - ${cursoActual?.label || 'Curso'}`}>
             <Tabla columns={columnas} rows={filas} />
-            <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666', textAlign: 'center' }}>
-              💡 Selecciona el estado de asistencia para cada estudiante y haz clic en "Guardar Asistencia"
+            <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <Lightbulb size={16} style={{ color: 'var(--brand)' }} />
+              <span>Selecciona el estado de asistencia para cada estudiante y haz clic en "Guardar Asistencia"</span>
             </div>
           </Card>
         </BlurFade>
@@ -358,7 +384,9 @@ export default function Asistencia() {
         <BlurFade delay={0.24} duration={0.3}>
           <Card>
             <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📅</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: 'var(--text-muted)' }}>
+                <Calendar size={44} strokeWidth={1.5} />
+              </div>
               <p>No hay estudiantes en este curso</p>
               <small>Selecciona un curso diferente o verifica que tenga estudiantes asignados</small>
             </div>

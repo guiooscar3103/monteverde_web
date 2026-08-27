@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Target, Pencil, AlertTriangle, Save, Loader2 } from 'lucide-react';
 
 /**
  * PanelIndicadores
@@ -71,7 +72,9 @@ export default function PanelIndicadores({
     return (
       <div className="panel-indicadores panel-indicadores--confirmar">
         <div className="pi-confirm-box">
-          <div className="pi-confirm-icon">⚠️</div>
+          <div className="pi-confirm-icon">
+            <AlertTriangle size={36} style={{ color: '#dc2626' }} />
+          </div>
           <h3>¿Cambiar indicadores?</h3>
           <p>
             Este bimestre ya tiene notas registradas. Si cambias los indicadores,
@@ -97,12 +100,15 @@ export default function PanelIndicadores({
       <div className="panel-indicadores">
         <div className="pi-header">
           <h3 className="pi-title">
-            <span className="pi-icon">🎯</span>
+            <span className="pi-icon">
+              <Target size={18} />
+            </span>
             Indicadores de logro configurados
           </h3>
           {!disabled && (
-            <button className="btn-pi btn-pi--outline" onClick={handleEditar}>
-              ✏️ Editar indicadores
+            <button className="btn-pi btn-pi--outline" onClick={handleEditar} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Pencil size={14} />
+              <span>Editar indicadores</span>
             </button>
           )}
         </div>
@@ -125,7 +131,9 @@ export default function PanelIndicadores({
     <div className="panel-indicadores panel-indicadores--editing">
       <div className="pi-header">
         <h3 className="pi-title">
-          <span className="pi-icon">🎯</span>
+          <span className="pi-icon">
+            <Target size={18} />
+          </span>
           {ambosDefinidos ? 'Editar indicadores de logro' : 'Configurar indicadores de logro'}
         </h3>
         <p className="pi-subtitle">
@@ -171,7 +179,10 @@ export default function PanelIndicadores({
         </div>
 
         {error && (
-          <div className="pi-error">⚠️ {error}</div>
+          <div className="pi-error" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
         )}
 
         <div className="pi-actions">
@@ -179,8 +190,19 @@ export default function PanelIndicadores({
             className="btn-pi btn-pi--primary"
             onClick={handleGuardar}
             disabled={guardando || !desc1.trim() || !desc2.trim()}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            {guardando ? '⏳ Guardando...' : '✅ Guardar indicadores'}
+            {guardando ? (
+              <>
+                <Loader2 size={15} className="animate-spin" />
+                <span>Guardando...</span>
+              </>
+            ) : (
+              <>
+                <Save size={15} />
+                <span>Guardar indicadores</span>
+              </>
+            )}
           </button>
           {ambosDefinidos && (
             <button className="btn-pi btn-pi--ghost" onClick={handleCancelar} disabled={guardando}>

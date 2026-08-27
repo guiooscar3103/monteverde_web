@@ -532,6 +532,12 @@ tbody tr:hover {
   flex-direction: column;
   gap: 1.5rem;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.01);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  align-self: start;
+  z-index: 30;
 }
 
 .main-content {
@@ -568,6 +574,35 @@ tbody tr:hover {
   box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
+.sidebar-icon {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  flex-shrink: 0;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.status-icon-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  vertical-align: middle;
+}
+
+.empty-state-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: var(--text-muted);
+}
+
 /* Dashboard Grid System */
 .dashboard-grid { 
   display: grid; 
@@ -594,10 +629,10 @@ tbody tr:hover {
     display: none; 
   }
   .main-content { 
-    padding-bottom: 80px; 
+    padding-bottom: 2rem; 
   }
   .mobile-bottom-nav { 
-    display: block !important; 
+    display: none !important; 
   }
   
   .dashboard-grid--4, .dashboard-grid--3, .dashboard-grid--2, .grid-4, .grid-3 {
@@ -1529,7 +1564,7 @@ tbody tr:hover {
 }
 
 /* =========================================================
-   VISTA FAMILIA — CALIFICACIONES POR BIMESTRE E INDICADORES
+   VISTA FAMILIA — CALIFICACIONES POR ASIGNATURA E INDICADORES
    ========================================================= */
 
 .bim-familia-wrapper {
@@ -1538,6 +1573,287 @@ tbody tr:hover {
   gap: 1.5rem;
 }
 
+/* Tarjeta Principal de Asignatura */
+.asig-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.asig-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* Nivel 1 & 2 & 3: Encabezado de la Asignatura */
+.asig-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.asig-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.asig-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.2s ease;
+}
+
+.asig-card:hover .asig-icon-badge {
+  transform: scale(1.04);
+}
+
+.asig-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.asig-nombre {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.asig-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.asig-bimestre-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--brand-dark);
+  background: var(--brand-light);
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+/* Nivel 3: Definitiva de la Asignatura */
+.asig-definitiva-container {
+  display: flex;
+  align-items: center;
+}
+
+.asig-definitiva-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1rem;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  box-shadow: var(--shadow-xs);
+}
+
+.asig-definitiva-pill .def-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+}
+
+.asig-definitiva-pill .def-valor {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.def-aprobada {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.def-riesgo {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.def-reprobada {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.def-pendiente {
+  background: var(--bg-light);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+/* Nivel 4: Lista de Indicadores de Logro */
+.asig-indicadores-list {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+.asig-indicador-item {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.asig-indicador-item:last-child {
+  border-bottom: none;
+}
+
+.asig-indicador-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.asig-ind-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.asig-ind-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
+  background: var(--brand-light);
+  color: var(--brand-dark);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.ind-num--2 .asig-ind-badge {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: rgba(14, 165, 233, 0.25);
+}
+
+.asig-ind-descripcion {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text);
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+/* Rejilla de Notas Parciales y Promedio */
+.asig-notas-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.asig-nota-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.5rem;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  gap: 4px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.asig-nota-cell:hover {
+  background: #f8fafc;
+}
+
+.asig-nota-cell--promedio {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.asig-nota-cell--promedio:hover {
+  background: #dcfce7;
+}
+
+.asig-nota-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.asig-nota-cell--promedio .asig-nota-label {
+  color: #166534;
+}
+
+.asig-nota-valor {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.asig-nota-valor--promedio {
+  font-size: 1.15rem;
+}
+
+.nota-aprobada {
+  color: #16a34a;
+}
+
+.nota-reprobada {
+  color: #dc2626;
+}
+
+.nota-vacia {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .asig-notas-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .asig-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .asig-definitiva-container {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* Fallback legacy classes */
 .bim-bloque {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1591,10 +1907,6 @@ tbody tr:hover {
   gap: 0;
 }
 
-@media (max-width: 600px) {
-  .bim-indicadores-grid { grid-template-columns: 1fr; }
-}
-
 .bim-ind-card {
   padding: 1rem 1.25rem;
   border-right: 1px solid var(--border);
@@ -1639,10 +1951,6 @@ tbody tr:hover {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.35rem;
-}
-
-@media (max-width: 480px) {
-  .bim-ind-notas { grid-template-columns: repeat(2, 1fr); }
 }
 
 .bim-nota-item {

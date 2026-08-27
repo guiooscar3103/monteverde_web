@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { GraduationCap, AlertCircle, Loader2, LogIn } from 'lucide-react';
 import logoColegio from '../assets/img/logo-colegio.png';
 import adminImg from '../assets/img/admin.png';
 import docenteImg from '../assets/img/docente.png';
@@ -112,11 +113,10 @@ export default function Login() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '2.2rem',
                 color: 'var(--color-primary)',
                 boxShadow: 'var(--shadow-sm)'
               }}>
-                🎓
+                <GraduationCap size={36} />
               </div>
             )}
           </div>
@@ -226,11 +226,7 @@ export default function Login() {
             textAlign: 'left',
             marginBottom: '1.25rem'
           }}>
-            <svg style={{ flexShrink: 0 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
             <span>{error}</span>
           </div>
         )}
@@ -300,18 +296,12 @@ export default function Login() {
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                  <circle cx="12" cy="12" r="10" strokeDasharray="42" />
-                </svg>
+                <Loader2 size={16} className="animate-spin" />
                 <span>Verificando credenciales...</span>
               </>
             ) : (
               <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                  <polyline points="10 17 15 12 10 7" />
-                  <line x1="15" y1="12" x2="3" y2="12" />
-                </svg>
+                <LogIn size={16} />
                 <span>Iniciar Sesión</span>
               </>
             )}

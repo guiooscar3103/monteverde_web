@@ -3,6 +3,24 @@ import { useAuth } from '../../hooks/useAuth';
 import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
 import BlurFade from '../../components/BlurFade';
+import {
+  User,
+  UsersRound,
+  GraduationCap,
+  Mail,
+  Megaphone,
+  Info,
+  Users,
+  MessageSquare,
+  Search,
+  Ban,
+  Undo2,
+  Clock,
+  Send,
+  AlertTriangle,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
 import { 
   getMensajesPorUsuario, 
   getConversacion, 
@@ -360,17 +378,25 @@ export default function MensajesDocente() {
       {mensaje && (
         <BlurFade delay={0.08} duration={0.25}>
           <div style={{ 
-            padding: '0.85rem 1.25rem',
-            backgroundColor: mensaje.includes('✅') ? '#d4edda' : '#f8d7da',
-            color: mensaje.includes('✅') ? '#155724' : '#721c24',
+            padding: '0.75rem 1.25rem',
+            backgroundColor: mensaje.includes('Error') ? '#fee2e2' : '#d1fae5',
+            color: mensaje.includes('Error') ? '#991b1b' : '#065f46',
             border: '1px solid',
-            borderColor: mensaje.includes('✅') ? '#c3e6cb' : '#f5c6cb',
+            borderColor: mensaje.includes('Error') ? '#ef4444' : '#10b981',
             borderRadius: '8px',
             marginBottom: '0.5rem',
-            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
             fontWeight: 600
           }}>
-            {mensaje}
+            {mensaje.includes('Error') ? (
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+            ) : (
+              <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+            )}
+            <span>{mensaje.replace(/^[✅❌⚠️]\s*/, '')}</span>
           </div>
         </BlurFade>
       )}
@@ -405,28 +431,29 @@ export default function MensajesDocente() {
                   cursor: 'pointer'
                 }}
               >
-                <option value="">📂 Todos mis cursos</option>
+                <option value="">Todos mis cursos</option>
                 {cursos.map(c => (
                   <option key={c.curso_id} value={c.curso_id}>
-                    🎓 {c.curso_nombre || `${c.curso_nivel}${c.curso_letra}`}
+                    {c.curso_nombre || `${c.curso_nivel}${c.curso_letra}`}
                   </option>
                 ))}
               </select>
             </div>
 
             {/* 2. Buscador en Tiempo Real (Fijo) */}
-            <div style={{ marginBottom: '0.75rem', flexShrink: 0 }}>
+            <div style={{ marginBottom: '0.75rem', flexShrink: 0, position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type="text"
                 value={filtro}
                 onChange={e => setFiltro(e.target.value)}
-                placeholder={cursoSeleccionado ? "🔍 Buscar estudiante o familia..." : "🔍 Buscar familia, estudiante o mensaje..."}
+                placeholder={cursoSeleccionado ? "Buscar estudiante o familia..." : "Buscar familia, estudiante o mensaje..."}
                 style={{
                   width: '100%',
                   background: "#f4f4f4",
                   border: '1px solid #ddd',
                   borderRadius: '8px',
-                  padding: '0.55rem 0.85rem',
+                  padding: '0.55rem 0.85rem 0.55rem 2.1rem',
                   fontSize: '0.92rem'
                 }}
               />
@@ -447,8 +474,8 @@ export default function MensajesDocente() {
                   flexShrink: 0
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.25rem' }}>📢</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Megaphone size={20} style={{ color: 'var(--brand, #11998e)', flexShrink: 0 }} />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--brand, #11998e)' }}>
                       Enviar a todo el curso
@@ -488,17 +515,26 @@ export default function MensajesDocente() {
                 </div>
               ) : cursos.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#888', padding: '2rem 1rem', fontSize: '0.88rem' }}>
-                  <p>⚠️ No tienes cursos asignados actualmente.</p>
+                  <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <AlertTriangle size={15} />
+                    <span>No tienes cursos asignados actualmente.</span>
+                  </p>
                 </div>
               ) : cursoSeleccionado ? (
                 // === VISTA DE CURSO ESPECÍFICO (Lista de Estudiantes Desplazable) ===
                 estudiantesCurso.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#888', padding: '2rem 1rem', fontSize: '0.88rem' }}>
-                    <p>👤 Este curso no tiene estudiantes registrados.</p>
+                    <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      <User size={15} />
+                      <span>Este curso no tiene estudiantes registrados.</span>
+                    </p>
                   </div>
                 ) : estudiantesFiltrados.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#888', padding: '2rem 1rem', fontSize: '0.88rem' }}>
-                    <p>🔍 No se encontraron estudiantes o familias que coincidan con la búsqueda.</p>
+                    <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      <Search size={15} />
+                      <span>No se encontraron estudiantes o familias que coincidan con la búsqueda.</span>
+                    </p>
                   </div>
                 ) : (
                   estudiantesFiltrados.map(estudiante => {
@@ -522,8 +558,9 @@ export default function MensajesDocente() {
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-                            👤 {estudiante.nombre}
+                          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <User size={14} style={{ color: 'var(--brand)', flexShrink: 0 }} />
+                            <span>{estudiante.nombre}</span>
                           </div>
                           {noLeidos > 0 && (
                             <span style={{
@@ -540,12 +577,14 @@ export default function MensajesDocente() {
                         </div>
 
                         {familia ? (
-                          <div style={{ fontSize: '0.82rem', color: 'var(--brand, #0e7490)', fontWeight: 600 }}>
-                            🎓 Acudiente: {familia.nombre}
+                          <div style={{ fontSize: '0.82rem', color: 'var(--brand, #0e7490)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <GraduationCap size={13} style={{ flexShrink: 0 }} />
+                            <span>Acudiente: {familia.nombre}</span>
                           </div>
                         ) : (
-                          <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>
-                            ⚠️ Sin acudiente vinculado
+                          <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                            <span>Sin acudiente vinculado</span>
                           </div>
                         )}
                       </div>
@@ -556,11 +595,17 @@ export default function MensajesDocente() {
                 // === VISTA GENERAL: "Todos mis cursos" (Lista de Familias Desplazable) ===
                 familias.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#888', padding: '2rem 1rem', fontSize: '0.88rem' }}>
-                    <p>👨‍👩‍👧‍👦 No hay familias asociadas a tus cursos asignados.</p>
+                    <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      <UsersRound size={15} />
+                      <span>No hay familias asociadas a tus cursos asignados.</span>
+                    </p>
                   </div>
                 ) : familiasFiltradas.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#888', padding: '2rem 1rem', fontSize: '0.88rem' }}>
-                    <p>🔍 No se encontraron contactos que coincidan con la búsqueda.</p>
+                    <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      <Search size={15} />
+                      <span>No se encontraron contactos que coincidan con la búsqueda.</span>
+                    </p>
                   </div>
                 ) : (
                   familiasFiltradas.map(familia => {
@@ -591,8 +636,9 @@ export default function MensajesDocente() {
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-                            👨‍👩‍👧‍👦 {familia.nombre}
+                          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <UsersRound size={15} style={{ color: 'var(--brand)', flexShrink: 0 }} />
+                            <span>{familia.nombre}</span>
                           </div>
                           {noLeidos > 0 && (
                             <span style={{
@@ -608,12 +654,16 @@ export default function MensajesDocente() {
                           )}
                         </div>
 
-                        <div style={{ fontSize: '0.82rem', color: 'var(--brand, #0e7490)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                          🎓 Acudiente de: {nombresEstudiantes}
+                        <div style={{ fontSize: '0.82rem', color: 'var(--brand, #0e7490)', fontWeight: 600, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <GraduationCap size={13} style={{ flexShrink: 0 }} />
+                          <span>Acudiente de: {nombresEstudiantes}</span>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: '#64748b' }}>
-                          <span>📧 {familia.email}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Mail size={12} />
+                            <span>{familia.email}</span>
+                          </span>
                           {gradosEstudiantes && (
                             <span style={{
                               background: 'rgba(0,0,0,0.06)',
@@ -645,14 +695,15 @@ export default function MensajesDocente() {
                   borderBottom: '1px solid var(--border)',
                   backgroundColor: '#f0fdf4'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.5rem' }}>📢</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Megaphone size={24} style={{ color: 'var(--brand, #11998e)', flexShrink: 0 }} />
                     <div>
                       <h3 style={{ margin: 0, color: 'var(--brand, #11998e)', fontSize: '1.18rem', fontWeight: 700 }}>
                         Mensaje Masivo / Circular — {nombreCursoActual}
                       </h3>
-                      <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.86rem', color: '#166534' }}>
-                        ℹ️ Este mensaje será enviado individualmente a los acudientes de todos los estudiantes de <strong>{nombreCursoActual}</strong>.
+                      <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.86rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Info size={14} style={{ flexShrink: 0 }} />
+                        <span>Este mensaje será enviado individualmente a los acudientes de todos los estudiantes de <strong>{nombreCursoActual}</strong>.</span>
                       </p>
                     </div>
                   </div>
@@ -713,8 +764,9 @@ export default function MensajesDocente() {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                    <div style={{ fontSize: '0.84rem', color: '#64748b' }}>
-                      👥 Destinatarios: Acudientes del curso {nombreCursoActual} (sin mensajes duplicados).
+                    <div style={{ fontSize: '0.84rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Users size={14} />
+                      <span>Destinatarios: Acudientes del curso {nombreCursoActual} (sin mensajes duplicados).</span>
                     </div>
                     <button
                       type="submit"
@@ -728,10 +780,14 @@ export default function MensajesDocente() {
                         cursor: enviandoDifusion || !cuerpoDifusion.trim() ? 'not-allowed' : 'pointer',
                         fontSize: '0.95rem',
                         fontWeight: 700,
-                        boxShadow: '0 2px 6px rgba(17, 153, 142, 0.25)'
+                        boxShadow: '0 2px 6px rgba(17, 153, 142, 0.25)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
                       }}
                     >
-                      {enviandoDifusion ? 'Enviando difusión...' : '📢 Enviar a todo el curso'}
+                      <Megaphone size={16} />
+                      <span>{enviandoDifusion ? 'Enviando difusión...' : 'Enviar a todo el curso'}</span>
                     </button>
                   </div>
                 </form>
@@ -749,16 +805,18 @@ export default function MensajesDocente() {
                   alignItems: 'center'
                 }}>
                   <div>
-                    <h3 style={{ margin: 0, color: 'var(--brand)', fontSize: '1.15rem', fontWeight: 700 }}>
-                      💬 Conversación con {contactoSeleccionado.nombre}
+                    <h3 style={{ margin: 0, color: 'var(--brand)', fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <MessageSquare size={18} />
+                      <span>Conversación con {contactoSeleccionado.nombre}</span>
                     </h3>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.84rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {estudianteSeleccionado ? (
                         <>Estudiante: <strong>{estudianteSeleccionado.nombre}</strong> • </>
                       ) : contactoSeleccionado.estudiantes && contactoSeleccionado.estudiantes.length > 0 ? (
                         <>Acudiente de: <strong>{contactoSeleccionado.estudiantes.map(e => e.nombre).join(', ')}</strong> • </>
                       ) : null}
-                      📧 {contactoSeleccionado.email}
+                      <Mail size={13} style={{ marginLeft: '4px' }} />
+                      <span>{contactoSeleccionado.email}</span>
                     </p>
                   </div>
                 </div>
@@ -777,7 +835,9 @@ export default function MensajesDocente() {
                       padding: '3rem 1rem',
                       fontSize: '0.95rem'
                     }}>
-                      <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>💭</div>
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem', color: '#94a3b8' }}>
+                        <MessageSquare size={44} strokeWidth={1.5} />
+                      </div>
                       <p style={{ margin: 0 }}>No hay mensajes aún con esta familia.</p>
                       <small style={{ color: '#94a3b8' }}>Escribe el primer mensaje a continuación.</small>
                     </div>
@@ -819,9 +879,13 @@ export default function MensajesDocente() {
                                 fontWeight: 700, 
                                 fontSize: '0.85rem', 
                                 marginBottom: '0.35rem',
-                                opacity: esMio ? 0.95 : 0.8
+                                opacity: esMio ? 0.95 : 0.8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px'
                               }}>
-                                📧 {mensajeItem.asunto}
+                                <Mail size={13} />
+                                <span>{mensajeItem.asunto}</span>
                               </div>
                             )}
 
@@ -836,7 +900,10 @@ export default function MensajesDocente() {
                               gap: '6px'
                             }}>
                               {estaEliminado ? (
-                                <span>🚫 Este mensaje fue eliminado por su remitente.</span>
+                                <>
+                                  <Ban size={14} style={{ flexShrink: 0 }} />
+                                  <span>Este mensaje fue eliminado por su remitente.</span>
+                                </>
                               ) : (
                                 mensajeItem.cuerpo
                               )}
@@ -870,17 +937,19 @@ export default function MensajesDocente() {
                                   }}
                                   title="Retractar este mensaje"
                                 >
-                                  ↩ Retractar mensaje
+                                  <Undo2 size={12} />
+                                  <span>Retractar mensaje</span>
                                 </button>
                               )}
 
-                              <span style={{ marginLeft: 'auto' }}>
-                                🕐 {new Date(mensajeItem.fecha).toLocaleString('es-ES', {
+                              <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <Clock size={11} />
+                                <span>{new Date(mensajeItem.fecha).toLocaleString('es-ES', {
                                   day: '2-digit',
                                   month: '2-digit',
                                   hour: '2-digit',
                                   minute: '2-digit'
-                                })}
+                                })}</span>
                               </span>
                             </div>
                           </div>
@@ -901,7 +970,7 @@ export default function MensajesDocente() {
                 >
                   <input
                     type="text"
-                    placeholder={estudianteSeleccionado ? `📧 Asunto (sobre ${estudianteSeleccionado.nombre})` : "📧 Asunto del mensaje"}
+                    placeholder={estudianteSeleccionado ? `Asunto (sobre ${estudianteSeleccionado.nombre})` : "Asunto del mensaje"}
                     value={asunto}
                     onChange={(e) => setAsunto(e.target.value)}
                     style={{
@@ -916,7 +985,7 @@ export default function MensajesDocente() {
                   />
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <textarea
-                      placeholder="✍️ Escribe tu mensaje para la familia aquí..."
+                      placeholder="Escribe tu mensaje para la familia aquí..."
                       value={nuevoMensaje}
                       onChange={(e) => setNuevoMensaje(e.target.value)}
                       style={{
@@ -945,13 +1014,18 @@ export default function MensajesDocente() {
                         color: 'white',
                         border: 'none',
                         borderRadius: '8px',
-                        cursor: enviando ? 'not-allowed' : 'pointer',
+                        cursor: enviando || !nuevoMensaje.trim() ? 'not-allowed' : 'pointer',
                         fontSize: '0.92rem',
                         fontWeight: 700,
-                        minWidth: '110px'
+                        minWidth: '110px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
                       }}
                     >
-                      {enviando ? 'Enviando...' : '📤 Enviar'}
+                      <Send size={15} />
+                      <span>{enviando ? 'Enviando...' : 'Enviar'}</span>
                     </button>
                   </div>
                 </form>
@@ -968,7 +1042,7 @@ export default function MensajesDocente() {
                 flexDirection: 'column',
                 padding: '2rem'
               }}>
-                <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>⚠️</div>
+                <AlertTriangle size={44} style={{ color: '#d97706', marginBottom: '0.75rem' }} />
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
                   {estudianteSeleccionado.nombre} no tiene acudiente vinculado
                 </h3>
@@ -988,7 +1062,9 @@ export default function MensajesDocente() {
                 flexDirection: 'column',
                 padding: '2rem'
               }}>
-                <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>💬</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem', color: '#94a3b8' }}>
+                  <MessageSquare size={44} strokeWidth={1.5} />
+                </div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
                   {cursoSeleccionado ? "Selecciona un estudiante o envía una difusión" : "Selecciona una familia para comenzar"}
                 </h3>
@@ -1026,7 +1102,7 @@ export default function MensajesDocente() {
             border: '1px solid var(--border)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '1.75rem' }}>⚠️</span>
+              <AlertTriangle size={24} style={{ color: '#dc2626', flexShrink: 0 }} />
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 ¿Estás seguro de que deseas retractar este mensaje?
               </h3>

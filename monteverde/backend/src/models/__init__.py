@@ -8,6 +8,7 @@ from .observacion import Observacion
 from .circular import Circular
 from .tarea import Tarea
 from .entrega import Entrega
+from .configuracion_institucional import ConfiguracionInstitucional
 
 __all__ = [
     'Usuario',
@@ -19,5 +20,6 @@ __all__ = [
     'Observacion',
     'Circular',
     'Tarea',
-    'Entrega'
+    'Entrega',
+    'ConfiguracionInstitucional'
 ]

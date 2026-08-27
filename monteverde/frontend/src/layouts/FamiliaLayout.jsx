@@ -1,7 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import {
+  Home,
+  Award,
+  MessageSquare
+} from 'lucide-react';
 import HeaderBar from '../components/HeaderBar';
 import { useAuth } from '../hooks/useAuth';
-import MobileBottomNav from '../components/MobileBottomNav';
 import fondoImg from '../assets/img/fondo.png';
 import logoColegio from '../assets/img/logo-colegio.png';
 
@@ -19,31 +23,17 @@ export default function FamiliaLayout() {
       to: '/familia', 
       label: 'Inicio', 
       exact: true,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-      )
+      icon: <Home size={20} className="sidebar-icon" />
     },
     { 
       to: '/familia/reporte', 
       label: 'Notas',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="8" r="7" />
-          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
-        </svg>
-      )
+      icon: <Award size={20} className="sidebar-icon" />
     },
     { 
       to: '/familia/mensajes', 
       label: 'Mensajes',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-      )
+      icon: <MessageSquare size={20} className="sidebar-icon" />
     }
   ];
 
@@ -111,8 +101,6 @@ export default function FamiliaLayout() {
             </NavLink>
           ))}
         </nav>
-
-
       </aside>
 
       <main className="main-content" style={{
@@ -129,7 +117,6 @@ export default function FamiliaLayout() {
         <div className="fade-in" style={{ padding: '2rem 1.5rem', flexGrow: 1 }}>
           <Outlet />
         </div>
-        <MobileBottomNav />
       </main>
     </div>
   );

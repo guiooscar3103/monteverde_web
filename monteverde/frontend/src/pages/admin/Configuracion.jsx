@@ -1,4 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Settings,
+  Building2,
+  Calendar,
+  Phone,
+  Save,
+  Database,
+  CheckCircle2,
+  AlertCircle,
+  RotateCw
+} from 'lucide-react';
 import { getConfiguracion, guardarConfiguracion } from '../../services/api';
 
 // Funciones helper
@@ -6,12 +17,6 @@ const _extraerConfiguracionDelResponse = (res) => {
   if (res?.data) return res.data;
   if (res) return res;
   return {};
-};
-
-const _parseConfigResponse = (res, defaultMessage) => {
-  const exito = res?.success || res;
-  const mensaje = res?.message || defaultMessage;
-  return { exito, mensaje };
 };
 
 export default function Configuracion() {
@@ -22,7 +27,9 @@ export default function Configuracion() {
     periodo_actual: '',
     direccion: '',
     telefono: '',
-    email_contacto: ''
+    email_contacto: '',
+    updated_at: null,
+    institucion_id: 'MONTEVERDE_DEFAULT'
   });
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -38,10 +45,16 @@ export default function Configuracion() {
     setErrorMsg('');
     try {
       const res = await getConfiguracion();
-      setConfig(_extraerConfiguracionDelResponse(res));
+      const datos = _extraerConfiguracionDelResponse(res);
+      if (datos && Object.keys(datos).length > 0) {
+        setConfig(prev => ({
+          ...prev,
+          ...datos
+        }));
+      }
     } catch (error) {
       console.error('Error al obtener la configuración:', error);
-      setErrorMsg('No se pudo cargar la configuración del sistema.');
+      setErrorMsg(error.message || 'No se pudo cargar la configuración institucional desde la base de datos.');
     } finally {
       setCargando(false);
     }
@@ -63,19 +76,35 @@ export default function Configuracion() {
     
     try {
       const res = await guardarConfiguracion(config);
-      const { exito, mensaje } = _parseConfigResponse(res, 'Configuración institucional guardada exitosamente');
+      const datosActualizados = _extraerConfiguracionDelResponse(res);
       
-      if (exito) {
-        setSuccessMsg(mensaje);
-        setTimeout(() => setSuccessMsg(''), 4000);
-      } else {
-        setErrorMsg('Error al guardar la configuración institucional.');
+      if (datosActualizados && Object.keys(datosActualizados).length > 0) {
+        setConfig(prev => ({
+          ...prev,
+          ...datosActualizados
+        }));
       }
+
+      setSuccessMsg('Configuración institucional guardada y persistida en base de datos exitosamente.');
+      setTimeout(() => setSuccessMsg(''), 4500);
     } catch (error) {
       console.error('Error al guardar:', error);
-      setErrorMsg(error.message || 'Ocurrió un error al guardar los ajustes.');
+      setErrorMsg(error.message || 'Ocurrió un error al persistir los ajustes institucionales.');
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const formatearFecha = (fechaStr) => {
+    if (!fechaStr) return null;
+    try {
+      const fecha = new Date(fechaStr);
+      return fecha.toLocaleString('es-CO', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      });
+    } catch {
+      return fechaStr;
     }
   };
 
@@ -91,7 +120,7 @@ export default function Configuracion() {
           animation: 'spin 1s linear infinite',
           marginBottom: '1rem'
         }}></div>
-        <span>Cargando configuración institucional...</span>
+        <span>Cargando configuración institucional desde la base de datos...</span>
         <style>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -110,7 +139,7 @@ export default function Configuracion() {
         justifyContent: 'space-between', 
         alignItems: 'center', 
         marginBottom: '2.5rem',
-        background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)', // Color violeta e índigo profundo
+        background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)',
         padding: '1.5rem 2rem',
         borderRadius: '16px',
         color: '#ffffff',
@@ -121,10 +150,12 @@ export default function Configuracion() {
             Configuración del Sistema
           </h1>
           <p style={{ margin: '5px 0 0', color: '#c7d2fe', fontSize: '0.9rem' }}>
-            Establezca los detalles organizacionales generales y del período académico de la institución.
+            Establezca los detalles organizacionales y del período académico (persistencia en Base de Datos).
           </p>
         </div>
-        <div style={{ fontSize: '2.5rem' }}>⚙️</div>
+        <div style={{ color: '#ffffff', opacity: 0.9 }}>
+          <Settings size={44} />
+        </div>
       </div>
 
       {/* Notificaciones del sistema */}
@@ -133,12 +164,16 @@ export default function Configuracion() {
           background: '#d1fae5',
           border: '1px solid #10b981',
           color: '#065f46',
-          padding: '1rem',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
-          fontWeight: 500
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          ✅ {successMsg}
+          <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+          <span>{successMsg}</span>
         </div>
       )}
 
@@ -147,12 +182,16 @@ export default function Configuracion() {
           background: '#fee2e2',
           border: '1px solid #ef4444',
           color: '#991b1b',
-          padding: '1rem',
+          padding: '0.85rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
-          fontWeight: 500
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          ❌ {errorMsg}
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -168,44 +207,51 @@ export default function Configuracion() {
           {/* Section 1: General Info */}
           <div style={{ marginBottom: '2rem' }}>
             <h3 style={{ fontSize: '1.15rem', color: '#1e293b', fontWeight: 600, borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🏢</span> Información General de la Institución
+              <Building2 size={20} style={{ color: '#4f46e5' }} />
+              <span>Información General de la Institución</span>
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Nombre Institución</label>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Nombre Institución *</label>
                 <input
                   type="text"
                   name="nombre_institucion"
-                  value={config.nombre_institucion}
+                  value={config.nombre_institucion || ''}
                   onChange={handleChange}
                   required
+                  disabled={guardando}
+                  maxLength={150}
                   style={{
                     padding: '0.65rem 0.75rem',
                     borderRadius: '8px',
                     border: '1px solid #cbd5e1',
                     fontSize: '0.9rem',
                     color: '#334155',
-                    outline: 'none'
+                    outline: 'none',
+                    backgroundColor: guardando ? '#f8fafc' : '#ffffff'
                   }}
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Director / Rector</label>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Director / Rector *</label>
                 <input
                   type="text"
                   name="director"
-                  value={config.director}
+                  value={config.director || ''}
                   onChange={handleChange}
                   required
+                  disabled={guardando}
+                  maxLength={150}
                   style={{
                     padding: '0.65rem 0.75rem',
                     borderRadius: '8px',
                     border: '1px solid #cbd5e1',
                     fontSize: '0.9rem',
                     color: '#334155',
-                    outline: 'none'
+                    outline: 'none',
+                    backgroundColor: guardando ? '#f8fafc' : '#ffffff'
                   }}
                 />
               </div>
@@ -215,18 +261,21 @@ export default function Configuracion() {
           {/* Section 2: Academic Period */}
           <div style={{ marginBottom: '2rem' }}>
             <h3 style={{ fontSize: '1.15rem', color: '#1e293b', fontWeight: 600, borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📅</span> Periodo Académico y Ciclos
+              <Calendar size={20} style={{ color: '#4f46e5' }} />
+              <span>Periodo Académico y Ciclos</span>
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Año Escolar Activo</label>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Año Escolar Activo *</label>
                 <input
                   type="text"
                   name="anio_escolar"
-                  value={config.anio_escolar}
+                  value={config.anio_escolar || ''}
                   onChange={handleChange}
                   required
+                  disabled={guardando}
+                  maxLength={20}
                   placeholder="ej. 2026"
                   style={{
                     padding: '0.65rem 0.75rem',
@@ -234,18 +283,20 @@ export default function Configuracion() {
                     border: '1px solid #cbd5e1',
                     fontSize: '0.9rem',
                     color: '#334155',
-                    outline: 'none'
+                    outline: 'none',
+                    backgroundColor: guardando ? '#f8fafc' : '#ffffff'
                   }}
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Período Académico Actual</label>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Período Académico Actual *</label>
                 <select
                   name="periodo_actual"
-                  value={config.periodo_actual}
+                  value={config.periodo_actual || 'Primer Trimestre'}
                   onChange={handleChange}
                   required
+                  disabled={guardando}
                   style={{
                     padding: '0.65rem 0.75rem',
                     borderRadius: '8px',
@@ -253,7 +304,7 @@ export default function Configuracion() {
                     fontSize: '0.9rem',
                     color: '#334155',
                     outline: 'none',
-                    background: '#ffffff'
+                    background: guardando ? '#f8fafc' : '#ffffff'
                   }}
                 >
                   <option value="Primer Trimestre">Primer Trimestre</option>
@@ -261,6 +312,10 @@ export default function Configuracion() {
                   <option value="Tercer Trimestre">Tercer Trimestre</option>
                   <option value="Primer Semestre">Primer Semestre</option>
                   <option value="Segundo Semestre">Segundo Semestre</option>
+                  <option value="Bimestre 1">Bimestre 1</option>
+                  <option value="Bimestre 2">Bimestre 2</option>
+                  <option value="Bimestre 3">Bimestre 3</option>
+                  <option value="Bimestre 4">Bimestre 4</option>
                 </select>
               </div>
             </div>
@@ -269,7 +324,8 @@ export default function Configuracion() {
           {/* Section 3: Contact details */}
           <div style={{ marginBottom: '2.5rem' }}>
             <h3 style={{ fontSize: '1.15rem', color: '#1e293b', fontWeight: 600, borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📞</span> Datos de Contacto y Ubicación
+              <Phone size={20} style={{ color: '#4f46e5' }} />
+              <span>Datos de Contacto y Ubicación</span>
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -278,15 +334,18 @@ export default function Configuracion() {
                 <input
                   type="text"
                   name="direccion"
-                  value={config.direccion}
+                  value={config.direccion || ''}
                   onChange={handleChange}
+                  disabled={guardando}
+                  maxLength={255}
                   style={{
                     padding: '0.65rem 0.75rem',
                     borderRadius: '8px',
                     border: '1px solid #cbd5e1',
                     fontSize: '0.9rem',
                     color: '#334155',
-                    outline: 'none'
+                    outline: 'none',
+                    backgroundColor: guardando ? '#f8fafc' : '#ffffff'
                   }}
                 />
               </div>
@@ -297,15 +356,18 @@ export default function Configuracion() {
                   <input
                     type="text"
                     name="telefono"
-                    value={config.telefono}
+                    value={config.telefono || ''}
                     onChange={handleChange}
+                    disabled={guardando}
+                    maxLength={50}
                     style={{
                       padding: '0.65rem 0.75rem',
                       borderRadius: '8px',
                       border: '1px solid #cbd5e1',
                       fontSize: '0.9rem',
                       color: '#334155',
-                      outline: 'none'
+                      outline: 'none',
+                      backgroundColor: guardando ? '#f8fafc' : '#ffffff'
                     }}
                   />
                 </div>
@@ -315,21 +377,45 @@ export default function Configuracion() {
                   <input
                     type="email"
                     name="email_contacto"
-                    value={config.email_contacto}
+                    value={config.email_contacto || ''}
                     onChange={handleChange}
+                    disabled={guardando}
+                    maxLength={150}
                     style={{
                       padding: '0.65rem 0.75rem',
                       borderRadius: '8px',
                       border: '1px solid #cbd5e1',
                       fontSize: '0.9rem',
                       color: '#334155',
-                      outline: 'none'
+                      outline: 'none',
+                      backgroundColor: guardando ? '#f8fafc' : '#ffffff'
                     }}
                   />
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Technical Info & Last updated */}
+          {config.updated_at && (
+            <div style={{ 
+              marginBottom: '1.5rem', 
+              padding: '0.75rem 1rem', 
+              background: '#f8fafc', 
+              borderRadius: '8px', 
+              fontSize: '0.8rem', 
+              color: '#64748b',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Database size={15} style={{ color: '#64748b' }} />
+                <span>Fuente de verdad: <strong>Base de datos MySQL/MariaDB</strong></span>
+              </span>
+              <span>Última actualización: <strong>{formatearFecha(config.updated_at)}</strong></span>
+            </div>
+          )}
 
           {/* Submit area */}
           <div style={{
@@ -351,41 +437,47 @@ export default function Configuracion() {
                 borderRadius: '8px',
                 fontSize: '0.9rem',
                 fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s'
+                cursor: guardando ? 'not-allowed' : 'pointer',
+                opacity: guardando ? 0.6 : 1,
+                transition: 'all 0.15s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#f1f5f9'}
+              onMouseEnter={(e) => { if (!guardando) e.currentTarget.style.background = '#e2e8f0'; }}
+              onMouseLeave={(e) => { if (!guardando) e.currentTarget.style.background = '#f1f5f9'; }}
             >
-              Revertir Ajustes
+              <RotateCw size={15} />
+              <span>Recargar de BD</span>
             </button>
 
             <button
               type="submit"
               disabled={guardando}
               style={{
-                background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                background: guardando ? '#94a3b8' : 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
                 color: '#ffffff',
                 border: 'none',
                 padding: '0.6rem 1.75rem',
                 borderRadius: '8px',
                 fontSize: '0.9rem',
                 fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.25)',
+                cursor: guardando ? 'not-allowed' : 'pointer',
+                boxShadow: guardando ? 'none' : '0 4px 6px -1px rgba(79, 70, 229, 0.25)',
                 transition: 'all 0.15s',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px'
               }}
               onMouseEnter={(e) => {
-                if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.1)';
+                if (!guardando) e.currentTarget.style.filter = 'brightness(1.1)';
               }}
               onMouseLeave={(e) => {
-                if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'none';
+                if (!guardando) e.currentTarget.style.filter = 'none';
               }}
             >
-              {guardando ? 'Guardando...' : 'Guardar Configuración'}
+              <Save size={16} />
+              <span>{guardando ? 'Guardando en BD...' : 'Guardar Configuración'}</span>
             </button>
           </div>
         </form>

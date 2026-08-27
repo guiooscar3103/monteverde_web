@@ -102,9 +102,24 @@ Asegúrate de tener instalado y activo en tu sistema:
 
 ---
 
-## Ejecución de Pruebas Unitarias e Integración (Opcional)
+## Configuración Institucional Persistente
 
-Si deseas verificar el correcto funcionamiento del backend y sus capas de seguridad, en la carpeta `backend/` con el entorno virtual activo ejecuta:
+La configuración general de la institución educativa (nombre, rector, período académico, datos de contacto) se persiste de forma segura en la base de datos MySQL/MariaDB en la tabla `configuracion_institucional`.
+
+- **Fuente de verdad:** Base de datos relacional (no archivos JSON locales).
+- **Control de acceso:** Consulta pública/autenticada y modificación restringida exclusivamente a usuarios con rol `admin` mediante JWT.
+- **Migración para producción:**
+  ```bash
+  mysql -u <usuario> -p monteverde_db < database/migrations/03_migracion_configuracion_institucional.sql
+  ```
+
+---
+
+## Ejecución de Pruebas Unitarias e Integración
+
+Para validar la suite completa de pruebas (109 pruebas de seguridad, autenticación, tareas, circulares y configuración institucional):
 ```bash
-python -m unittest discover -s tests
+cd backend
+python -m pytest -v
 ```
+

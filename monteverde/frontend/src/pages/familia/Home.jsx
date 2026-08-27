@@ -4,6 +4,21 @@ import DiaTextReveal from '../../components/DiaTextReveal';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { 
+  GraduationCap,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  FileText,
+  ChevronDown,
+  ChevronRight,
+  BookOpen,
+  Calendar,
+  Activity,
+  MessageSquareQuote,
+  Info,
+  X
+} from 'lucide-react';
+import { 
   getFamiliaDashboard, 
   getMensajesPorUsuario, 
   getCirculares, 
@@ -35,7 +50,7 @@ export default function FamiliaHome() {
   useEffect(() => {
     const cargarDatos = async () => {
       if (!usuario?.id) {
-        setMensaje('⚠️ Usuario no disponible');
+        setMensaje('Usuario no disponible');
         setLoading(false);
         return;
       }
@@ -67,8 +82,8 @@ export default function FamiliaHome() {
           }
         }
       } catch (error) {
-        console.error('❌ Error al cargar dashboard:', error);
-        setMensaje('❌ Error al cargar información: ' + error.message);
+        console.error('Error al cargar dashboard:', error);
+        setMensaje('Error al cargar información: ' + error.message);
       } finally {
         setLoading(false);
       }
@@ -130,7 +145,7 @@ export default function FamiliaHome() {
       label: 'Entregadas', 
       value: entregadasCount, 
       color: 'status-chip--green',
-      icon: '🟢',
+      IconComponent: CheckCircle2,
       subtext: 'Actividades enviadas o calificadas'
     },
     { 
@@ -138,7 +153,7 @@ export default function FamiliaHome() {
       label: 'Pendientes', 
       value: pendientesCount, 
       color: 'status-chip--yellow',
-      icon: '🟡',
+      IconComponent: Clock,
       subtext: 'Faltan más de 48 horas para la entrega'
     },
     { 
@@ -146,7 +161,7 @@ export default function FamiliaHome() {
       label: 'Próximas a vencer', 
       value: proximasCount, 
       color: 'status-chip--red',
-      icon: '🔴',
+      IconComponent: AlertTriangle,
       subtext: 'Vencen en 48 horas o menos'
     }
   ];
@@ -158,7 +173,7 @@ export default function FamiliaHome() {
       label: 'Vencidas',
       value: vencidasCount,
       color: 'status-chip--red',
-      icon: '⚠️',
+      IconComponent: AlertTriangle,
       subtext: 'Fecha límite superada sin entrega'
     });
   }
@@ -175,9 +190,13 @@ export default function FamiliaHome() {
           fontWeight: 700,
           fontSize: '0.8rem',
           border: '1px solid #bbf7d0',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px'
         }}>
-          🟢 Calificado ({tarea.calificacion.toFixed(1)} / 5.0)
+          <CheckCircle2 size={12} />
+          <span>Calificado ({tarea.calificacion.toFixed(1)} / 5.0)</span>
         </span>
       );
     }
@@ -192,9 +211,13 @@ export default function FamiliaHome() {
           fontWeight: 700,
           fontSize: '0.8rem',
           border: '1px solid #bae6fd',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px'
         }}>
-          🔵 Entregado
+          <CheckCircle2 size={12} />
+          <span>Entregado</span>
         </span>
       );
     }
@@ -209,9 +232,13 @@ export default function FamiliaHome() {
           fontWeight: 700,
           fontSize: '0.8rem',
           border: '1px solid #fecaca',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px'
         }}>
-          🔴 Próximo a vencer
+          <Clock size={12} />
+          <span>Próximo a vencer</span>
         </span>
       );
     }
@@ -226,9 +253,13 @@ export default function FamiliaHome() {
           fontWeight: 700,
           fontSize: '0.8rem',
           border: '1px solid #fee2e2',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px'
         }}>
-          ⚠️ Vencida
+          <AlertTriangle size={12} />
+          <span>Vencida</span>
         </span>
       );
     }
@@ -242,9 +273,13 @@ export default function FamiliaHome() {
         fontWeight: 700,
         fontSize: '0.8rem',
         border: '1px solid #fef08a',
-        whiteSpace: 'nowrap'
+        whiteSpace: 'nowrap',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px'
       }}>
-        🟡 Pendiente
+        <Clock size={12} />
+        <span>Pendiente</span>
       </span>
     );
   };
@@ -287,7 +322,7 @@ export default function FamiliaHome() {
           marginBottom: '1rem',
           backdropFilter: 'blur(8px)'
         }}>
-          <span style={{ fontSize: '1.25rem' }}>🧑‍🎓</span>
+          <GraduationCap size={20} style={{ color: 'var(--brand)', flexShrink: 0 }} />
           <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Hijo:
           </span>
@@ -379,14 +414,16 @@ export default function FamiliaHome() {
         ) : (
           <div style={{ display: 'grid', gap: '0.9rem' }}>
             {totalTareas === 0 && (
-              <div style={{ textAlign: 'center', padding: '0.75rem', color: '#64748b', fontSize: '0.86rem', fontStyle: 'italic' }}>
-                ℹ️ {hijoSeleccionado.nombre || 'El estudiante'} no tiene tareas registradas actualmente en su curso.
+              <div style={{ textAlign: 'center', padding: '0.75rem', color: '#64748b', fontSize: '0.86rem', fontStyle: 'italic', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                <Info size={14} />
+                <span>{hijoSeleccionado.nombre || 'El estudiante'} no tiene tareas registradas actualmente en su curso.</span>
               </div>
             )}
 
             {itemsSemaforo.map(item => {
               const tareasCategoria = detalleTareas.filter(t => t.estado_calculado === item.key);
               const estaExpandida = categoriaExpandida === item.key;
+              const IconComp = item.IconComponent;
 
               return (
                 <div 
@@ -416,8 +453,8 @@ export default function FamiliaHome() {
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <span>{item.icon}</span>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <IconComp size={16} />
                         <span>{item.label}</span>
                       </div>
                       <small style={{ color: 'var(--text-secondary)' }}>{item.subtext}</small>
@@ -425,9 +462,7 @@ export default function FamiliaHome() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span className={`status-chip ${item.color}`}>{item.value}</span>
                       {tareasCategoria.length > 0 && (
-                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', transition: 'transform 0.2s', transform: estaExpandida ? 'rotate(180deg)' : 'none' }}>
-                          ▼
-                        </span>
+                        <ChevronDown size={16} style={{ color: '#94a3b8', transition: 'transform 0.2s', transform: estaExpandida ? 'rotate(180deg)' : 'none' }} />
                       )}
                     </div>
                   </div>
@@ -471,15 +506,12 @@ export default function FamiliaHome() {
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
-                                <span style={{ 
-                                  fontSize: '0.85rem', 
+                                <ChevronRight size={15} style={{ 
                                   color: 'var(--brand)', 
                                   transition: 'transform 0.2s', 
                                   transform: estaTareaAbierta ? 'rotate(90deg)' : 'none',
-                                  display: 'inline-block'
-                                }}>
-                                  ▸
-                                </span>
+                                  flexShrink: 0
+                                }} />
                                 <div style={{ minWidth: 0 }}>
                                   <div style={{ 
                                     fontWeight: 700, 
@@ -491,8 +523,16 @@ export default function FamiliaHome() {
                                   }}>
                                     {tarea.titulo}
                                   </div>
-                                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                                    📚 {tarea.materia_nombre || tarea.materia} {tarea.fecha_vencimiento ? `• 📅 Vence: ${formatearFecha(tarea.fecha_vencimiento)}` : ''}
+                                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <BookOpen size={12} />
+                                    <span>{tarea.materia_nombre || tarea.materia}</span>
+                                    {tarea.fecha_vencimiento && (
+                                      <>
+                                        <span>•</span>
+                                        <Calendar size={12} />
+                                        <span>Vence: {formatearFecha(tarea.fecha_vencimiento)}</span>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -520,9 +560,13 @@ export default function FamiliaHome() {
                                     color: '#0e4d2b', 
                                     textTransform: 'uppercase', 
                                     letterSpacing: '0.5px',
-                                    marginBottom: '0.35rem'
+                                    marginBottom: '0.35rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
                                   }}>
-                                    📝 Descripción e Instrucciones:
+                                    <FileText size={13} />
+                                    <span>Descripción e Instrucciones:</span>
                                   </div>
                                   <div style={{
                                     fontSize: '0.86rem',
@@ -546,22 +590,26 @@ export default function FamiliaHome() {
                                   gap: '0.5rem',
                                   marginTop: '0.2rem'
                                 }}>
-                                  <div style={{ background: '#fff', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-                                    <span style={{ color: '#64748b' }}>👨‍🏫 Docente: </span>
+                                  <div style={{ background: '#fff', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <GraduationCap size={13} style={{ color: '#64748b' }} />
+                                    <span style={{ color: '#64748b' }}>Docente: </span>
                                     <strong style={{ color: '#1e293b' }}>{tarea.docente_nombre || 'Docente asignado'}</strong>
                                   </div>
-                                  <div style={{ background: '#fff', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-                                    <span style={{ color: '#64748b' }}>📚 Asignatura: </span>
+                                  <div style={{ background: '#fff', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <BookOpen size={13} style={{ color: '#64748b' }} />
+                                    <span style={{ color: '#64748b' }}>Asignatura: </span>
                                     <strong style={{ color: '#1e293b' }}>{tarea.materia_nombre || tarea.materia}</strong>
                                   </div>
-                                  <div style={{ background: '#fff', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-                                    <span style={{ color: '#64748b' }}>📅 Fecha límite: </span>
+                                  <div style={{ background: '#fff', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <Calendar size={13} style={{ color: '#64748b' }} />
+                                    <span style={{ color: '#64748b' }}>Fecha límite: </span>
                                     <strong style={{ color: '#1e293b' }}>
                                       {tarea.fecha_vencimiento ? formatearFechaHora(tarea.fecha_vencimiento) : 'Sin fecha'}
                                     </strong>
                                   </div>
-                                  <div style={{ background: '#fff', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-                                    <span style={{ color: '#64748b' }}>📊 Estado entrega: </span>
+                                  <div style={{ background: '#fff', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <Activity size={13} style={{ color: '#64748b' }} />
+                                    <span style={{ color: '#64748b' }}>Estado: </span>
                                     <strong style={{ color: '#1e293b' }}>
                                       {tarea.calificacion !== null ? 'Calificado' : (tarea.entrega_estado === 'ENTREGADA' ? 'Entregado' : (tarea.estado_calculado === 'PROXIMA_A_VENCER' ? 'Próximo a vencer' : (tarea.estado_calculado === 'VENCIDA' ? 'Vencida' : 'Pendiente')))}
                                     </strong>
@@ -576,9 +624,13 @@ export default function FamiliaHome() {
                                     background: '#ecfdf5',
                                     border: '1px solid #a7f3d0',
                                     fontSize: '0.82rem',
-                                    color: '#065f46'
+                                    color: '#065f46',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
                                   }}>
-                                    <strong>💬 Retroalimentación del Docente:</strong> {tarea.comentarios}
+                                    <MessageSquareQuote size={14} style={{ flexShrink: 0 }} />
+                                    <span><strong>Retroalimentación del Docente:</strong> {tarea.comentarios}</span>
                                   </div>
                                 )}
                               </div>
@@ -708,21 +760,23 @@ export default function FamiliaHome() {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  fontSize: '1.5rem',
                   color: 'var(--text-secondary)',
                   cursor: 'pointer',
-                  padding: '0 0.5rem',
-                  lineHeight: '1'
+                  padding: '0.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
-                &times;
+                <X size={20} />
               </button>
             </div>
 
             {/* Contenido del Modal */}
             <div style={{ padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                📅 Publicado: {circularSeleccionada.fecha_publicacion ? formatearFechaHora(circularSeleccionada.fecha_publicacion) : 'Reciente'}
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Calendar size={13} />
+                <span>Publicado: {circularSeleccionada.fecha_publicacion ? formatearFechaHora(circularSeleccionada.fecha_publicacion) : 'Reciente'}</span>
               </div>
               <div style={{ 
                 color: 'var(--text-primary)', 

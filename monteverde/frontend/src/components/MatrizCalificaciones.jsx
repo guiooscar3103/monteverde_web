@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import { ClipboardList, Lightbulb } from 'lucide-react';
 
 /**
  * MatrizCalificaciones
@@ -111,7 +112,9 @@ export default function MatrizCalificaciones({ estudiantes, onNotaChange, loadin
   if (!estudiantes?.length) {
     return (
       <div className="matriz-empty">
-        <div className="matriz-empty-icon">📋</div>
+        <div className="matriz-empty-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+          <ClipboardList size={44} strokeWidth={1.5} style={{ color: 'var(--text-secondary)' }} />
+        </div>
         <p>No hay estudiantes en este curso.</p>
       </div>
     );
@@ -253,7 +256,10 @@ export default function MatrizCalificaciones({ estudiantes, onNotaChange, loadin
         <span className="leyenda-item"><span className="dot dot-rojo" />&lt; {APROBATORIO} reprobado</span>
         <span className="leyenda-item"><span className="dot dot-pendiente" />Pendiente</span>
         <span className="leyenda-sep">|</span>
-        <span className="leyenda-tip">💡 Navega con <kbd>Tab</kbd> / <kbd>Enter</kbd> entre celdas</span>
+        <span className="leyenda-tip" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <Lightbulb size={13} style={{ color: 'var(--brand)' }} />
+          <span>Navega con <kbd>Tab</kbd> / <kbd>Enter</kbd> entre celdas</span>
+        </span>
       </div>
     </div>
   );

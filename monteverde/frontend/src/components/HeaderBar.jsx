@@ -1,3 +1,4 @@
+import { LogOut } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import logoColegio from '../assets/img/logo-colegio.png';
 import iconoDocente from '../assets/img/icono docente.png';
@@ -83,16 +84,17 @@ export default function HeaderBar({ usuario, rol }) {
           </span>
         </div>
         <button 
-          className="btn btn--secondary" 
+          className="btn btn--secondary btn-icon" 
           onClick={salir}
           style={{
-            padding: '0.45rem 1rem',
+            padding: '0.45rem 0.85rem',
             minWidth: 'auto',
             borderRadius: 'var(--radius-xs)',
             fontSize: '0.8rem'
           }}
         >
-          Cerrar sesión
+          <LogOut size={15} />
+          <span>Cerrar sesión</span>
         </button>
       </div>
     </header>
