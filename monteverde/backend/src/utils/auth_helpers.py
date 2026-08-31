@@ -1,6 +1,7 @@
 from functools import wraps
-from flask import jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from flask import jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from src.extensions import db
 from src.models.usuario import Usuario
 
 def role_required(*allowed_roles):
@@ -10,11 +11,16 @@ def role_required(*allowed_roles):
         @jwt_required()
         def decorated_function(*args, **kwargs):
             current_user_id = get_jwt_identity()
+            if not current_user_id:
+                return jsonify({'message': 'Token no válido o no suministrado'}), 401
             
             # Obtener usuario actual
-            user = Usuario.query.get(current_user_id)
-            if not user:
-                return jsonify({'message': 'Usuario no encontrado'}), 404
+            user = db.session.get(Usuario, int(current_user_id))
+            if not user or user.eliminado:
+                return jsonify({'message': 'Usuario no encontrado o inactivo'}), 404
+            
+            if not user.activo:
+                return jsonify({'message': 'Esta cuenta ha sido desactivada por el administrador'}), 403
             
             # Verificar rol
             if user.rol not in allowed_roles:
@@ -32,6 +38,9 @@ def get_current_user():
     """Obtener usuario actual desde JWT"""
     try:
         current_user_id = get_jwt_identity()
-        return Usuario.query.get(current_user_id)
+        if not current_user_id:
+            return None
+        return db.session.get(Usuario, int(current_user_id))
     except Exception:
         return None
+

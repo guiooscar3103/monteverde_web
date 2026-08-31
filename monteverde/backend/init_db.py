@@ -138,36 +138,113 @@ try:
         # ====================================================
         # CREAR TABLA materias SI NO EXISTE
         # ====================================================
+        # CREAR / MIGRAR TABLA materias
+        # ====================================================
         try:
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS materias (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     nombre VARCHAR(100) UNIQUE NOT NULL,
-                    descripcion VARCHAR(255) NULL
+                    codigo VARCHAR(20) UNIQUE NULL,
+                    descripcion VARCHAR(255) NULL,
+                    area VARCHAR(100) NULL,
+                    intensidad_horaria INT NOT NULL DEFAULT 0,
+                    activo TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
                 """
             )
             print("[OK] Tabla 'materias' verificada o creada.")
 
+            # Migración de columnas en materias si no existen
+            materia_cols = [
+                ("codigo", "VARCHAR(20) UNIQUE NULL"),
+                ("area", "VARCHAR(100) NULL"),
+                ("intensidad_horaria", "INT NOT NULL DEFAULT 0"),
+                ("activo", "TINYINT(1) NOT NULL DEFAULT 1"),
+                ("created_at", "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+                ("updated_at", "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+            ]
+            for col_name, col_def in materia_cols:
+                try:
+                    cursor.execute(f"ALTER TABLE materias ADD COLUMN {col_name} {col_def};")
+                except Exception:
+                    pass
+
             cursor.execute("SELECT COUNT(*) FROM materias;")
             materia_count = cursor.fetchone()[0]
             if materia_count == 0:
                 default_materias = [
-                    ('Matemáticas', 'Materia de cálculo, álgebra y geometría'),
-                    ('Lenguaje', 'Materia de comprensión lectora y expresión escrita'),
-                    ('Ciencias Naturales', 'Materia de ciencias y biología'),
-                    ('Ciencias Sociales', 'Materia de historia y geografía'),
-                    ('Inglés', 'Materia de idioma extranjero'),
-                    ('Educación Física', 'Materia de deporte y actividad física')
+                    ('Matemáticas', 'MAT', 'Materia de cálculo, álgebra y geometría', 'Matemáticas', 5),
+                    ('Lenguaje', 'LEN', 'Materia de comprensión lectora y expresión escrita', 'Humanidades y Lengua Castellana', 5),
+                    ('Ciencias Naturales', 'CNAT', 'Materia de ciencias y biología', 'Ciencias Naturales', 4),
+                    ('Ciencias Sociales', 'CSOC', 'Materia de historia y geografía', 'Ciencias Sociales', 4),
+                    ('Inglés', 'ING', 'Materia de idioma extranjero', 'Idiomas Extranjeros', 3),
+                    ('Educación Física', 'EDF', 'Materia de deporte y actividad física', 'Educación Física', 2)
                 ]
                 cursor.executemany(
-                    "INSERT INTO materias (nombre, descripcion) VALUES (%s, %s);",
+                    "INSERT INTO materias (nombre, codigo, descripcion, area, intensidad_horaria) VALUES (%s, %s, %s, %s, %s);",
                     default_materias
                 )
                 print("[OK] Se insertaron materias por defecto en la tabla 'materias'.")
+            else:
+                # Asegurar que las materias existentes tengan códigos y áreas si están nulos
+                updates = [
+                    ('MAT', 'Matemáticas', 5, 'Matemáticas'),
+                    ('LEN', 'Humanidades y Lengua Castellana', 5, 'Lenguaje'),
+                    ('CNAT', 'Ciencias Naturales', 4, 'Ciencias Naturales'),
+                    ('CSOC', 'Ciencias Sociales', 4, 'Ciencias Sociales'),
+                    ('ING', 'Idiomas Extranjeros', 3, 'Inglés'),
+                    ('EDF', 'Educación Física', 2, 'Educación Física'),
+                ]
+                for cod, area, horas, nom in updates:
+                    cursor.execute(
+                        "UPDATE materias SET codigo = COALESCE(codigo, %s), area = COALESCE(area, %s), intensidad_horaria = CASE WHEN intensidad_horaria = 0 THEN %s ELSE intensidad_horaria END WHERE nombre = %s;",
+                        (cod, area, horas, nom)
+                    )
         except Exception as e:
-            print(f"[WARN] No se pudo crear la tabla 'materias': {e}")
+            print(f"[WARN] No se pudo procesar la tabla 'materias': {e}")
+
+        # ====================================================
+        # CREAR TABLA curso_materia SI NO EXISTE
+        # ====================================================
+        try:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS curso_materia (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    curso_id INT NOT NULL,
+                    materia_id INT NOT NULL,
+                    intensidad_horaria INT NULL,
+                    activo TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT fk_curso_materia_curso FOREIGN KEY (curso_id) REFERENCES cursos(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_curso_materia_materia FOREIGN KEY (materia_id) REFERENCES materias(id) ON DELETE CASCADE,
+                    UNIQUE KEY uq_curso_materia (curso_id, materia_id)
+                ) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+                """
+            )
+            print("[OK] Tabla 'curso_materia' verificada o creada.")
+
+            # Si curso_materia está vacía, asociar materias activas a los cursos existentes
+            cursor.execute("SELECT COUNT(*) FROM curso_materia;")
+            cm_count = cursor.fetchone()[0]
+            if cm_count == 0:
+                cursor.execute("SELECT id FROM cursos;")
+                curso_rows = cursor.fetchall()
+                cursor.execute("SELECT id, intensidad_horaria FROM materias WHERE activo = 1;")
+                materia_rows = cursor.fetchall()
+                for (cid,) in curso_rows:
+                    for mid, horas in materia_rows:
+                        cursor.execute(
+                            "INSERT IGNORE INTO curso_materia (curso_id, materia_id, intensidad_horaria, activo) VALUES (%s, %s, %s, 1);",
+                            (cid, mid, horas)
+                        )
+                print("[OK] Se asociaron materias base a los cursos existentes en 'curso_materia'.")
+        except Exception as e:
+            print(f"[WARN] No se pudo crear la tabla 'curso_materia': {e}")
 
         # ====================================================
         # CREAR TABLA docente_asignacion SI NO EXISTE
@@ -209,32 +286,71 @@ try:
                 hashed_count += 1
                 
         # ====================================================
-        # USUARIOS SEED BÁSICOS
+        # USUARIOS SEED BÁSICOS (Admin, Docente, Familia)
         # ====================================================
         try:
-            cursor.execute("SELECT id FROM usuarios WHERE email = 'familia@monteverde.com';")
-            fam_exists = cursor.fetchone()
-            if not fam_exists:
-                cursor.execute("SELECT id FROM estudiantes LIMIT 1;")
-                primer_est = cursor.fetchone()
-                est_id = primer_est[0] if primer_est else None
-                hashed_pass = generate_password_hash('familia123')
+            from werkzeug.security import generate_password_hash
+            
+            # 1. Admin por defecto
+            cursor.execute("SELECT id FROM usuarios WHERE email = 'admin@monteverde.com';")
+            if not cursor.fetchone():
                 cursor.execute(
                     """
                     INSERT INTO usuarios (nombre, email, password, rol, estudiante_id, activo, eliminado)
-                    VALUES (%s, %s, %s, %s, %s, 1, 0);
+                    VALUES (%s, %s, %s, %s, NULL, 1, 0);
                     """,
-                    ('Familia MonteVerde', 'familia@monteverde.com', hashed_pass, 'familia', est_id)
+                    ('Administrador Sistema', 'admin@monteverde.com', generate_password_hash('admin123'), 'admin')
                 )
-                new_fam_id = cursor.lastrowid
+                print("[OK] Usuario 'admin@monteverde.com' creado.")
+
+            # 2. Docente por defecto
+            cursor.execute("SELECT id FROM usuarios WHERE email = 'docente@monteverde.com';")
+            if not cursor.fetchone():
+                cursor.execute(
+                    """
+                    INSERT INTO usuarios (nombre, email, password, rol, estudiante_id, activo, eliminado)
+                    VALUES (%s, %s, %s, %s, NULL, 1, 0);
+                    """,
+                    ('María García López', 'docente@monteverde.com', generate_password_hash('docente123'), 'docente')
+                )
+                print("[OK] Usuario 'docente@monteverde.com' creado.")
+
+            # 3. Familia por defecto (soportar ambos emails de acceso: familiagonzalez@monteverde.com y familia@monteverde.com)
+            cursor.execute("SELECT id FROM estudiantes LIMIT 1;")
+            primer_est = cursor.fetchone()
+            est_id = primer_est[0] if primer_est else None
+
+            familias_seed = [
+                ('Familia González', 'familiagonzalez@monteverde.com', 'familia123'),
+                ('Familia González', 'familia@monteverde.com', 'familia123')
+            ]
+
+            for fam_nombre, fam_email, fam_pass in familias_seed:
+                cursor.execute("SELECT id FROM usuarios WHERE email = %s;", (fam_email,))
+                fam_row = cursor.fetchone()
+                if not fam_row:
+                    hashed_pass = generate_password_hash(fam_pass)
+                    cursor.execute(
+                        """
+                        INSERT INTO usuarios (nombre, email, password, rol, estudiante_id, activo, eliminado)
+                        VALUES (%s, %s, %s, %s, %s, 1, 0);
+                        """,
+                        (fam_nombre, fam_email, hashed_pass, 'familia', est_id)
+                    )
+                    new_fam_id = cursor.lastrowid
+                    print(f"[OK] Usuario '{fam_email}' creado con éxito.")
+                else:
+                    new_fam_id = fam_row[0]
+                    # Asegurar que esté activo
+                    cursor.execute("UPDATE usuarios SET activo = 1, eliminado = 0 WHERE id = %s;", (new_fam_id,))
+
                 if est_id and new_fam_id:
                     cursor.execute(
                         "INSERT IGNORE INTO familia_estudiante (familia_id, estudiante_id) VALUES (%s, %s);",
                         (new_fam_id, est_id)
                     )
-                print("[OK] Usuario 'familia@monteverde.com' creado con éxito.")
         except Exception as e:
-            print(f"[WARN] No se pudo verificar o crear usuario familia por defecto: {e}")
+            print(f"[WARN] No se pudo verificar o crear usuarios semilla: {e}")
 
         # ====================================================
         # TABLA configuracion_institucional (MIGRACIÓN 03)
@@ -298,6 +414,49 @@ try:
             print("[OK] Tabla 'conversaciones_archivadas' verificada o creada con éxito.")
         except Exception as e:
             print(f"[WARN] No se pudo verificar/crear la tabla 'conversaciones_archivadas': {e}")
+
+        # ====================================================
+        # TABLA configuracion_evaluacion
+        # ====================================================
+        try:
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS configuracion_evaluacion (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    anio_academico INT NOT NULL,
+                    nombre VARCHAR(150) NOT NULL DEFAULT 'Configuración Académica Estándar',
+                    tipo_periodo VARCHAR(50) NOT NULL DEFAULT 'Bimestre',
+                    numero_periodos INT NOT NULL DEFAULT 4,
+                    indicadores_por_periodo INT NOT NULL DEFAULT 2,
+                    notas_por_indicador INT NOT NULL DEFAULT 3,
+                    tipo_escala VARCHAR(50) NOT NULL DEFAULT 'NUMERICA_CINCO',
+                    escala_minima DECIMAL(5,2) NOT NULL DEFAULT 1.00,
+                    escala_maxima DECIMAL(5,2) NOT NULL DEFAULT 5.00,
+                    nota_aprobatoria DECIMAL(5,2) NOT NULL DEFAULT 3.00,
+                    activa TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    usuario_actualizo_id INT NULL,
+                    UNIQUE KEY uq_config_eval_anio (anio_academico),
+                    CONSTRAINT fk_config_eval_usuario FOREIGN KEY (usuario_actualizo_id) 
+                        REFERENCES usuarios (id) ON DELETE SET NULL ON UPDATE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+                """
+            )
+            cursor.execute(
+                """
+                INSERT INTO configuracion_evaluacion 
+                  (anio_academico, nombre, tipo_periodo, numero_periodos, indicadores_por_periodo, notas_por_indicador, tipo_escala, escala_minima, escala_maxima, nota_aprobatoria, activa)
+                SELECT 
+                  2026, 'Configuración Académica 2026', 'Bimestre', 4, 2, 3, 'NUMERICA_CINCO', 1.00, 5.00, 3.00, 1
+                WHERE NOT EXISTS (
+                  SELECT 1 FROM configuracion_evaluacion WHERE anio_academico = 2026
+                );
+                """
+            )
+            print("[OK] Tabla 'configuracion_evaluacion' verificada o creada con datos iniciales.")
+        except Exception as e:
+            print(f"[WARN] No se pudo verificar/crear la tabla 'configuracion_evaluacion': {e}")
 
         conn.close()
 

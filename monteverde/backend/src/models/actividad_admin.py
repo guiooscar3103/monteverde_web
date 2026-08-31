@@ -13,6 +13,18 @@ class ActividadAdmin(db.Model):
     # Relación del log de actividad con el usuario
     usuario = db.relationship('Usuario', backref=db.backref('actividades_admin', lazy=True))
     
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -20,5 +32,5 @@ class ActividadAdmin(db.Model):
             'usuario_nombre': self.usuario.nombre if self.usuario else 'Sistema',
             'accion': self.accion,
             'detalles': self.detalles,
-            'fecha': self.fecha.isoformat() if self.fecha else None
+            'fecha': self._fmt(self.fecha)
         }

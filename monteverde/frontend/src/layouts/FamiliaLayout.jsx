@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
   Home,
   Award,
@@ -9,13 +9,8 @@ import { useAuth } from '../hooks/useAuth';
 import logoColegio from '../assets/img/logo-colegio.png';
 
 export default function FamiliaLayout() {
-  const { user, usuario, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, usuario } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   const navItems = [
     { 

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 from sqlalchemy import func, extract, and_
 from src.extensions import db
@@ -7,22 +7,31 @@ from src.models.estudiante import Estudiante
 from src.models.curso import Curso
 from src.models.mensaje import Mensaje
 from src.models.calificacion import Calificacion
+from src.models.calificacion_bimestre import CalificacionBimestre
 from src.models.asistencia import Asistencia
 from src.models.observacion import Observacion
 from src.models.docente_asignacion import DocenteAsignacion
 from src.models.tarea import Tarea
 from src.models.entrega import Entrega
+from src.services.rendimiento_academico_service import RendimientoAcademicoService
 from src.utils.auth_helpers import role_required, get_current_user
 
 dashboard_bp = Blueprint('dashboard_custom', __name__)
 
 def _calcular_estadisticas_estudiante(estudiante):
-    """Calcular estadísticas de un estudiante"""
+    """Calcular estadísticas de un estudiante considerando notas bimestrales e historial."""
     curso = Curso.query.get(estudiante.curso_id)
     
-    # Calificaciones
-    calificaciones = Calificacion.query.filter_by(estudiante_id=estudiante.id).all()
-    promedio = sum(c.nota for c in calificaciones) / len(calificaciones) if calificaciones else 0
+    # Calificaciones: priorizar calificaciones bimestrales con fallback a legacy
+    califs_bim = CalificacionBimestre.query.filter_by(estudiante_id=estudiante.id).all()
+    if califs_bim:
+        total_notas = len(califs_bim)
+        promedio = round(sum(float(c.nota) for c in califs_bim) / total_notas, 2)
+    else:
+        calificaciones_legacy = Calificacion.query.filter_by(estudiante_id=estudiante.id).all()
+        total_notas = len(calificaciones_legacy)
+        promedio = round(sum(float(c.nota) for c in calificaciones_legacy) / total_notas, 2) if calificaciones_legacy else 0.0
+
     
     # Asistencia del mes actual
     asistencias_mes = Asistencia.query.filter(
@@ -50,12 +59,13 @@ def _calcular_estadisticas_estudiante(estudiante):
         'curso': curso.nombre if curso else 'Sin curso',
         'curso_id': estudiante.curso_id,
         'promedio': float(promedio),
-        'total_notas': len(calificaciones),
+        'total_notas': total_notas,
         'asistencia_porcentaje': asistencia_porcentaje,
         'dias_presentes': dias_presentes,
         'total_dias': total_dias,
         'observaciones_mes': observaciones_mes
     }
+
 
 @dashboard_bp.route('/docente/dashboard', methods=['GET'])
 @role_required('docente', 'admin')
@@ -198,4 +208,70 @@ def get_familia_dashboard(familia_id):
     except Exception as e:
         print(f"❌ Error dashboard familia: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@dashboard_bp.route('/docente/rendimiento-academico', methods=['GET'])
+@role_required('docente', 'admin')
+def get_docente_rendimiento_academico():
+    """
+    Rendimiento académico y estadísticas para docentes.
+    
+    El docente_id se obtiene exclusivamente del JWT autenticado para prevenir IDOR.
+    Permite filtrar opcionalmente por ?bimestre_id=<int>.
+    """
+    try:
+        docente = get_current_user()
+        if not docente:
+            return jsonify({'success': False, 'message': 'Docente no autenticado'}), 401
+
+        bimestre_id = request.args.get('bimestre_id', type=int)
+        
+        datos = RendimientoAcademicoService.obtener_rendimiento_docente(
+            docente_id=docente.id,
+            bimestre_id=bimestre_id
+        )
+
+        return jsonify({
+            'success': True,
+            'data': datos
+        }), 200
+
+    except ValueError as val_err:
+        return jsonify({'success': False, 'message': str(val_err)}), 404
+    except Exception as exc:
+        print(f"❌ Error rendimiento academico docente: {exc}")
+        return jsonify({'success': False, 'message': 'Error al procesar el rendimiento académico'}), 500
+
+
+@dashboard_bp.route('/teacher/my-courses', methods=['GET'])
+@role_required('docente')
+def get_teacher_my_courses():
+    """Obtiene los cursos y asignaturas asignados al docente en sesión."""
+    try:
+        docente = get_current_user()
+        if not docente:
+            return jsonify({'success': False, 'message': 'Docente no encontrado en sesión'}), 404
+
+        asignaciones = DocenteAsignacion.query.filter_by(docente_id=docente.id).all()
+        grouped = {}
+
+        for asignacion in asignaciones:
+            curso_id = asignacion.curso_id
+            if curso_id not in grouped:
+                grouped[curso_id] = {
+                    'curso_id': curso_id,
+                    'curso_nombre': asignacion.curso_nombre,
+                    'curso_nivel': asignacion.curso_nivel,
+                    'curso_letra': asignacion.curso_letra,
+                    'materias': []
+                }
+            grouped[curso_id]['materias'].append({
+                'materia_id': asignacion.materia_id,
+                'materia_nombre': asignacion.materia_nombre
+            })
+
+        return jsonify({'success': True, 'data': list(grouped.values())}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': 'Error obteniendo cursos del docente', 'error': str(e)}), 500
+
 

@@ -8,17 +8,19 @@ import {
   ClipboardList,
   BookOpen,
   CalendarCheck,
-  MessageSquare
+  MessageSquare,
+  TrendingUp,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { getCursos, getDocenteDashboard, getMensajes, getCirculares, formatearFecha, formatearFechaHora } from '../../services/api';
+import { getDocenteDashboard, getCirculares, formatearFecha, formatearFechaHora } from '../../services/api';
 import docenteImg from '../../assets/img/docente.png';
+import DocenteAcademicDashboard from '../../components/docente/DocenteAcademicDashboard';
 
 export default function DocenteHome() {
   const { usuario } = useAuth();
-  const [cursos, setCursos] = useState([]);
+  const [vistaActiva, setVistaActiva] = useState('rendimiento'); // 'rendimiento' | 'agenda'
   const [dashboardData, setDashboardData] = useState(null);
-  const [ultimoMensaje, setUltimoMensaje] = useState(null);
   const [circulares, setCirculares] = useState([]);
   const [circularSeleccionada, setCircularSeleccionada] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,23 +29,16 @@ export default function DocenteHome() {
     const cargarDatos = async () => {
       try {
         setLoading(true);
-        const [cursosData] = await Promise.all([
-          getCursos(),
-          // Cargar circulares en paralelo
-          (async () => {
-            try {
-              const circularesRes = await getCirculares(5);
-              if (circularesRes) {
-                const listaCirculares = circularesRes.data ? circularesRes.data : circularesRes;
-                setCirculares(listaCirculares);
-              }
-            } catch (err) {
-              console.warn('Circulares no disponibles en Home:', err);
-            }
-          })()
-        ]);
-        
-        setCursos(cursosData);
+        // Cargar circulares en paralelo
+        try {
+          const circularesRes = await getCirculares(5);
+          if (circularesRes) {
+            const listaCirculares = circularesRes.data ? circularesRes.data : circularesRes;
+            setCirculares(listaCirculares);
+          }
+        } catch (err) {
+          console.warn('Circulares no disponibles en Home:', err);
+        }
 
         if (usuario?.id) {
           try {
@@ -52,15 +47,6 @@ export default function DocenteHome() {
           } catch (err) {
             console.warn('Dashboard data no disponible, usando datos por defecto:', err);
           }
-
-          try {
-            const mensajesData = await getMensajes(usuario.id);
-            if (mensajesData && mensajesData.length > 0) {
-              setUltimoMensaje(mensajesData[0]);
-            }
-          } catch (err) {
-            console.warn('Mensajes no disponibles:', err);
-          }
         }
       } catch (err) {
         console.error('Error al cargar datos del dashboard:', err);
@@ -68,6 +54,7 @@ export default function DocenteHome() {
         setLoading(false);
       }
     };
+
 
     if (usuario) {
       cargarDatos();
@@ -112,170 +99,241 @@ export default function DocenteHome() {
         </div>
       </BlurFade>
 
-      <div className="dashboard-grid dashboard-grid--3">
-        <BlurFade delay={0.1} duration={0.4}>
-          <Card className="card-slim" title="Agenda Diaria">
-            <div style={{ display: 'grid', gap: '0.85rem' }}>
-              {agendaHoy.map((item, index) => (
-                <div key={index} style={{ padding: '1rem', background: 'rgba(255,255,255,.92)', borderRadius: '16px', border: '1px solid rgba(14, 77, 43, .08)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.5rem' }}>
-                    <strong>{item.hora}</strong>
-                    <span className="status-chip status-chip--green">Programado</span>
-                  </div>
-                  <div style={{ fontWeight: 700, color: 'var(--brand)' }}>{item.clase}</div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '.95rem' }}>{item.grado} · {item.sala}</div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </BlurFade>
+      {/* Selector de Pestañas Principales en Home */}
+      <div style={{
+        display: 'inline-flex',
+        background: '#E2E8F0',
+        padding: '5px',
+        borderRadius: '16px',
+        border: '1px solid var(--border)',
+        gap: '6px',
+        width: 'fit-content'
+      }}>
+        <button
+          onClick={() => setVistaActiva('rendimiento')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 18px',
+            borderRadius: '12px',
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            background: vistaActiva === 'rendimiento' ? '#ffffff' : 'transparent',
+            color: vistaActiva === 'rendimiento' ? 'var(--brand)' : 'var(--text-secondary)',
+            boxShadow: vistaActiva === 'rendimiento' ? 'var(--shadow-sm)' : 'none'
+          }}
+        >
+          <TrendingUp size={17} color={vistaActiva === 'rendimiento' ? '#0A3A20' : '#64748B'} />
+          <span>Rendimiento Académico</span>
+          <span style={{
+            background: '#E6F4EA',
+            color: '#0A3A20',
+            fontSize: '0.7rem',
+            fontWeight: 800,
+            padding: '2px 8px',
+            borderRadius: '10px'
+          }}>
+            Oficial
+          </span>
+        </button>
+        <button
+          onClick={() => setVistaActiva('agenda')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 18px',
+            borderRadius: '12px',
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            background: vistaActiva === 'agenda' ? '#ffffff' : 'transparent',
+            color: vistaActiva === 'agenda' ? 'var(--brand)' : 'var(--text-secondary)',
+            boxShadow: vistaActiva === 'agenda' ? 'var(--shadow-sm)' : 'none'
+          }}
+        >
+          <CalendarCheck size={17} color={vistaActiva === 'agenda' ? '#0A3A20' : '#64748B'} />
+          <span>Agenda y Tareas</span>
+        </button>
+      </div>
 
-        <BlurFade delay={0.15} duration={0.4}>
-          <Card className="card-slim" title="Tareas Pendientes por Calificar">
-            <div style={{ display: 'grid', gap: '0.85rem' }}>
-              {tareasPendientes.length === 0 ? (
-                <div style={{ color: 'var(--text-secondary)', padding: '1.5rem', textAlign: 'center', fontSize: '0.95rem' }}>
-                  No tienes tareas pendientes
+      {vistaActiva === 'rendimiento' ? (
+        <DocenteAcademicDashboard />
+      ) : (
+        <>
+          <div className="dashboard-grid dashboard-grid--3">
+            <BlurFade delay={0.1} duration={0.4}>
+              <Card className="card-slim" title="Agenda Diaria">
+                <div style={{ display: 'grid', gap: '0.85rem' }}>
+                  {agendaHoy.map((item, index) => (
+                    <div key={index} style={{ padding: '1rem', background: 'rgba(255,255,255,.92)', borderRadius: '16px', border: '1px solid rgba(14, 77, 43, .08)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.5rem' }}>
+                        <strong>{item.hora}</strong>
+                        <span className="status-chip status-chip--green">Programado</span>
+                      </div>
+                      <div style={{ fontWeight: 700, color: 'var(--brand)' }}>{item.clase}</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '.95rem' }}>{item.grado} · {item.sala}</div>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                tareasPendientes.map((tarea, index) => (
-                  <div key={tarea.id || index} style={{ padding: '1rem', borderRadius: '16px', background: 'var(--surface)', border: '1px solid rgba(14, 77, 43, .08)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.35rem' }}>
-                      <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{tarea.titulo}</strong>
-                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 600 }}>
-                        {tarea.entregas ?? 0}/{tarea.total_estudiantes ?? 0} entregas
-                      </span>
+              </Card>
+            </BlurFade>
+
+            <BlurFade delay={0.15} duration={0.4}>
+              <Card className="card-slim" title="Tareas Pendientes por Calificar">
+                <div style={{ display: 'grid', gap: '0.85rem' }}>
+                  {tareasPendientes.length === 0 ? (
+                    <div style={{ color: 'var(--text-secondary)', padding: '1.5rem', textAlign: 'center', fontSize: '0.95rem' }}>
+                      No tienes tareas pendientes
                     </div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '.88rem', marginBottom: '.4rem' }}>
-                      {tarea.curso || tarea.grado} · <span style={{ color: 'var(--brand)', fontWeight: 600 }}>{tarea.asignatura || 'General'}</span>
+                  ) : (
+                    tareasPendientes.map((tarea, index) => (
+                      <div key={tarea.id || index} style={{ padding: '1rem', borderRadius: '16px', background: 'var(--surface)', border: '1px solid rgba(14, 77, 43, .08)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.35rem' }}>
+                          <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{tarea.titulo}</strong>
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 600 }}>
+                            {tarea.entregas ?? 0}/{tarea.total_estudiantes ?? 0} entregas
+                          </span>
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '.88rem', marginBottom: '.4rem' }}>
+                          {tarea.curso || tarea.grado} · <span style={{ color: 'var(--brand)', fontWeight: 600 }}>{tarea.asignatura || 'General'}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span className={`status-chip ${tarea.urgencia === 'hoy' ? 'status-chip--red' : tarea.urgencia === 'mañana' ? 'status-chip--yellow' : 'status-chip--green'}`}>
+                            {tarea.urgencia === 'hoy' ? 'Vence Hoy' : tarea.urgencia === 'mañana' ? 'Vence Mañana' : 'Planificado'}
+                          </span>
+                          {tarea.fecha_vencimiento && (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                              {formatearFecha(tarea.fecha_vencimiento)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+            </BlurFade>
+
+            <BlurFade delay={0.2} duration={0.4}>
+              <Card className="card-slim" title="Accesos Rápidos">
+                <div className="dashboard-grid dashboard-grid--2" style={{ gap: '1rem' }}>
+                  <ButtonLink to="/docente/rendimiento" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <TrendingUp size={18} />
+                    <span>Rendimiento</span>
+                  </ButtonLink>
+                  <ButtonLink to="/docente/tareas" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <ClipboardList size={18} />
+                    <span>Gestionar Tareas</span>
+                  </ButtonLink>
+                  <ButtonLink to="/docente/calificaciones" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <BookOpen size={18} />
+                    <span>Calificaciones</span>
+                  </ButtonLink>
+                  <ButtonLink to="/docente/mensajes" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <MessageSquare size={18} />
+                    <span>Ver Mensajes</span>
+                  </ButtonLink>
+                </div>
+              </Card>
+            </BlurFade>
+          </div>
+
+          <div className="dashboard-grid dashboard-grid--2">
+            <BlurFade delay={0.25} duration={0.45}>
+              <Card title="Resumen General" className="card-slim">
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderRadius: '16px', background: 'var(--surface)' }}>
+                    <div>
+                      <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--brand)' }}>{dashboardData?.estadisticas?.total_estudiantes ?? '24'}</div>
+                      <div style={{ color: 'var(--text-secondary)' }}>Estudiantes activos</div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className={`status-chip ${tarea.urgencia === 'hoy' ? 'status-chip--red' : tarea.urgencia === 'mañana' ? 'status-chip--yellow' : 'status-chip--green'}`}>
-                        {tarea.urgencia === 'hoy' ? 'Vence Hoy' : tarea.urgencia === 'mañana' ? 'Vence Mañana' : 'Planificado'}
-                      </span>
-                      {tarea.fecha_vencimiento && (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          {formatearFecha(tarea.fecha_vencimiento)}
+                    <div className="status-chip status-chip--green">+4%</div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderRadius: '16px', background: 'var(--surface)' }}>
+                    <div>
+                      <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--brand)' }}>{dashboardData?.estadisticas?.total_cursos ?? '8'}</div>
+                      <div style={{ color: 'var(--text-secondary)' }}>Cursos activos</div>
+                    </div>
+                    <div className="status-chip status-chip--yellow">Estable</div>
+                  </div>
+                </div>
+              </Card>
+            </BlurFade>
+
+            <BlurFade delay={0.3} duration={0.45}>
+              <Card title="Últimas Circulares" className="card-slim">
+                {circulares.length === 0 ? (
+                  <div style={{ color: 'var(--text-secondary)', padding: '1.5rem', textAlign: 'center', fontSize: '0.95rem' }}>
+                    No hay circulares publicadas todavía.
+                  </div>
+                ) : (
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '350px', overflowY: 'auto' }}>
+                    {circulares.map((c) => (
+                      <li 
+                        key={c.id} 
+                        onClick={() => setCircularSeleccionada(c)}
+                        style={{ 
+                          padding: '0.85rem 1.1rem', 
+                          borderRadius: '14px', 
+                          background: 'var(--surface)', 
+                          border: '1px solid rgba(16, 185, 129, 0.08)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '1rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                          e.currentTarget.style.background = 'rgba(16, 185, 129, 0.03)';
+                          e.currentTarget.style.transform = 'translateX(3px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.08)';
+                          e.currentTarget.style.background = 'var(--surface)';
+                          e.currentTarget.style.transform = 'none';
+                        }}
+                      >
+                        <span style={{ 
+                          fontWeight: 600, 
+                          color: 'var(--brand)', 
+                          fontSize: '0.925rem',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: '70%'
+                        }}>
+                          {c.titulo}
                         </span>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
-        </BlurFade>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          color: 'var(--text-secondary)',
+                          whiteSpace: 'nowrap',
+                          background: 'rgba(16, 185, 129, 0.06)',
+                          padding: '3px 9px',
+                          borderRadius: '20px',
+                          fontWeight: 600
+                        }}>
+                          {c.fecha_publicacion ? formatearFecha(c.fecha_publicacion) : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            </BlurFade>
+          </div>
+        </>
+      )}
 
-        <BlurFade delay={0.2} duration={0.4}>
-          <Card className="card-slim" title="Accesos Rápidos">
-            <div className="dashboard-grid dashboard-grid--2" style={{ gap: '1rem' }}>
-              <ButtonLink to="/docente/tareas" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <ClipboardList size={18} />
-                <span>Gestionar Tareas</span>
-              </ButtonLink>
-              <ButtonLink to="/docente/calificaciones" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <BookOpen size={18} />
-                <span>Calificaciones</span>
-              </ButtonLink>
-              <ButtonLink to="/docente/asistencia" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <CalendarCheck size={18} />
-                <span>Llamar Asistencia</span>
-              </ButtonLink>
-              <ButtonLink to="/docente/mensajes" variant="primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <MessageSquare size={18} />
-                <span>Ver Mensajes</span>
-              </ButtonLink>
-            </div>
-          </Card>
-        </BlurFade>
-      </div>
-
-      <div className="dashboard-grid dashboard-grid--2">
-        <BlurFade delay={0.25} duration={0.45}>
-          <Card title="Resumen General" className="card-slim">
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderRadius: '16px', background: 'var(--surface)' }}>
-                <div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--brand)' }}>{dashboardData?.estadisticas?.total_estudiantes ?? '24'}</div>
-                  <div style={{ color: 'var(--text-secondary)' }}>Estudiantes activos</div>
-                </div>
-                <div className="status-chip status-chip--green">+4%</div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderRadius: '16px', background: 'var(--surface)' }}>
-                <div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--brand)' }}>{dashboardData?.estadisticas?.total_cursos ?? '8'}</div>
-                  <div style={{ color: 'var(--text-secondary)' }}>Cursos activos</div>
-                </div>
-                <div className="status-chip status-chip--yellow">Estable</div>
-              </div>
-            </div>
-          </Card>
-        </BlurFade>
-
-        <BlurFade delay={0.3} duration={0.45}>
-          <Card title="Últimas Circulares" className="card-slim">
-            {circulares.length === 0 ? (
-              <div style={{ color: 'var(--text-secondary)', padding: '1.5rem', textAlign: 'center', fontSize: '0.95rem' }}>
-                No hay circulares publicadas todavía.
-              </div>
-            ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '350px', overflowY: 'auto' }}>
-                {circulares.map((c) => (
-                  <li 
-                    key={c.id} 
-                    onClick={() => setCircularSeleccionada(c)}
-                    style={{ 
-                      padding: '0.85rem 1.1rem', 
-                      borderRadius: '14px', 
-                      background: 'var(--surface)', 
-                      border: '1px solid rgba(16, 185, 129, 0.08)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-                      e.currentTarget.style.background = 'rgba(16, 185, 129, 0.03)';
-                      e.currentTarget.style.transform = 'translateX(3px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.08)';
-                      e.currentTarget.style.background = 'var(--surface)';
-                      e.currentTarget.style.transform = 'none';
-                    }}
-                  >
-                    <span style={{ 
-                      fontWeight: 600, 
-                      color: 'var(--brand)', 
-                      fontSize: '0.925rem',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '70%'
-                    }}>
-                      {c.titulo}
-                    </span>
-                    <span style={{ 
-                      fontSize: '0.75rem', 
-                      color: 'var(--text-secondary)',
-                      whiteSpace: 'nowrap',
-                      background: 'rgba(16, 185, 129, 0.06)',
-                      padding: '3px 9px',
-                      borderRadius: '20px',
-                      fontWeight: 600
-                    }}>
-                      {c.fecha_publicacion ? formatearFecha(c.fecha_publicacion) : ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </BlurFade>
-      </div>
 
       {/* Modal de Detalle de Circular */}
       {circularSeleccionada && (

@@ -8,11 +8,23 @@ import {
   Database,
   CheckCircle2,
   AlertCircle,
-  RotateCw
+  RotateCw,
+  GraduationCap,
+  Sliders,
+  Sparkles,
+  Layers,
+  HelpCircle,
+  AlertTriangle
 } from 'lucide-react';
-import { getConfiguracion, guardarConfiguracion } from '../../services/api';
+import {
+  getConfiguracion,
+  guardarConfiguracion,
+  getConfiguracionesEvaluacion,
+  getConfiguracionEvaluacionPorAnio,
+  guardarConfiguracionEvaluacion,
+  verificarCompatibilidadEvaluacion
+} from '../../services/api';
 
-// Funciones helper
 const _extraerConfiguracionDelResponse = (res) => {
   if (res?.data) return res.data;
   if (res) return res;
@@ -20,91 +32,216 @@ const _extraerConfiguracionDelResponse = (res) => {
 };
 
 export default function Configuracion() {
-  const [config, setConfig] = useState({
+  const [tabActiva, setTabActiva] = useState('evaluacion'); // 'evaluacion' | 'institucional'
+
+  // ── Configuración Institucional ──
+  const [configInst, setConfigInst] = useState({
     nombre_institucion: '',
     director: '',
-    anio_escolar: '',
-    periodo_actual: '',
+    anio_escolar: '2026',
+    periodo_actual: 'Primer Trimestre',
     direccion: '',
     telefono: '',
     email_contacto: '',
     updated_at: null,
     institucion_id: 'MONTEVERDE_DEFAULT'
   });
+
+  // ── Configuración de Evaluación ──
+  const [listaConfigsEval, setListaConfigsEval] = useState([]);
+  const [anioEvalSeleccionado, setAnioEvalSeleccionado] = useState(2026);
+  const [configEval, setConfigEval] = useState({
+    anio_academico: 2026,
+    nombre: 'Configuración Académica 2026',
+    tipo_periodo: 'Bimestre',
+    numero_periodos: 4,
+    indicadores_por_periodo: 2,
+    notas_por_indicador: 3,
+    tipo_escala: 'NUMERICA_CINCO',
+    escala_minima: 1.0,
+    escala_maxima: 5.0,
+    nota_aprobatoria: 3.0,
+    activa: true
+  });
+
+  // ── Estados UI ──
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [compatibilidadInfo, setCompatibilidadInfo] = useState(null);
 
   useEffect(() => {
-    cargarConfiguracion();
+    cargarTodosLosDatos();
   }, []);
 
-  const cargarConfiguracion = async () => {
+  const cargarTodosLosDatos = async () => {
     setCargando(true);
     setErrorMsg('');
     try {
-      const res = await getConfiguracion();
-      const datos = _extraerConfiguracionDelResponse(res);
-      if (datos && Object.keys(datos).length > 0) {
-        setConfig(prev => ({
-          ...prev,
-          ...datos
-        }));
+      const [resInst, resEvalList] = await Promise.all([
+        getConfiguracion().catch(() => null),
+        getConfiguracionesEvaluacion().catch(() => [])
+      ]);
+
+      const datosInst = _extraerConfiguracionDelResponse(resInst);
+      if (datosInst && Object.keys(datosInst).length > 0) {
+        setConfigInst(prev => ({ ...prev, ...datosInst }));
+      }
+
+      const anioActivo = datosInst?.anio_escolar && !isNaN(parseInt(datosInst.anio_escolar))
+        ? parseInt(datosInst.anio_escolar)
+        : 2026;
+
+      setAnioEvalSeleccionado(anioActivo);
+
+      const lista = Array.isArray(resEvalList) ? resEvalList : (resEvalList?.data || []);
+      setListaConfigsEval(lista);
+
+      const configActual = lista.find(c => c.anio_academico === anioActivo) || lista[0];
+      if (configActual) {
+        setConfigEval(configActual);
+      } else {
+        // Cargar por año o inicializar
+        const configAnio = await getConfiguracionEvaluacionPorAnio(anioActivo).catch(() => null);
+        if (configAnio) setConfigEval(configAnio);
       }
     } catch (error) {
-      console.error('Error al obtener la configuración:', error);
-      setErrorMsg(error.message || 'No se pudo cargar la configuración institucional desde la base de datos.');
+      console.error('Error al cargar configuración:', error);
+      setErrorMsg(error.message || 'Error al cargar configuraciones del sistema.');
     } finally {
       setCargando(false);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setConfig(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const cambiarAnioEvaluacion = async (nuevoAnio) => {
+    const anioNum = parseInt(nuevoAnio);
+    setAnioEvalSeleccionado(anioNum);
+    setErrorMsg('');
+    setSuccessMsg('');
+    setCompatibilidadInfo(null);
+
+    const encontrada = listaConfigsEval.find(c => c.anio_academico === anioNum);
+    if (encontrada) {
+      setConfigEval(encontrada);
+    } else {
+      try {
+        const res = await getConfiguracionEvaluacionPorAnio(anioNum);
+        if (res) {
+          setConfigEval(res);
+        }
+      } catch {
+        // Inicializar propuesta nueva para ese año
+        setConfigEval({
+          anio_academico: anioNum,
+          nombre: `Configuración Académica ${anioNum}`,
+          tipo_periodo: 'Bimestre',
+          numero_periodos: 4,
+          indicadores_por_periodo: 2,
+          notas_por_indicador: 3,
+          tipo_escala: 'NUMERICA_CINCO',
+          escala_minima: 1.0,
+          escala_maxima: 5.0,
+          nota_aprobatoria: 3.0,
+          activa: true
+        });
+      }
+    }
   };
 
-  const handleSubmit = async (e) => {
+  // Manejo de cambio en Tipo de Escala
+  const handleTipoEscalaChange = (e) => {
+    const tipo = e.target.value;
+    if (tipo === 'NUMERICA_CINCO') {
+      setConfigEval(prev => ({
+        ...prev,
+        tipo_escala: tipo,
+        escala_minima: 1.0,
+        escala_maxima: 5.0,
+        nota_aprobatoria: 3.0
+      }));
+    } else if (tipo === 'NUMERICA_CIEN') {
+      setConfigEval(prev => ({
+        ...prev,
+        tipo_escala: tipo,
+        escala_minima: 0.0,
+        escala_maxima: 100.0,
+        nota_aprobatoria: 60.0
+      }));
+    } else if (tipo === 'PORCENTAJE') {
+      setConfigEval(prev => ({
+        ...prev,
+        tipo_escala: tipo,
+        escala_minima: 0.0,
+        escala_maxima: 100.0,
+        nota_aprobatoria: 70.0
+      }));
+    } else {
+      setConfigEval(prev => ({
+        ...prev,
+        tipo_escala: tipo
+      }));
+    }
+  };
+
+  // Guardar Configuración Institucional
+  const handleSubmitInstitucional = async (e) => {
     e.preventDefault();
     setGuardando(true);
     setSuccessMsg('');
     setErrorMsg('');
-    
     try {
-      const res = await guardarConfiguracion(config);
+      const res = await guardarConfiguracion(configInst);
       const datosActualizados = _extraerConfiguracionDelResponse(res);
-      
       if (datosActualizados && Object.keys(datosActualizados).length > 0) {
-        setConfig(prev => ({
-          ...prev,
-          ...datosActualizados
-        }));
+        setConfigInst(prev => ({ ...prev, ...datosActualizados }));
       }
-
-      setSuccessMsg('Configuración institucional guardada y persistida en base de datos exitosamente.');
+      setSuccessMsg('Configuración institucional guardada exitosamente.');
       setTimeout(() => setSuccessMsg(''), 4500);
     } catch (error) {
-      console.error('Error al guardar:', error);
-      setErrorMsg(error.message || 'Ocurrió un error al persistir los ajustes institucionales.');
+      setErrorMsg(error.message || 'Error al guardar la configuración institucional.');
     } finally {
       setGuardando(false);
     }
   };
 
-  const formatearFecha = (fechaStr) => {
-    if (!fechaStr) return null;
+  // Guardar Configuración de Evaluación Académica
+  const handleSubmitEvaluacion = async (e) => {
+    e.preventDefault();
+    setGuardando(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    setCompatibilidadInfo(null);
+
     try {
-      const fecha = new Date(fechaStr);
-      return fecha.toLocaleString('es-CO', {
-        dateStyle: 'medium',
-        timeStyle: 'short'
-      });
-    } catch {
-      return fechaStr;
+      // 1. Verificar compatibilidad antes de persistir
+      const compRes = await verificarCompatibilidadEvaluacion(configEval).catch(() => null);
+      if (compRes && !compRes.compatible && compRes.conflictos?.length > 0) {
+        setCompatibilidadInfo(compRes.conflictos);
+        // Si hay conflictos y el usuario no ha forzado
+        if (!configEval.forzar) {
+          setErrorMsg('Existen conflictos con calificaciones registradas. Revisa las advertencias.');
+          setGuardando(false);
+          return;
+        }
+      }
+
+      // 2. Guardar
+      const res = await guardarConfiguracionEvaluacion(configEval);
+      setSuccessMsg(`Configuración académica del año ${configEval.anio_academico} guardada y activada exitosamente.`);
+      setTimeout(() => setSuccessMsg(''), 4500);
+
+      // Recargar lista de configuraciones
+      const resLista = await getConfiguracionesEvaluacion().catch(() => []);
+      const lista = Array.isArray(resLista) ? resLista : (resLista?.data || []);
+      setListaConfigsEval(lista);
+      if (res?.data) {
+        setConfigEval(res.data);
+      }
+    } catch (error) {
+      setErrorMsg(error.message || 'Ocurrió un error al guardar la configuración de evaluación.');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -119,8 +256,8 @@ export default function Configuracion() {
           height: '40px',
           animation: 'spin 1s linear infinite',
           marginBottom: '1rem'
-        }}></div>
-        <span>Cargando configuración institucional desde la base de datos...</span>
+        }} />
+        <span>Cargando configuraciones académicas e institucionales...</span>
         <style>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -132,52 +269,98 @@ export default function Configuracion() {
   }
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-      {/* Banner de cabecera de la página con Identidad MonteVerde */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '2rem',
+    <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '3rem' }}>
+      {/* Banner Principal */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem',
         background: 'linear-gradient(135deg, var(--color-primary, #0A3A20) 0%, var(--color-primary-light, #166534) 100%)',
-        padding: '1.5rem 2rem',
+        padding: '1.75rem 2rem',
         borderRadius: '16px',
         color: '#ffffff',
-        boxShadow: '0 10px 15px -3px rgba(10, 58, 32, 0.15)'
+        boxShadow: '0 10px 20px -5px rgba(10, 58, 32, 0.2)'
       }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#ffffff', fontWeight: 700 }}>
-            Configuración del Sistema
+            Configuración del Sistema MonteVerde
           </h1>
-          <p style={{ margin: '5px 0 0', color: '#ECFDF5', fontSize: '0.9rem', opacity: 0.95 }}>
-            Establezca los detalles organizacionales y del período académico institucional.
+          <p style={{ margin: '6px 0 0', color: '#ECFDF5', fontSize: '0.92rem', opacity: 0.95 }}>
+            Gestione las reglas del sistema de evaluación académica y los datos institucionales.
           </p>
         </div>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '64px',
-          height: '64px',
+          width: '58px',
+          height: '58px',
           background: 'rgba(255, 255, 255, 0.15)',
           border: '1px solid rgba(255, 255, 255, 0.25)',
           borderRadius: '14px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
           backdropFilter: 'blur(4px)',
           flexShrink: 0,
           color: '#ffffff'
         }}>
-          <Settings size={32} strokeWidth={2} />
+          <Settings size={30} strokeWidth={2} />
         </div>
       </div>
 
-      {/* Notificaciones del sistema */}
+      {/* Selector de Pestañas */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+        <button
+          onClick={() => setTabActiva('evaluacion')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '0.75rem 1.4rem',
+            borderRadius: '12px',
+            fontSize: '0.95rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: 'none',
+            transition: 'all 0.2s',
+            background: tabActiva === 'evaluacion' ? 'var(--color-primary, #0A3A20)' : '#ffffff',
+            color: tabActiva === 'evaluacion' ? '#ffffff' : 'var(--text-secondary, #475569)',
+            boxShadow: tabActiva === 'evaluacion' ? '0 4px 12px rgba(10, 58, 32, 0.2)' : '0 2px 4px rgba(0,0,0,0.04)'
+          }}
+        >
+          <Sliders size={18} />
+          <span>Sistema de Evaluación Académica</span>
+        </button>
+
+        <button
+          onClick={() => setTabActiva('institucional')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '0.75rem 1.4rem',
+            borderRadius: '12px',
+            fontSize: '0.95rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: 'none',
+            transition: 'all 0.2s',
+            background: tabActiva === 'institucional' ? 'var(--color-primary, #0A3A20)' : '#ffffff',
+            color: tabActiva === 'institucional' ? '#ffffff' : 'var(--text-secondary, #475569)',
+            boxShadow: tabActiva === 'institucional' ? '0 4px 12px rgba(10, 58, 32, 0.2)' : '0 2px 4px rgba(0,0,0,0.04)'
+          }}
+        >
+          <Building2 size={18} />
+          <span>Datos Institucionales</span>
+        </button>
+      </div>
+
+      {/* Alertas y Mensajes */}
       {successMsg && (
         <div style={{
           background: '#d1fae5',
           border: '1px solid #10b981',
           color: '#065f46',
-          padding: '0.85rem 1.25rem',
+          padding: '0.9rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
           fontWeight: 600,
@@ -195,7 +378,7 @@ export default function Configuracion() {
           background: '#fee2e2',
           border: '1px solid #ef4444',
           color: '#991b1b',
-          padding: '0.85rem 1.25rem',
+          padding: '0.9rem 1.25rem',
           borderRadius: '10px',
           marginBottom: '1.5rem',
           fontWeight: 600,
@@ -208,364 +391,568 @@ export default function Configuracion() {
         </div>
       )}
 
-      {/* Form Card */}
-      <div style={{
-        background: 'var(--bg-white, #ffffff)',
-        borderRadius: '18px',
-        border: '1px solid var(--border, #e2e8f0)',
-        boxShadow: '0 18px 35px rgba(15, 23, 42, 0.04)',
-        padding: '2rem'
-      }}>
-        <form onSubmit={handleSubmit}>
-          {/* Section 1: General Info */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.15rem', color: 'var(--text, #1e293b)', fontWeight: 700, borderBottom: '1px solid var(--border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Building2 size={20} style={{ color: 'var(--color-primary-light, #166534)' }} />
-              <span>Información General de la Institución</span>
-            </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Nombre Institución *</label>
-                <input
-                  type="text"
-                  name="nombre_institucion"
-                  value={config.nombre_institucion || ''}
-                  onChange={handleChange}
-                  required
-                  disabled={guardando}
-                  maxLength={150}
-                  style={{
-                    padding: '0.75rem 0.85rem',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border, #cbd5e1)',
-                    fontSize: '0.92rem',
-                    color: 'var(--text, #0F172A)',
-                    outline: 'none',
-                    backgroundColor: guardando ? '#f8fafc' : '#ffffff',
-                    transition: 'all 0.2s'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
+      {compatibilidadInfo && compatibilidadInfo.length > 0 && (
+        <div style={{
+          background: '#fffbeb',
+          border: '1px solid #f59e0b',
+          color: '#92400e',
+          padding: '1rem 1.25rem',
+          borderRadius: '12px',
+          marginBottom: '1.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <AlertTriangle size={20} style={{ color: '#d97706' }} />
+            <span>Advertencia de Compatibilidad de Datos</span>
+          </div>
+          <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>
+            El cambio solicitado para el año {configEval.anio_academico} afecta la estructura de notas ya existentes:
+          </p>
+          <ul style={{ margin: '0 0 0.75rem', paddingLeft: '1.25rem', fontSize: '0.88rem' }}>
+            {compatibilidadInfo.map((conf, idx) => (
+              <li key={idx}>{conf}</li>
+            ))}
+          </ul>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={configEval.forzar || false}
+              onChange={(e) => setConfigEval(prev => ({ ...prev, forzar: e.target.checked }))}
+            />
+            <span>Comprendo los riesgos y deseo forzar la actualización para este año escolar.</span>
+          </label>
+        </div>
+      )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Director / Rector *</label>
-                <input
-                  type="text"
-                  name="director"
-                  value={config.director || ''}
-                  onChange={handleChange}
-                  required
-                  disabled={guardando}
-                  maxLength={150}
-                  style={{
-                    padding: '0.75rem 0.85rem',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border, #cbd5e1)',
-                    fontSize: '0.92rem',
-                    color: 'var(--text, #0F172A)',
-                    outline: 'none',
-                    backgroundColor: guardando ? '#f8fafc' : '#ffffff',
-                    transition: 'all 0.2s'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* PESTAÑA 1: SISTEMA DE EVALUACIÓN ACADÉMICA                     */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {tabActiva === 'evaluacion' && (
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '18px',
+          border: '1px solid var(--border, #e2e8f0)',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.04)',
+          padding: '2rem'
+        }}>
+          {/* Selector de Año Académico */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            paddingBottom: '1.5rem',
+            marginBottom: '1.75rem',
+            borderBottom: '1px solid var(--border, #e2e8f0)'
+          }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text, #1e293b)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <GraduationCap size={22} style={{ color: 'var(--color-primary, #0A3A20)' }} />
+                <span>Configuración por Año Escolar</span>
+              </h3>
+              <p style={{ margin: '4px 0 0', color: 'var(--text-secondary, #64748b)', fontSize: '0.88rem' }}>
+                Cada año académico puede tener su propia estructura y escala de evaluación independiente.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text, #1e293b)' }}>
+                Año Académico:
+              </label>
+              <select
+                value={anioEvalSeleccionado}
+                onChange={(e) => cambiarAnioEvaluacion(e.target.value)}
+                style={{
+                  padding: '0.6rem 1.2rem',
+                  borderRadius: '10px',
+                  border: '2px solid var(--color-primary, #0A3A20)',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  color: 'var(--color-primary, #0A3A20)',
+                  background: '#f0fdf4',
+                  cursor: 'pointer'
+                }}
+              >
+                {[2025, 2026, 2027, 2028, 2029, 2030].map(y => (
+                  <option key={y} value={y}>Año {y} {listaConfigsEval.some(c => c.anio_academico === y) ? '✓' : '(Nuevo)'}</option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {/* Section 2: Academic Period */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.15rem', color: 'var(--text, #1e293b)', fontWeight: 700, borderBottom: '1px solid var(--border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={20} style={{ color: 'var(--color-primary-light, #166534)' }} />
-              <span>Periodo Académico y Ciclos</span>
-            </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+          <form onSubmit={handleSubmitEvaluacion}>
+            {/* Grid de Configuración de Periodos e Indicadores */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+              {/* Nombre de la configuración */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Año Escolar Activo *</label>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                  Nombre Descriptivo del Esquema *
+                </label>
                 <input
                   type="text"
-                  name="anio_escolar"
-                  value={config.anio_escolar || ''}
-                  onChange={handleChange}
+                  value={configEval.nombre || ''}
+                  onChange={(e) => setConfigEval({ ...configEval, nombre: e.target.value })}
                   required
-                  disabled={guardando}
-                  maxLength={20}
-                  placeholder="ej. 2026"
+                  placeholder="ej. Modelo Cuatrimestral MonteVerde"
                   style={{
-                    padding: '0.75rem 0.85rem',
+                    padding: '0.7rem 0.85rem',
                     borderRadius: '10px',
                     border: '1px solid var(--border, #cbd5e1)',
                     fontSize: '0.92rem',
-                    color: 'var(--text, #0F172A)',
-                    outline: 'none',
-                    backgroundColor: guardando ? '#f8fafc' : '#ffffff',
-                    transition: 'all 0.2s'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
-                    e.target.style.boxShadow = 'none';
+                    outline: 'none'
                   }}
                 />
               </div>
 
+              {/* Tipo de Periodo */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Período Académico Actual *</label>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                  Tipo de Periodo Académico *
+                </label>
                 <select
-                  name="periodo_actual"
-                  value={config.periodo_actual || 'Primer Trimestre'}
-                  onChange={handleChange}
-                  required
-                  disabled={guardando}
+                  value={configEval.tipo_periodo || 'Bimestre'}
+                  onChange={(e) => setConfigEval({ ...configEval, tipo_periodo: e.target.value })}
                   style={{
-                    padding: '0.75rem 0.85rem',
+                    padding: '0.7rem 0.85rem',
                     borderRadius: '10px',
                     border: '1px solid var(--border, #cbd5e1)',
                     fontSize: '0.92rem',
-                    color: 'var(--text, #0F172A)',
                     outline: 'none',
-                    background: guardando ? '#f8fafc' : '#ffffff',
-                    transition: 'all 0.2s',
                     cursor: 'pointer'
                   }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
-                    e.target.style.boxShadow = 'none';
-                  }}
                 >
-                  <option value="Primer Trimestre">Primer Trimestre</option>
-                  <option value="Segundo Trimestre">Segundo Trimestre</option>
-                  <option value="Tercer Trimestre">Tercer Trimestre</option>
-                  <option value="Primer Semestre">Primer Semestre</option>
-                  <option value="Segundo Semestre">Segundo Semestre</option>
-                  <option value="Bimestre 1">Bimestre 1</option>
-                  <option value="Bimestre 2">Bimestre 2</option>
-                  <option value="Bimestre 3">Bimestre 3</option>
-                  <option value="Bimestre 4">Bimestre 4</option>
+                  <option value="Bimestre">Bimestres (ej. Bimestre 1..4)</option>
+                  <option value="Trimestre">Trimestres (ej. Trimestre 1..3)</option>
+                  <option value="Periodo">Periodos (ej. Periodo 1..N)</option>
+                  <option value="Semestre">Semestres (ej. Semestre 1..2)</option>
                 </select>
               </div>
-            </div>
-          </div>
 
-          {/* Section 3: Contact details */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.15rem', color: 'var(--text, #1e293b)', fontWeight: 700, borderBottom: '1px solid var(--border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Phone size={20} style={{ color: 'var(--color-primary-light, #166534)' }} />
-              <span>Datos de Contacto y Ubicación</span>
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Cantidad de Periodos */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Dirección Física</label>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                  Cantidad de Periodos en el Año *
+                </label>
                 <input
-                  type="text"
-                  name="direccion"
-                  value={config.direccion || ''}
-                  onChange={handleChange}
-                  disabled={guardando}
-                  maxLength={255}
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={configEval.numero_periodos || 4}
+                  onChange={(e) => setConfigEval({ ...configEval, numero_periodos: parseInt(e.target.value) || 1 })}
+                  required
                   style={{
-                    padding: '0.75rem 0.85rem',
+                    padding: '0.7rem 0.85rem',
                     borderRadius: '10px',
                     border: '1px solid var(--border, #cbd5e1)',
                     fontSize: '0.92rem',
-                    color: 'var(--text, #0F172A)',
-                    outline: 'none',
-                    backgroundColor: guardando ? '#f8fafc' : '#ffffff',
-                    transition: 'all 0.2s'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'var(--border, #cbd5e1)';
-                    e.target.style.boxShadow = 'none';
+                    outline: 'none'
                   }}
                 />
               </div>
+
+              {/* Indicadores por Periodo */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                  Indicadores de Logro por Periodo *
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={configEval.indicadores_por_periodo || 2}
+                  onChange={(e) => setConfigEval({ ...configEval, indicadores_por_periodo: parseInt(e.target.value) || 1 })}
+                  required
+                  style={{
+                    padding: '0.7rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Notas parciales por Indicador */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                  Notas Parciales por Indicador *
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={configEval.notas_por_indicador || 3}
+                  onChange={(e) => setConfigEval({ ...configEval, notas_por_indicador: parseInt(e.target.value) || 1 })}
+                  required
+                  style={{
+                    padding: '0.7rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Tipo de Escala */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                  Sistema de Calificación / Escala *
+                </label>
+                <select
+                  value={configEval.tipo_escala || 'NUMERICA_CINCO'}
+                  onChange={handleTipoEscalaChange}
+                  style={{
+                    padding: '0.7rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="NUMERICA_CINCO">Escala Numérica Tradicional (1.0 a 5.0)</option>
+                  <option value="NUMERICA_CIEN">Escala Puntos (0 a 100)</option>
+                  <option value="PORCENTAJE">Porcentaje (0% a 100%)</option>
+                  <option value="PERSONALIZADA">Escala Personalizada</option>
+                </select>
+              </div>
+
+              {/* Escala Mínima */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                  Calificación Mínima *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={configEval.escala_minima ?? 1.0}
+                  onChange={(e) => setConfigEval({ ...configEval, escala_minima: parseFloat(e.target.value) || 0 })}
+                  required
+                  style={{
+                    padding: '0.7rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Escala Máxima */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                  Calificación Máxima *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={configEval.escala_maxima ?? 5.0}
+                  onChange={(e) => setConfigEval({ ...configEval, escala_maxima: parseFloat(e.target.value) || 0 })}
+                  required
+                  style={{
+                    padding: '0.7rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Nota Aprobatoria */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>
+                  Nota Mínima Aprobatoria *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={configEval.nota_aprobatoria ?? 3.0}
+                  onChange={(e) => setConfigEval({ ...configEval, nota_aprobatoria: parseFloat(e.target.value) || 0 })}
+                  required
+                  style={{
+                    padding: '0.7rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border, #cbd5e1)',
+                    fontSize: '0.92rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Simulación visual de la matriz resultante en tiempo real */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '1.25rem',
+              marginBottom: '2rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#334155', marginBottom: '0.75rem' }}>
+                <Sparkles size={16} style={{ color: 'var(--brand, #166534)' }} />
+                <span>Vista Previa de la Matriz Docente Generada</span>
+              </div>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.86rem', color: '#64748b' }}>
+                Estructura que verán los docentes para el año {configEval.anio_academico}: <strong>{configEval.numero_periodos} {configEval.tipo_periodo.toLowerCase()}s</strong>, cada uno con <strong>{configEval.indicadores_por_periodo} indicadores</strong> y <strong>{configEval.notas_por_indicador} notas parciales</strong> en escala de <strong>{configEval.escala_minima} a {configEval.escala_maxima}</strong> (aprobación ≥ {configEval.nota_aprobatoria}).
+              </p>
+
+              {/* Mini tabla mock */}
+              <div style={{ overflowX: 'auto', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse', textAlign: 'center' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                      <th style={{ padding: '8px', textAlign: 'left', minWidth: '140px' }}>Estudiante</th>
+                      {Array.from({ length: Math.min(configEval.indicadores_por_periodo || 2, 4) }, (_, i) => i + 1).map(ind => (
+                        <th key={ind} colSpan={(configEval.notas_por_indicador || 3) + 1} style={{ padding: '6px', borderLeft: '1px solid #cbd5e1', background: '#f8fafc' }}>
+                          Indicador {ind}
+                        </th>
+                      ))}
+                      <th style={{ padding: '8px', borderLeft: '1px solid #cbd5e1' }}>Definitiva</th>
+                    </tr>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1', fontSize: '0.75rem', color: '#64748b' }}>
+                      <th style={{ padding: '4px 8px' }}>—</th>
+                      {Array.from({ length: Math.min(configEval.indicadores_por_periodo || 2, 4) }, (_, indI) => indI + 1).map(ind => (
+                        <React.Fragment key={`sub-${ind}`}>
+                          {Array.from({ length: configEval.notas_por_indicador || 3 }, (_, nI) => nI + 1).map(n => (
+                            <th key={`n-${ind}-${n}`} style={{ padding: '4px', borderLeft: '1px solid #e2e8f0' }}>N{n}</th>
+                          ))}
+                          <th style={{ padding: '4px', borderLeft: '1px solid #cbd5e1', fontWeight: 'bold' }}>Prom</th>
+                        </React.Fragment>
+                      ))}
+                      <th style={{ padding: '4px', borderLeft: '1px solid #cbd5e1' }}>Prom</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{ padding: '8px', textAlign: 'left', fontWeight: 600 }}>Estudiante de Prueba</td>
+                      {Array.from({ length: Math.min(configEval.indicadores_por_periodo || 2, 4) }, (_, indI) => indI + 1).map(ind => (
+                        <React.Fragment key={`td-${ind}`}>
+                          {Array.from({ length: configEval.notas_por_indicador || 3 }, (_, nI) => nI + 1).map(n => (
+                            <td key={`cell-${ind}-${n}`} style={{ padding: '6px', borderLeft: '1px solid #e2e8f0', color: '#94a3b8' }}>
+                              —
+                            </td>
+                          ))}
+                          <td style={{ padding: '6px', borderLeft: '1px solid #cbd5e1', background: '#f1f5f9', fontWeight: 600 }}>
+                            —
+                          </td>
+                        </React.Fragment>
+                      ))}
+                      <td style={{ padding: '6px', borderLeft: '1px solid #cbd5e1', background: '#f1f5f9', fontWeight: 700 }}>
+                        —
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Acciones de Formulario */}
+            <div style={{
+              borderTop: '1px solid var(--border, #e2e8f0)',
+              paddingTop: '1.5rem',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px'
+            }}>
+              <button
+                type="button"
+                onClick={() => cambiarAnioEvaluacion(anioEvalSeleccionado)}
+                disabled={guardando}
+                style={{
+                  background: '#f8fafc',
+                  color: 'var(--text-secondary, #475569)',
+                  border: '1px solid var(--border, #cbd5e1)',
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '10px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <RotateCw size={15} />
+                <span>Restablecer</span>
+              </button>
+
+              <button
+                type="submit"
+                disabled={guardando}
+                style={{
+                  background: guardando ? '#94a3b8' : 'var(--color-primary, #0A3A20)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.7rem 1.8rem',
+                  borderRadius: '10px',
+                  fontSize: '0.94rem',
+                  fontWeight: 700,
+                  cursor: guardando ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(10, 58, 32, 0.25)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Save size={16} />
+                <span>{guardando ? 'Guardando...' : `Guardar Configuración ${configEval.anio_academico}`}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* PESTAÑA 2: DATOS INSTITUCIONALES GENERALES                     */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {tabActiva === 'institucional' && (
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '18px',
+          border: '1px solid var(--border, #e2e8f0)',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.04)',
+          padding: '2rem'
+        }}>
+          <form onSubmit={handleSubmitInstitucional}>
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.15rem', color: 'var(--text, #1e293b)', fontWeight: 700, borderBottom: '1px solid var(--border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Building2 size={20} style={{ color: 'var(--color-primary-light, #166534)' }} />
+                <span>Información General de la Institución</span>
+              </h3>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Teléfono de Contacto</label>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Nombre Institución *</label>
                   <input
                     type="text"
-                    name="telefono"
-                    value={config.telefono || ''}
-                    onChange={handleChange}
-                    disabled={guardando}
-                    maxLength={50}
-                    style={{
-                      padding: '0.75rem 0.85rem',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border, #cbd5e1)',
-                      fontSize: '0.92rem',
-                      color: 'var(--text, #0F172A)',
-                      outline: 'none',
-                      backgroundColor: guardando ? '#f8fafc' : '#ffffff',
-                      transition: 'all 0.2s'
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = 'var(--border, #cbd5e1)';
-                      e.target.style.boxShadow = 'none';
-                    }}
+                    value={configInst.nombre_institucion || ''}
+                    onChange={(e) => setConfigInst({ ...configInst, nombre_institucion: e.target.value })}
+                    required
+                    style={{ padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border, #cbd5e1)', fontSize: '0.92rem', outline: 'none' }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Correo de Soporte / Contacto</label>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Director / Rector *</label>
                   <input
-                    type="email"
-                    name="email_contacto"
-                    value={config.email_contacto || ''}
-                    onChange={handleChange}
-                    disabled={guardando}
-                    maxLength={150}
-                    style={{
-                      padding: '0.75rem 0.85rem',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border, #cbd5e1)',
-                      fontSize: '0.92rem',
-                      color: 'var(--text, #0F172A)',
-                      outline: 'none',
-                      backgroundColor: guardando ? '#f8fafc' : '#ffffff',
-                      transition: 'all 0.2s'
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = 'var(--color-primary, #0A3A20)';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(10, 58, 32, 0.08)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = 'var(--border, #cbd5e1)';
-                      e.target.style.boxShadow = 'none';
-                    }}
+                    type="text"
+                    value={configInst.director || ''}
+                    onChange={(e) => setConfigInst({ ...configInst, director: e.target.value })}
+                    required
+                    style={{ padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border, #cbd5e1)', fontSize: '0.92rem', outline: 'none' }}
                   />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Technical Info & Last updated */}
-          {config.updated_at && (
-            <div style={{ 
-              marginBottom: '1.5rem', 
-              padding: '0.85rem 1.1rem', 
-              background: '#ECFDF5', 
-              borderRadius: '10px',
-              border: '1px solid #A7F3D0',
-              fontSize: '0.82rem', 
-              color: 'var(--color-primary-light, #166534)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <Database size={15} style={{ color: 'var(--color-primary-light, #166534)' }} />
-                <span>Fuente de verdad: <strong>Base de datos persistente</strong></span>
-              </span>
-              <span>Última actualización: <strong>{formatearFecha(config.updated_at)}</strong></span>
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.15rem', color: 'var(--text, #1e293b)', fontWeight: 700, borderBottom: '1px solid var(--border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={20} style={{ color: 'var(--color-primary-light, #166534)' }} />
+                <span>Periodo Académico Activo Institucional</span>
+              </h3>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Año Escolar Activo *</label>
+                  <input
+                    type="text"
+                    value={configInst.anio_escolar || ''}
+                    onChange={(e) => setConfigInst({ ...configInst, anio_escolar: e.target.value })}
+                    required
+                    placeholder="ej. 2026"
+                    style={{ padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border, #cbd5e1)', fontSize: '0.92rem', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Período Académico Actual *</label>
+                  <input
+                    type="text"
+                    value={configInst.periodo_actual || ''}
+                    onChange={(e) => setConfigInst({ ...configInst, periodo_actual: e.target.value })}
+                    required
+                    placeholder="ej. Bimestre 1"
+                    style={{ padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border, #cbd5e1)', fontSize: '0.92rem', outline: 'none' }}
+                  />
+                </div>
+              </div>
             </div>
-          )}
 
-          {/* Submit area */}
-          <div style={{
-            borderTop: '1px solid var(--border, #e2e8f0)',
-            paddingTop: '1.5rem',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '12px'
-          }}>
-            <button
-              type="button"
-              onClick={cargarConfiguracion}
-              disabled={guardando}
-              style={{
-                background: '#f8fafc',
-                color: 'var(--text-secondary, #475569)',
-                border: '1px solid var(--border, #cbd5e1)',
-                padding: '0.65rem 1.25rem',
-                borderRadius: '10px',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                cursor: guardando ? 'not-allowed' : 'pointer',
-                opacity: guardando ? 0.6 : 1,
-                transition: 'all 0.15s',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-              onMouseEnter={(e) => { if (!guardando) e.currentTarget.style.background = '#e2e8f0'; }}
-              onMouseLeave={(e) => { if (!guardando) e.currentTarget.style.background = '#f8fafc'; }}
-            >
-              <RotateCw size={15} />
-              <span>Recargar</span>
-            </button>
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.15rem', color: 'var(--text, #1e293b)', fontWeight: 700, borderBottom: '1px solid var(--border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Phone size={20} style={{ color: 'var(--color-primary-light, #166534)' }} />
+                <span>Datos de Contacto y Ubicación</span>
+              </h3>
 
-            <button
-              type="submit"
-              disabled={guardando}
-              style={{
-                background: guardando ? '#94a3b8' : 'var(--color-primary, #0A3A20)',
-                color: '#ffffff',
-                border: 'none',
-                padding: '0.65rem 1.75rem',
-                borderRadius: '10px',
-                fontSize: '0.92rem',
-                fontWeight: 700,
-                cursor: guardando ? 'not-allowed' : 'pointer',
-                boxShadow: guardando ? 'none' : '0 4px 14px rgba(10, 58, 32, 0.25)',
-                transition: 'all 0.15s',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => {
-                if (!guardando) {
-                  e.currentTarget.style.background = 'var(--color-primary-light, #166534)';
-                  e.currentTarget.style.boxShadow = '0 6px 18px rgba(10, 58, 32, 0.3)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!guardando) {
-                  e.currentTarget.style.background = 'var(--color-primary, #0A3A20)';
-                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(10, 58, 32, 0.25)';
-                }
-              }}
-            >
-              <Save size={16} />
-              <span>{guardando ? 'Guardando...' : 'Guardar Configuración'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Dirección Física</label>
+                  <input
+                    type="text"
+                    value={configInst.direccion || ''}
+                    onChange={(e) => setConfigInst({ ...configInst, direccion: e.target.value })}
+                    style={{ padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border, #cbd5e1)', fontSize: '0.92rem', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Teléfono</label>
+                    <input
+                      type="text"
+                      value={configInst.telefono || ''}
+                      onChange={(e) => setConfigInst({ ...configInst, telefono: e.target.value })}
+                      style={{ padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border, #cbd5e1)', fontSize: '0.92rem', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary, #475569)' }}>Email de Contacto</label>
+                    <input
+                      type="email"
+                      value={configInst.email_contacto || ''}
+                      onChange={(e) => setConfigInst({ ...configInst, email_contacto: e.target.value })}
+                      style={{ padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border, #cbd5e1)', fontSize: '0.92rem', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              borderTop: '1px solid var(--border, #e2e8f0)',
+              paddingTop: '1.5rem',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px'
+            }}>
+              <button
+                type="submit"
+                disabled={guardando}
+                style={{
+                  background: guardando ? '#94a3b8' : 'var(--color-primary, #0A3A20)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.7rem 1.8rem',
+                  borderRadius: '10px',
+                  fontSize: '0.94rem',
+                  fontWeight: 700,
+                  cursor: guardando ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(10, 58, 32, 0.25)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Save size={16} />
+                <span>{guardando ? 'Guardando...' : 'Guardar Información Institucional'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
@@ -23,9 +23,15 @@ import {
   Laptop,
   Compass,
   Calendar,
-  Layers
+  Layers,
+  Award
 } from 'lucide-react';
-import { getFamiliaDashboard, getCalificacionesHijo, getCalificacionesBimestreFamilia } from '../../services/api';
+import { 
+  getFamiliaDashboard, 
+  getCalificacionesBimestreFamilia, 
+  getBimestres 
+} from '../../services/api';
+
 
 // Configuración visual por asignatura (Icono profesional Lucide + paleta institucional sutil)
 const _obtenerConfigAsignatura = (nombre = '') => {
@@ -63,147 +69,203 @@ const _obtenerConfigAsignatura = (nombre = '') => {
   return { icon: GraduationCap, color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', label: nombre || 'Asignatura' };
 };
 
-// Funciones helper
-const _extraerPeriodosUnicos = (calificaciones) => {
-  const periodosUnicos = [...new Set(calificaciones.map(cal => cal.periodo))].filter(Boolean);
-  return periodosUnicos.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-};
-
-const _calcularPromedio = (calificaciones) => {
-  if (calificaciones.length === 0) return '0.0';
-  const suma = calificaciones.reduce((acc, cal) => acc + (parseFloat(cal.nota) || 0), 0);
-  return (suma / calificaciones.length).toFixed(1);
-};
-
-/** Agrupa las calificaciones por asignatura y período en un mapa estructurado */
-const _agruparPorAsignatura = (calificaciones) => {
-  const mapa = {};
-  calificaciones.forEach(cal => {
-    const asig = cal.asignatura || 'Sin asignatura';
-    if (!mapa[asig]) mapa[asig] = {};
-    mapa[asig][cal.periodo] = parseFloat(cal.nota);
-  });
-  return mapa;
-};
-
-const _estadoNota = (nota) => {
-  if (nota === null || nota === undefined) return { label: 'Pendiente', clase: 'estado-pendiente', IconComponent: Clock };
-  if (nota >= 3.5) return { label: 'Aprobado', clase: 'estado-aprobado', IconComponent: CheckCircle2 };
-  if (nota >= 3.0) return { label: 'En riesgo', clase: 'estado-riesgo', IconComponent: AlertTriangle };
-  return { label: 'Reprobado', clase: 'estado-reprobado', IconComponent: XCircle };
-};
-
-const _tendencia = (notas) => {
-  const vals = notas.filter(n => n !== null && n !== undefined);
-  if (vals.length < 2) return null;
-  const diff = vals[vals.length - 1] - vals[0];
-  if (diff > 0.2) return { IconComponent: TrendingUp, clase: 'tend-sube', label: 'Mejorando' };
-  if (diff < -0.2) return { IconComponent: TrendingDown, clase: 'tend-baja', label: 'Bajando' };
-  return { IconComponent: Minus, clase: 'tend-igual', label: 'Estable' };
-};
-
 const _obtenerColorPromedio = (promedio) => {
+  if (promedio === null || promedio === undefined || isNaN(promedio)) return 'var(--text-muted)';
   if (promedio >= 3.5) return 'var(--color-success)';
-  if (promedio >= 3) return 'var(--color-warning)';
+  if (promedio >= 3.0) return 'var(--color-warning)';
   return 'var(--color-error)';
 };
 
-const _filtrarCalificacionesPorPeriodo = (calificaciones, periodoSeleccionado) => {
-  return periodoSeleccionado === 'todos'
-    ? calificaciones
-    : calificaciones.filter(cal => cal.periodo === periodoSeleccionado);
-};
-
-
 export default function ReporteAcademico() {
   const { usuario } = useAuth();
-  const [calificaciones, setCalificaciones] = useState([]);
-  const [calificacionesFiltradas, setCalificacionesFiltradas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState('todos');
-  const [periodosDisponibles, setPeriodosDisponibles] = useState([]);
   const [selectedHijoIndex, setSelectedHijoIndex] = useState(0);
-  // Nuevo sistema de bimestres
+  const [bimestreSeleccionado, setBimestreSeleccionado] = useState('todos');
+  
+  // Datos bimestrales completos (fuente principal)
   const [bimestreData, setBimestreData] = useState([]);
-  const [loadingBimestre, setLoadingBimestre] = useState(false);
+  const [bimestresCatalogo, setBimestresCatalogo] = useState([]);
 
-  // Cargar calificaciones del hijo
+  // Cargar calificaciones del estudiante seleccionado
   useEffect(() => {
+    let montado = true;
+
     const cargarDatos = async () => {
       if (!usuario?.id) {
-        setError('Usuario no disponible');
-        setLoading(false);
+        if (montado) {
+          setError('Usuario no disponible');
+          setLoading(false);
+        }
         return;
       }
 
       try {
-        console.log('📊 Cargando reporte académico para usuario:', usuario.id);
+        setLoading(true);
+        setError(null);
+        console.log('📊 Cargando reporte académico para usuario familia:', usuario.id);
         
-        const dashboard = await getFamiliaDashboard(usuario.id).catch(() => null);
+        // 1. Obtener datos del dashboard familiar (lista de hijos) y catálogo de bimestres en paralelo
+        const [dashboard, listaBimestres] = await Promise.all([
+          getFamiliaDashboard(usuario.id).catch(() => null),
+          getBimestres().catch(() => [])
+        ]);
         
-        if (dashboard?.hijos?.[selectedHijoIndex]) {
-          const primerHijo = dashboard.hijos[selectedHijoIndex];
-          setDashboardData(dashboard);
-          
-          console.log('📊 Cargando calificaciones para estudiante:', primerHijo.id);
-          
-          const calificacionesData = await getCalificacionesHijo(primerHijo.id);
-          setCalificaciones(calificacionesData || []);
-          setCalificacionesFiltradas(calificacionesData || []);
-          
-          const periodosOrdenados = _extraerPeriodosUnicos(calificacionesData || []);
-          setPeriodosDisponibles(periodosOrdenados);
+        if (!montado) return;
 
-          // Cargar desglose por indicadores y bimestres
-          setLoadingBimestre(true);
-          try {
-            const bimData = await getCalificacionesBimestreFamilia(primerHijo.id).catch(() => []);
-            setBimestreData(bimData || []);
-          } finally {
-            setLoadingBimestre(false);
-          }
-          
-          console.log('📊 Calificaciones cargadas:', calificacionesData);
-          console.log('📊 Períodos disponibles:', periodosOrdenados);
+        if (dashboard?.hijos && dashboard.hijos.length > 0) {
+          setDashboardData(dashboard);
+          setBimestresCatalogo(listaBimestres || []);
+
+          const hijoActivo = dashboard.hijos[selectedHijoIndex] || dashboard.hijos[0];
+          console.log('📊 Consultando calificaciones para hijo:', hijoActivo.nombre, '(ID:', hijoActivo.id, ')');
+
+          // 2. Obtener calificaciones por bimestres e indicadores (fuente enriquecida)
+          const dataBimestres = await getCalificacionesBimestreFamilia(hijoActivo.id).catch((err) => {
+            console.warn('⚠️ No se pudieron obtener calificaciones de bimestre:', err);
+            return [];
+          });
+
+          if (!montado) return;
+          const datosValidos = Array.isArray(dataBimestres) ? dataBimestres : (dataBimestres?.data || []);
+          setBimestreData(datosValidos);
         } else {
-          setError('No se encontraron estudiantes asociados');
+          setDashboardData(null);
+          setBimestreData([]);
+          setError('No se encontraron estudiantes asociados a esta cuenta familiar');
         }
-        
       } catch (err) {
-        console.error('❌ Error al cargar reporte:', err);
-        setError('Error al cargar las calificaciones: ' + err.message);
-        setCalificaciones([]);
+        console.error('❌ Error al cargar reporte académico:', err);
+        if (montado) {
+          setError('Error al cargar las calificaciones: ' + (err.message || 'Error de conexión'));
+          setBimestreData([]);
+        }
       } finally {
-        setLoading(false);
+        if (montado) {
+          setLoading(false);
+        }
       }
     };
 
     cargarDatos();
+
+    return () => {
+      montado = false;
+    };
   }, [usuario, selectedHijoIndex]);
 
-  // Filtrar calificaciones cuando cambie el período
-  useEffect(() => {
-    setCalificacionesFiltradas(_filtrarCalificacionesPorPeriodo(calificaciones, periodoSeleccionado));
-  }, [periodoSeleccionado, calificaciones]);
+  const hijoActivo = dashboardData?.hijos?.[selectedHijoIndex] || null;
+
+  // Extraer bimestres disponibles en los datos
+  const bimestresDisponibles = useMemo(() => {
+    const nombres = new Set();
+    bimestreData.forEach(item => {
+      if (item.bimestre) nombres.add(item.bimestre);
+    });
+
+    if (nombres.size === 0 && bimestresCatalogo.length > 0) {
+      bimestresCatalogo.forEach(b => nombres.add(b.nombre));
+    }
+
+    return Array.from(nombres).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [bimestreData, bimestresCatalogo]);
+
+  // Filtrar asignaturas por bimestre seleccionado
+  const asignaturasFiltradas = useMemo(() => {
+    if (bimestreSeleccionado === 'todos') {
+      return bimestreData;
+    }
+    return bimestreData.filter(item => {
+      const bNombre = (item.bimestre || '').toLowerCase();
+      const selNombre = bimestreSeleccionado.toLowerCase();
+      return bNombre === selNombre || bNombre.includes(selNombre) || selNombre.includes(bNombre);
+    });
+  }, [bimestreData, bimestreSeleccionado]);
+
+  // Estadísticas y métricas en tiempo real calculadas sobre los datos reales
+  const metricas = useMemo(() => {
+    const items = asignaturasFiltradas;
+    if (!items || items.length === 0) {
+      return {
+        promedioGeneral: null,
+        totalEvaluaciones: 0,
+        asignaturasAprobadas: 0,
+        asignaturasRiesgo: 0,
+        totalAsignaturas: 0
+      };
+    }
+
+    let sumaDefinitivas = 0;
+    let conteoDefinitivas = 0;
+    let aprobadas = 0;
+    let enRiesgo = 0;
+    let totalNotasIndividuales = 0;
+
+    items.forEach(item => {
+      const def = item.definitiva !== null && item.definitiva !== undefined ? parseFloat(item.definitiva) : null;
+      if (def !== null && !isNaN(def)) {
+        sumaDefinitivas += def;
+        conteoDefinitivas += 1;
+        if (def >= 3.5) {
+          aprobadas += 1;
+        } else if (def >= 3.0) {
+          aprobadas += 1;
+        } else {
+          enRiesgo += 1;
+        }
+      }
+
+      // Conteo de notas parciales
+      (item.indicadores || []).forEach(ind => {
+        if (ind.notas && typeof ind.notas === 'object') {
+          Object.values(ind.notas).forEach(v => {
+            if (v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v))) {
+              totalNotasIndividuales += 1;
+            }
+          });
+        } else {
+          [ind.nota_1, ind.nota_2, ind.nota_3, ind.nota_4, ind.nota_5].forEach(v => {
+            if (v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v))) {
+              totalNotasIndividuales += 1;
+            }
+          });
+        }
+      });
+    });
+
+    const promedio = conteoDefinitivas > 0 ? (sumaDefinitivas / conteoDefinitivas).toFixed(2) : null;
+
+    return {
+      promedioGeneral: promedio,
+      totalEvaluaciones: totalNotasIndividuales,
+      asignaturasAprobadas: aprobadas,
+      asignaturasRiesgo: enRiesgo,
+      totalAsignaturas: items.length
+    };
+  }, [asignaturasFiltradas]);
 
   if (loading) {
     return (
       <div className="grid">
-        <BarraTitulo titulo="Reporte Académico" subtitulo="Cargando..." />
+        <BarraTitulo titulo="Reporte Académico" subtitulo="Cargando información..." />
         <Card>
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+          <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--text-secondary)' }}>
             <div style={{
               border: '4px solid var(--border)',
               borderTop: '4px solid var(--color-primary)',
               borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 1rem'
+              width: '40px',
+              height: '40px',
+              animation: 'spin 0.9s linear infinite',
+              margin: '0 auto 1.25rem'
             }}></div>
-            <p style={{ fontWeight: 600 }}>Cargando reporte académico...</p>
+            <p style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-primary)' }}>
+              Cargando reporte académico...
+            </p>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Consultando calificaciones por asignatura e indicadores de logro
+            </span>
             <style>{`
               @keyframes spin {
                 to { transform: rotate(360deg); }
@@ -215,18 +277,18 @@ export default function ReporteAcademico() {
     );
   }
 
-  if (error) {
+  if (error && (!dashboardData || !dashboardData.hijos || dashboardData.hijos.length === 0)) {
     return (
       <div className="grid">
         <BarraTitulo titulo="Reporte Académico" subtitulo="Error" />
         <Card>
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
             <AlertTriangle size={48} style={{ color: 'var(--color-error)', margin: '0 auto 1rem' }} />
-            <p style={{ color: 'var(--color-error)', fontSize: '1.1rem', fontWeight: 600 }}>{error}</p>
+            <p style={{ color: 'var(--color-error)', fontSize: '1.1rem', fontWeight: 700 }}>{error}</p>
             <button 
               onClick={() => globalThis.location.reload()} 
               className="btn btn--primary"
-              style={{ marginTop: '1rem' }}
+              style={{ marginTop: '1.25rem' }}
             >
               Recargar página
             </button>
@@ -236,80 +298,63 @@ export default function ReporteAcademico() {
     );
   }
 
-  const primerHijo = dashboardData?.hijos?.[selectedHijoIndex];
-  const promedioGeneral = parseFloat(_calcularPromedio(calificacionesFiltradas));
-  const colorPromedioGeneral = _obtenerColorPromedio(promedioGeneral);
-
-  // Datos agrupados para el nuevo diseño de tarjetas
-  const asignaturasAgrupadas = _agruparPorAsignatura(calificaciones);
-  const periodosOrdenadosTodos = _extraerPeriodosUnicos(calificaciones);
-  const asignaturasOrdenadas = Object.keys(asignaturasAgrupadas).sort();
-
-  // Estadísticas globales
-  const promediosPorAsig = asignaturasOrdenadas.map(asig => {
-    const notas = Object.values(asignaturasAgrupadas[asig]).filter(n => !isNaN(n));
-    return notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null;
-  }).filter(p => p !== null);
-  const promedioGlobalAsig = promediosPorAsig.length
-    ? (promediosPorAsig.reduce((a, b) => a + b, 0) / promediosPorAsig.length).toFixed(2)
-    : null;
-  const asigAprobadas = asignaturasOrdenadas.filter(asig => {
-    const vals = Object.values(asignaturasAgrupadas[asig]).filter(n => !isNaN(n));
-    const prom = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    return prom >= 3.5;
-  }).length;
-  const asigRiesgo = asignaturasOrdenadas.filter(asig => {
-    const vals = Object.values(asignaturasAgrupadas[asig]).filter(n => !isNaN(n));
-    const prom = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    return prom >= 3.0 && prom < 3.5;
-  }).length;
-  const bimestreActual = periodosOrdenadosTodos[periodosOrdenadosTodos.length - 1] || '—';
+  const tieneCalificaciones = bimestreData.length > 0;
+  const promedioNum = metricas.promedioGeneral ? parseFloat(metricas.promedioGeneral) : null;
 
   return (
     <div className="grid" style={{ gap: '1.5rem' }}>
+      {/* Cabecera Principal */}
       <BarraTitulo 
         titulo="Reporte Académico" 
-        subtitulo={primerHijo ? `Calificaciones de ${primerHijo.nombre}` : 'Información académica'}
+        subtitulo={hijoActivo ? `Calificaciones de ${hijoActivo.nombre}` : 'Información académica'}
         derecha={
           <div style={{ fontSize: '0.85rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
-            {primerHijo && (
+            {hijoActivo && (
               <>
-                <div><strong>{primerHijo.curso}</strong> - {primerHijo.grado}</div>
-                <div>Promedio: <strong>{_calcularPromedio(calificacionesFiltradas)}</strong></div>
-                <div>Total evaluaciones: <strong>{calificacionesFiltradas.length}</strong></div>
+                <div><strong>{hijoActivo.curso}</strong> - {hijoActivo.grado}</div>
+                <div>
+                  Promedio:{' '}
+                  <strong style={{ color: _obtenerColorPromedio(promedioNum) }}>
+                    {metricas.promedioGeneral ?? 'Pendiente'}
+                  </strong>
+                </div>
+                <div>Total evaluaciones: <strong>{metricas.totalEvaluaciones}</strong></div>
               </>
             )}
           </div>
         }
       />
 
-      {/* Selector premium de hijo (hermanos vinculados) */}
+      {/* Selector de hijo cuando la familia tiene múltiples estudiantes vinculados */}
       {dashboardData?.hijos?.length > 1 && (
         <Card title={
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <GraduationCap size={20} />
+            <GraduationCap size={20} style={{ color: 'var(--color-primary)' }} />
             <span>Seleccionar Estudiante</span>
           </span>
         }>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <label htmlFor="student-select" style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
+            <label htmlFor="student-select" style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '0.9rem' }}>
               Estudiante:
             </label>
             <select
               id="student-select"
               value={selectedHijoIndex}
               onChange={(e) => {
-                setLoading(true);
                 setSelectedHijoIndex(Number.parseInt(e.target.value, 10));
               }}
               style={{
-                minWidth: '220px',
-                borderRadius: '8px'
+                minWidth: '240px',
+                padding: '0.55rem 1rem',
+                borderRadius: '8px',
+                border: '1.5px solid var(--border)',
+                fontWeight: 700,
+                color: 'var(--text)'
               }}
             >
               {dashboardData.hijos.map((hijo, idx) => (
                 <option key={hijo.id} value={idx}>
-                  {hijo.nombre} ({hijo.curso})
+                  {hijo.nombre} ({hijo.curso} - {hijo.grado})
                 </option>
               ))}
             </select>
@@ -317,285 +362,262 @@ export default function ReporteAcademico() {
         </Card>
       )}
 
-      {calificaciones.length === 0 ? (
-        <Card>
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-              <BarChart3 size={48} strokeWidth={1.5} />
-            </div>
-            <h3>No hay calificaciones registradas</h3>
-            <p style={{ margin: '0.5rem 0' }}>Aún no se han registrado calificaciones para este estudiante.</p>
-            <small>Las calificaciones aparecerán aquí una vez que los docentes las registren.</small>
+      {/* Panel Resumen Global / Boletín Digital */}
+      {tieneCalificaciones && (
+        <div className="boletin-resumen">
+          <div className="boletin-stat">
+            <span className="boletin-stat-val" style={{ color: _obtenerColorPromedio(promedioNum) }}>
+              {metricas.promedioGeneral ?? '—'}
+            </span>
+            <span className="boletin-stat-lbl">Promedio General</span>
           </div>
-        </Card>
-      ) : (
-        <>
-          {/* ─── BOLETIN ACADÉMICO DIGITAL ─── */}
-
-          {/* Panel resumen global */}
-          <div className="boletin-resumen">
-            <div className="boletin-stat">
-              <span className="boletin-stat-val" style={{ color: _obtenerColorPromedio(parseFloat(promedioGlobalAsig)) }}>
-                {promedioGlobalAsig ?? '—'}
-              </span>
-              <span className="boletin-stat-lbl">Promedio general</span>
-            </div>
-            <div className="boletin-stat-div" />
-            <div className="boletin-stat">
-              <span className="boletin-stat-val" style={{ color: 'var(--color-success)' }}>{asigAprobadas}</span>
-              <span className="boletin-stat-lbl">Aprobadas</span>
-            </div>
-            <div className="boletin-stat-div" />
-            <div className="boletin-stat">
-              <span className="boletin-stat-val" style={{ color: 'var(--color-warning)' }}>{asigRiesgo}</span>
-              <span className="boletin-stat-lbl">En riesgo</span>
-            </div>
-            <div className="boletin-stat-div" />
-            <div className="boletin-stat">
-              <span className="boletin-stat-val" style={{ color: 'var(--brand)' }}>
-                {bimestreActual.replace('2025-', '').replace('P', 'P')}
-              </span>
-              <span className="boletin-stat-lbl">Bimestre actual</span>
-            </div>
+          <div className="boletin-stat-div" />
+          <div className="boletin-stat">
+            <span className="boletin-stat-val" style={{ color: 'var(--color-success)' }}>
+              {metricas.asignaturasAprobadas}
+            </span>
+            <span className="boletin-stat-lbl">Aprobadas</span>
           </div>
+          <div className="boletin-stat-div" />
+          <div className="boletin-stat">
+            <span className="boletin-stat-val" style={{ color: metricas.asignaturasRiesgo > 0 ? 'var(--color-error)' : 'var(--text-muted)' }}>
+              {metricas.asignaturasRiesgo}
+            </span>
+            <span className="boletin-stat-lbl">En Riesgo</span>
+          </div>
+          <div className="boletin-stat-div" />
+          <div className="boletin-stat">
+            <span className="boletin-stat-val" style={{ color: 'var(--brand)' }}>
+              {metricas.totalEvaluaciones}
+            </span>
+            <span className="boletin-stat-lbl">Notas Registradas</span>
+          </div>
+        </div>
+      )}
 
-          {/* Selector de bimestre — tipo pill */}
+      {/* Selector de Bimestre — Tipo Pills */}
+      {tieneCalificaciones && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div className="boletin-filtro">
             <button
-              className={`boletin-pill ${periodoSeleccionado === 'todos' ? 'boletin-pill--active' : ''}`}
-              onClick={() => setPeriodoSeleccionado('todos')}
+              className={`boletin-pill ${bimestreSeleccionado === 'todos' ? 'boletin-pill--active' : ''}`}
+              onClick={() => setBimestreSeleccionado('todos')}
             >
-              Todos
+              Todos los Bimestres
             </button>
-            {periodosDisponibles.map(p => (
+            {bimestresDisponibles.map(b => (
               <button
-                key={p}
-                className={`boletin-pill ${periodoSeleccionado === p ? 'boletin-pill--active' : ''}`}
-                onClick={() => setPeriodoSeleccionado(p)}
+                key={b}
+                className={`boletin-pill ${bimestreSeleccionado === b ? 'boletin-pill--active' : ''}`}
+                onClick={() => setBimestreSeleccionado(b)}
               >
-                {p.replace('2025-', '').replace('P', 'Bimestre ')}
+                {b}
               </button>
             ))}
           </div>
 
-          {/* Tarjetas por asignatura */}
-          <div className="boletin-cards">
-            {asignaturasOrdenadas.map(asignatura => {
-              const notasPorPeriodo = asignaturasAgrupadas[asignatura];
-              // Determinar períodos a mostrar (filtro activo o todos)
-              const periodosAMostrar = periodoSeleccionado === 'todos'
-                ? periodosOrdenadosTodos
-                : [periodoSeleccionado];
-
-              const notasOrdenadas = periodosOrdenadosTodos
-                .map(p => notasPorPeriodo[p] ?? null);
-
-              const notasValidas = notasOrdenadas.filter(n => n !== null);
-              const promedioAsig = notasValidas.length
-                ? notasValidas.reduce((a, b) => a + b, 0) / notasValidas.length
-                : null;
-              const tendencia = _tendencia(notasOrdenadas);
-              const estadoGlobal = _estadoNota(promedioAsig);
-              const EstadoIcon = estadoGlobal.IconComponent;
-              const TendenciaIcon = tendencia?.IconComponent;
-
-              return (
-                <div key={asignatura} className={`boletin-card boletin-card--${estadoGlobal.clase}`}>
-                  {/* Cabecera de tarjeta */}
-                  <div className="bc-header">
-                    <div className="bc-asig">
-                      <span className="bc-asig-icon">
-                        <BookOpen size={16} />
-                      </span>
-                      <span className="bc-asig-nombre">{asignatura}</span>
-                    </div>
-                    <div className="bc-header-right">
-                      {tendencia && (
-                        <span className={`bc-tend ${tendencia.clase}`} title={tendencia.label} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                          <TendenciaIcon size={14} />
-                        </span>
-                      )}
-                      <span className={`bc-estado-badge ${estadoGlobal.clase}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <EstadoIcon size={12} />
-                        <span>{estadoGlobal.label}</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Evolución visual (sparkline de texto) */}
-                  {notasValidas.length > 1 && (
-                    <div className="bc-sparkline">
-                      {periodosOrdenadosTodos.map((p, i) => {
-                        const n = notasPorPeriodo[p];
-                        const est = _estadoNota(n ?? null);
-                        return (
-                          <span key={p} className="bc-spark-item">
-                            <span className={`bc-spark-dot ${est.clase}`} />
-                            <span className="bc-spark-val">{n !== undefined && n !== null ? n.toFixed(1) : '–'}</span>
-                            {i < periodosOrdenadosTodos.length - 1 && <span className="bc-spark-arrow">›</span>}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Filas por período filtrado */}
-                  <div className="bc-periodos">
-                    {periodosAMostrar.map(periodo => {
-                      const nota = notasPorPeriodo[periodo];
-                      const estado = _estadoNota(nota ?? null);
-                      const nombreLegible = periodo.replace('2025-', '').replace('P', 'Bimestre ');
-                      const FilaEstadoIcon = estado.IconComponent;
-                      return (
-                        <div key={periodo} className="bc-periodo-fila">
-                          <span className="bc-periodo-nombre">{nombreLegible}</span>
-                          <div className="bc-periodo-derecha">
-                            <span className={`bc-nota ${estado.clase}`}>
-                              {nota !== undefined && nota !== null ? nota.toFixed(1) : 'Pendiente'}
-                            </span>
-                            <span className={`bc-estado-chip ${estado.clase}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <FilaEstadoIcon size={12} />
-                              <span>{estado.label}</span>
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Pie de tarjeta */}
-                  <div className="bc-footer">
-                    <span className="bc-promedio-lbl">Promedio</span>
-                    <span className={`bc-promedio-val ${_estadoNota(promedioAsig).clase}`}>
-                      {promedioAsig !== null ? promedioAsig.toFixed(2) : '—'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            Mostrando {asignaturasFiltradas.length} asignatura(s)
+          </span>
+        </div>
       )}
 
+      {/* Tarjetas de Calificaciones por Asignatura e Indicadores de Logro */}
+      {tieneCalificaciones ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {asignaturasFiltradas.map((bim, idx) => {
+            const nombreAsignatura = bim.asignatura || bim.materia_nombre || bim.materia || 'Asignatura';
+            const configAsig = _obtenerConfigAsignatura(nombreAsignatura);
+            const IconoAsignatura = configAsig.icon;
+            const defVal = bim.definitiva !== null && bim.definitiva !== undefined ? parseFloat(bim.definitiva) : null;
+            const notaAprobatoria = bim.configuracion?.escala?.aprobacion ?? 3.0;
 
-      {/* ─── Sección de calificaciones por asignatura e indicadores de logro ─── */}
-      {bimestreData.length > 0 && (
-        <Card title={
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <Layers size={20} style={{ color: 'var(--color-primary)' }} />
-            <span>Calificaciones por Asignatura e Indicadores de Logro</span>
-          </span>
-        }>
-          <div className="bim-familia-wrapper">
-            {bimestreData
-              .filter(bim => {
-                if (periodoSeleccionado === 'todos') return true;
-                const pNum = periodoSeleccionado.replace(/[^0-9]/g, '');
-                const bNum = (bim.bimestre || '').replace(/[^0-9]/g, '');
-                if (pNum && bNum && pNum === bNum) return true;
-                return (bim.bimestre || '').toLowerCase().includes(periodoSeleccionado.toLowerCase());
-              })
-              .map((bim, idx) => {
-                const nombreAsignatura = bim.asignatura || bim.materia_nombre || bim.materia || 'Asignatura';
-                const configAsig = _obtenerConfigAsignatura(nombreAsignatura);
-                const IconoAsignatura = configAsig.icon;
-                const defVal = bim.definitiva !== null && bim.definitiva !== undefined ? parseFloat(bim.definitiva) : null;
-
-                return (
-                  <div key={`${bim.materia_id || nombreAsignatura}-${bim.bimestre_id || bim.bimestre}-${idx}`} className="asig-card">
-                    {/* Encabezado: Nivel 1 (Asignatura) + Nivel 2 (Bimestre) + Nivel 3 (Definitiva) */}
-                    <div className="asig-card-header">
-                      <div className="asig-title-group">
+            return (
+              <div 
+                key={`${bim.materia_id || nombreAsignatura}-${bim.bimestre_id || bim.bimestre}-${idx}`} 
+                className="asig-card"
+                style={{
+                  borderRadius: '16px',
+                  background: '#ffffff',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Encabezado: Asignatura + Bimestre + Definitiva */}
+                <div 
+                  className="asig-card-header"
+                  style={{
+                    padding: '1.25rem 1.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: '1px solid var(--border)',
+                    background: 'linear-gradient(180deg, #ffffff, #fafafa)',
+                    gap: '1rem',
+                    flexWrap: 'wrap'
+                  }}
+                >
+                  <div className="asig-title-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span 
+                      className="asig-icon-badge" 
+                      style={{ 
+                        color: configAsig.color, 
+                        backgroundColor: configAsig.bg, 
+                        borderColor: configAsig.border,
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1.5px solid'
+                      }}
+                    >
+                      <IconoAsignatura size={22} strokeWidth={2.2} />
+                    </span>
+                    <div className="asig-header-text">
+                      <h3 className="asig-nombre" style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text)' }}>
+                        {nombreAsignatura}
+                      </h3>
+                      <div className="asig-meta" style={{ marginTop: '3px', display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span 
-                          className="asig-icon-badge" 
+                          className="asig-bimestre-badge" 
                           style={{ 
-                            color: configAsig.color, 
-                            backgroundColor: configAsig.bg, 
-                            borderColor: configAsig.border 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '4px', 
+                            fontSize: '0.75rem', 
+                            fontWeight: 700, 
+                            color: 'var(--text-muted)',
+                            background: 'var(--bg-light)',
+                            padding: '2px 8px',
+                            borderRadius: '6px'
                           }}
                         >
-                          <IconoAsignatura size={22} strokeWidth={2.2} />
+                          <Calendar size={12} />
+                          <span>{bim.bimestre || 'Bimestre 1'}{bim.anio ? ` · ${bim.anio}` : ''}</span>
                         </span>
-                        <div className="asig-header-text">
-                          <h3 className="asig-nombre">{nombreAsignatura}</h3>
-                          <div className="asig-meta">
-                            <span className="asig-bimestre-badge">
-                              <Calendar size={13} />
-                              <span>{bim.bimestre || 'Bimestre 1'}{bim.anio ? ` · ${bim.anio}` : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="asig-definitiva-container">
+                    {defVal !== null ? (
+                      <div 
+                        className={`asig-definitiva-pill ${defVal >= notaAprobatoria ? 'def-aprobada' : 'def-reprobada'}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '0.45rem 1rem',
+                          borderRadius: '24px',
+                          border: '1.5px solid',
+                          fontSize: '0.9rem',
+                          fontWeight: 800
+                        }}
+                      >
+                        <Award size={16} />
+                        <span className="def-label" style={{ fontWeight: 600 }}>Definitiva:</span>
+                        <span className="def-valor" style={{ fontSize: '1.1rem' }}>{defVal.toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      <div 
+                        className="asig-definitiva-pill def-pendiente"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '0.45rem 1rem',
+                          borderRadius: '24px',
+                          border: '1.5px solid var(--border)',
+                          background: 'var(--bg-light)',
+                          color: 'var(--text-muted)',
+                          fontSize: '0.85rem',
+                          fontWeight: 700
+                        }}
+                      >
+                        <Clock size={15} />
+                        <span>Definitiva Pendiente</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Lista de Indicadores de Logro con Notas y Promedio */}
+                <div className="asig-indicadores-list">
+                  {(bim.indicadores || []).map((ind, i) => {
+                    const numInd = ind.numero || (i + 1);
+                    const promInd = ind.promedio !== null && ind.promedio !== undefined ? parseFloat(ind.promedio) : null;
+                    const notasCount = bim.configuracion?.notas_por_indicador || (ind.notas ? Object.keys(ind.notas).length : 3) || 3;
+                    const listaNotas = Array.from({ length: notasCount }, (_, idx) => idx + 1);
+
+                    return (
+                      <div key={ind.indicador_id || i} className={`asig-indicador-item ind-num--${numInd}`}>
+                        <div className="asig-indicador-info">
+                          <div className="asig-ind-tag">
+                            <span className="asig-ind-badge">Indicador {numInd}</span>
+                          </div>
+                          <p className="asig-ind-descripcion">{ind.descripcion || 'Sin descripción registrada'}</p>
+                        </div>
+
+                        <div className="asig-notas-grid">
+                          {listaNotas.map(numNota => {
+                            const notaVal = ind.notas ? ind.notas[numNota] : ind[`nota_${numNota}`];
+                            const tieneNota = notaVal !== null && notaVal !== undefined && notaVal !== '';
+                            const notaNum = tieneNota ? parseFloat(notaVal) : null;
+
+                            return (
+                              <div key={numNota} className="asig-nota-cell">
+                                <span className="asig-nota-label">Nota {numNota}</span>
+                                <span className={`asig-nota-valor ${notaNum !== null ? (notaNum >= notaAprobatoria ? 'nota-aprobada' : 'nota-reprobada') : 'nota-vacia'}`}>
+                                  {notaNum !== null ? notaNum.toFixed(2) : '—'}
+                                </span>
+                              </div>
+                            );
+                          })}
+
+                          <div className="asig-nota-cell asig-nota-cell--promedio">
+                            <span className="asig-nota-label">Promedio</span>
+                            <span className={`asig-nota-valor asig-nota-valor--promedio ${promInd !== null ? (promInd >= notaAprobatoria ? 'nota-aprobada' : 'nota-reprobada') : 'nota-vacia'}`}>
+                              {promInd !== null ? promInd.toFixed(2) : '—'}
                             </span>
                           </div>
                         </div>
                       </div>
-
-                      <div className="asig-definitiva-container">
-                        {defVal !== null ? (
-                          <div className={`asig-definitiva-pill ${defVal >= 3.5 ? 'def-aprobada' : defVal >= 3.0 ? 'def-riesgo' : 'def-reprobada'}`}>
-                            <span className="def-label">Definitiva:</span>
-                            <span className="def-valor">{defVal.toFixed(2)}</span>
-                          </div>
-                        ) : (
-                          <div className="asig-definitiva-pill def-pendiente">
-                            <span className="def-label">Definitiva:</span>
-                            <span className="def-valor">Pendiente</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Nivel 4: Indicadores de logro con Notas 1, 2, 3 y Promedio */}
-                    <div className="asig-indicadores-list">
-                      {(bim.indicadores || []).map((ind, i) => {
-                        const numInd = ind.numero || (i + 1);
-                        const promInd = ind.promedio !== null && ind.promedio !== undefined ? parseFloat(ind.promedio) : null;
-
-                        return (
-                          <div key={ind.indicador_id || i} className={`asig-indicador-item ind-num--${numInd}`}>
-                            <div className="asig-indicador-info">
-                              <div className="asig-ind-tag">
-                                <span className="asig-ind-badge">Indicador {numInd}</span>
-                              </div>
-                              <p className="asig-ind-descripcion">{ind.descripcion || 'Sin descripción registrada'}</p>
-                            </div>
-
-                            <div className="asig-notas-grid">
-                              {[1, 2, 3].map(numNota => {
-                                const notaVal = ind[`nota_${numNota}`];
-                                const tieneNota = notaVal !== null && notaVal !== undefined && notaVal !== '';
-                                const notaNum = tieneNota ? parseFloat(notaVal) : null;
-
-                                return (
-                                  <div key={numNota} className="asig-nota-cell">
-                                    <span className="asig-nota-label">Nota {numNota}</span>
-                                    <span className={`asig-nota-valor ${notaNum !== null ? (notaNum >= 3.0 ? 'nota-aprobada' : 'nota-reprobada') : 'nota-vacia'}`}>
-                                      {notaNum !== null ? notaNum.toFixed(2) : '—'}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-
-                              <div className="asig-nota-cell asig-nota-cell--promedio">
-                                <span className="asig-nota-label">Promedio</span>
-                                <span className={`asig-nota-valor asig-nota-valor--promedio ${promInd !== null ? (promInd >= 3.0 ? 'nota-aprobada' : 'nota-reprobada') : 'nota-vacia'}`}>
-                                  {promInd !== null ? promInd.toFixed(2) : '—'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </Card>
-      )}
-
-      {loadingBimestre && (
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Estado vacío cuando realmente no hay calificaciones registradas */
         <Card>
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-            <div className="spinner-ring" style={{ margin: '0 auto 1rem' }} />
-            <p>Cargando calificaciones por bimestre...</p>
+          <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: 'var(--text-secondary)' }}>
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              width: '72px',
+              height: '72px',
+              borderRadius: '50%',
+              background: 'var(--bg-light)',
+              color: 'var(--text-muted)',
+              marginBottom: '1.25rem'
+            }}>
+              <BarChart3 size={36} strokeWidth={1.5} />
+            </div>
+            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)' }}>
+              No hay calificaciones registradas
+            </h3>
+            <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+              Aún no se han registrado calificaciones para {hijoActivo?.nombre || 'este estudiante'}.
+            </p>
+            <small style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              Las calificaciones aparecerán aquí automáticamente una vez que los docentes las ingresen en el sistema.
+            </small>
           </div>
         </Card>
       )}

@@ -538,48 +538,12 @@ export const eliminarCircular = async (id) => {
 
 
 // =====================================================
-// ✅ TODOS LOS ALIAS PARA COMPATIBILIDAD TOTAL
+// ALIASES Y HELPERS COMPATIBLES
 // =====================================================
 
-// Para RegistroCalificaciones.jsx
-export const getCalificacionesPor = buscarCalificaciones;
-
-// Para dashboards (nombres alternativos)
 export const getDashboardFamilia = getFamiliaDashboard;
 export const getDashboardDocente = getDocenteDashboard;
 
-// Para usuarios (nombres alternativos)
-export const getUsuariosFamilia = () => getUsuariosPorRol('familia');
-export const getUsuariosDocentes = () => getUsuariosPorRol('docente');
-
-// Para reportes
-export const getCalificacionesEstudiante = getCalificacionesHijo;
-export const getAsistenciaEstudiante = getAsistenciaHijo;
-export const getObservacionesEstudiante = getObservacionesHijo;
-
-// Para cursos (nombres alternativos)
-export const obtenerCursos = getCursos;
-export const obtenerEstudiantes = getEstudiantesPorCurso;
-
-// Para observaciones (nombres alternativos)
-export const enviarObservacion = agregarAnotacion;
-export const crearObservacion = agregarAnotacion;
-export const obtenerObservaciones = getObservadorPorCurso;
-export const borrarObservacion = eliminarObservacion;
-
-// Para asistencia (nombres alternativos)
-export const obtenerAsistencia = getAsistenciaPorFecha;
-export const registrarAsistencia = guardarAsistencia;
-
-// Para mensajes (nombres alternativos)
-export const obtenerMensajes = getMensajesPorUsuario;
-export const crearMensaje = enviarMensaje;
-
-// Para calificaciones (nombres alternativos)
-export const obtenerCalificaciones = buscarCalificaciones;
-export const registrarCalificaciones = guardarCalificaciones;
-
-// Funciones que podrían estar en otros archivos
 export const getEstudiantePorId = async (estudianteId) => {
   console.log('🌐 API: Obteniendo estudiante por ID:', estudianteId);
   return await apiRequest(`/estudiantes/${estudianteId}`);
@@ -590,14 +554,9 @@ export const getCursoPorId = async (cursoId) => {
   return await apiRequest(`/cursos/${cursoId}`);
 };
 
-// Para debugging y desarrollo
+// Exportar URL base para clientes y contextos
 export { API_BASE_URL };
 
-// Función catch-all para cualquier export que pueda faltar
-export const funcionGenerica = async (endpoint, options = {}) => {
-  console.log('🌐 API: Función genérica para:', endpoint);
-  return await apiRequest(endpoint, options);
-};
 
 // =====================================================
 // ENDPOINTS ADMINISTRATIVOS (NUEVOS)
@@ -652,9 +611,64 @@ export const getDocentesConCursos = async () => {
   return await apiRequest('/admin/docentes');
 };
 
-export const getMaterias = async () => {
-  console.log('🌐 API: Obteniendo materias...');
-  return await apiRequest('/materias');
+export const getMaterias = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.search) query.append('search', params.search);
+  if (params.area) query.append('area', params.area);
+  if (params.activo !== undefined) query.append('activo', params.activo);
+  if (params.include_inactive) query.append('include_inactive', 'true');
+  if (params.curso_id) query.append('curso_id', params.curso_id);
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  console.log('🌐 API: Obteniendo materias...', qs);
+  return await apiRequest(`/materias${qs}`);
+};
+
+export const getMateria = async (id) => {
+  console.log(`🌐 API: Obteniendo materia ${id}...`);
+  return await apiRequest(`/materias/${id}`);
+};
+
+export const createMateria = async (payload) => {
+  console.log('🌐 API: Creando nueva materia...', payload);
+  return await apiRequest('/materias', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateMateria = async (id, payload) => {
+  console.log(`🌐 API: Actualizando materia ${id}...`, payload);
+  return await apiRequest(`/materias/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const toggleMateriaActiva = async (id) => {
+  console.log(`🌐 API: Alternando estado activo de materia ${id}...`);
+  return await apiRequest(`/materias/${id}/toggle-activo`, {
+    method: 'PATCH',
+  });
+};
+
+export const deleteMateria = async (id) => {
+  console.log(`🌐 API: Eliminando materia ${id}...`);
+  return await apiRequest(`/materias/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+export const getCursoMaterias = async (cursoId) => {
+  console.log(`🌐 API: Obteniendo materias del curso ${cursoId}...`);
+  return await apiRequest(`/cursos/${cursoId}/materias`);
+};
+
+export const setCursoMaterias = async (cursoId, payload) => {
+  console.log(`🌐 API: Guardando asignaturas para el curso ${cursoId}...`, payload);
+  return await apiRequest(`/cursos/${cursoId}/materias`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 };
 
 export const asignarCursoADocente = async (datos) => {
@@ -817,5 +831,66 @@ export const getSemaforoTareasHijo = async (estudianteId) => {
   console.log('🌐 API: Obteniendo semáforo de tareas para estudiante:', estudianteId);
   return await apiRequest(`/familia/tareas-semaforo/${estudianteId}`);
 };
+
+// =====================================================
+// RENDIMIENTO ACADÉMICO Y ESTADÍSTICAS (DOCENTE)
+// =====================================================
+
+/**
+ * Obtiene el rendimiento académico y estadísticas del docente autenticado.
+ * El docente_id se obtiene exclusivamente del token JWT en el backend (anti-IDOR).
+ * Acepta opcionalmente { bimestreId }.
+ */
+export const getRendimientoAcademicoDocente = async (params = {}) => {
+  console.log('🌐 API: Obteniendo rendimiento académico del docente...', params);
+  const query = new URLSearchParams();
+  if (params.bimestreId || params.bimestre_id) {
+    query.append('bimestre_id', params.bimestreId || params.bimestre_id);
+  }
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return await apiRequest(`/docente/rendimiento-academico${queryString}`);
+};
+
+// =====================================================
+// CONFIGURACIÓN DINÁMICA DE EVALUACIÓN ACADÉMICA
+// =====================================================
+
+/** Lista todas las configuraciones de evaluación registradas por año */
+export const getConfiguracionesEvaluacion = async () => {
+  console.log('🌐 API: Obteniendo configuraciones de evaluación...');
+  return await apiRequest('/configuracion/evaluacion');
+};
+
+/** Obtiene la configuración de evaluación activa o por año */
+export const getConfiguracionEvaluacionActiva = async (anio = null) => {
+  const query = anio ? `?anio=${anio}` : '';
+  console.log('🌐 API: Obteniendo configuración de evaluación activa...');
+  return await apiRequest(`/configuracion/evaluacion/activa${query}`);
+};
+
+/** Obtiene la configuración de evaluación para un año específico */
+export const getConfiguracionEvaluacionPorAnio = async (anio) => {
+  console.log('🌐 API: Obteniendo configuración de evaluación para año:', anio);
+  return await apiRequest(`/configuracion/evaluacion/${anio}`);
+};
+
+/** Guarda o actualiza la configuración de evaluación de un año */
+export const guardarConfiguracionEvaluacion = async (datos) => {
+  console.log('🌐 API: Guardando configuración de evaluación:', datos);
+  return await apiRequest('/configuracion/evaluacion', {
+    method: 'POST',
+    body: JSON.stringify(datos),
+  });
+};
+
+/** Verifica si un cambio estructural en la evaluación genera conflictos con calificaciones existentes */
+export const verificarCompatibilidadEvaluacion = async (datos) => {
+  console.log('🌐 API: Verificando compatibilidad de configuración de evaluación:', datos);
+  return await apiRequest('/configuracion/evaluacion/verificar-compatibilidad', {
+    method: 'POST',
+    body: JSON.stringify(datos),
+  });
+};
+
 
 

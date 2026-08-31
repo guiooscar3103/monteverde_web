@@ -39,6 +39,7 @@ from src.models.observacion import Observacion
 from src.models.actividad_admin import ActividadAdmin
 from src.models.docente_curso import DocenteCurso
 from src.models.materia import Materia
+from src.models.curso_materia import CursoMateria
 from src.models.docente_asignacion import DocenteAsignacion
 from src.models.circular import Circular
 # Nuevos modelos — sistema de evaluación por indicadores de logro
@@ -49,7 +50,9 @@ from src.models.tarea import Tarea
 from src.models.entrega import Entrega
 from src.models.configuracion_institucional import ConfiguracionInstitucional
 from src.models.conversacion_archivada import ConversacionArchivada
+from src.models.configuracion_evaluacion import ConfiguracionEvaluacion
 from src.services.configuracion_service import ConfiguracionService
+from src.services.configuracion_evaluacion_service import ConfiguracionEvaluacionService
 
 
 def create_app():
@@ -61,6 +64,17 @@ def create_app():
     def handle_preflight():
         if request.method == 'OPTIONS' and request.path.startswith('/api/'):
             return '', 200
+
+    @app.after_request
+    def add_cors_headers(response):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,PATCH,OPTIONS'
+        return response
+
+    @app.errorhandler(500)
+    def handle_500_error(e):
+        return jsonify({'success': False, 'message': 'Error interno del servidor', 'error': str(e)}), 500
 
     # Inicializar extensiones
     init_extensions(app)
@@ -103,6 +117,66 @@ def create_app():
             db.session.rollback()
             print(f'[WARN] No se pudo verificar seed de configuracion institucional: {exc}')
 
+        # ----- Seed de configuración de evaluación por defecto -----
+        try:
+            ConfiguracionEvaluacionService.get_or_create_default()
+        except Exception as exc:
+            db.session.rollback()
+            print(f'[WARN] No se pudo verificar seed de configuracion evaluacion: {exc}')
+
+        # ----- Seed de cursos, estudiantes y usuarios demo en entorno de desarrollo/producción (MySQL) -----
+        if not app.config.get('TESTING') and db.engine.name != 'sqlite':
+            try:
+                if Curso.query.count() == 0:
+                    c1 = Curso(id=1, nombre='Primero A', nivel='1°', letra='A')
+                    c2 = Curso(id=2, nombre='Primero B', nivel='1°', letra='B')
+                    c3 = Curso(id=3, nombre='Segundo A', nivel='2°', letra='A')
+                    c4 = Curso(id=4, nombre='Tercero A', nivel='3°', letra='A')
+                    c5 = Curso(id=5, nombre='Cuarto A', nivel='4°', letra='A')
+                    c6 = Curso(id=6, nombre='Quinto A', nivel='5°', letra='A')
+                    db.session.add_all([c1, c2, c3, c4, c5, c6])
+                    db.session.commit()
+                    print('[INFO] Cursos iniciales creados.')
+
+                if Estudiante.query.count() == 0:
+                    e1 = Estudiante(id=1, nombre='Santiago González Pérez', curso_id=1)
+                    e2 = Estudiante(id=2, nombre='Valentina López García', curso_id=1)
+                    e3 = Estudiante(id=3, nombre='Matías Rodríguez Silva', curso_id=1)
+                    db.session.add_all([e1, e2, e3])
+                    db.session.commit()
+                    print('[INFO] Estudiantes iniciales creados.')
+
+                # 1. Admin
+                if not Usuario.query.filter_by(email='admin@monteverde.com').first():
+                    u_admin = Usuario(nombre='Administrador Sistema', email='admin@monteverde.com', rol='admin', activo=True, eliminado=False)
+                    u_admin.set_password('admin123')
+                    db.session.add(u_admin)
+
+                # 2. Docente
+                if not Usuario.query.filter_by(email='docente@monteverde.com').first():
+                    u_doc = Usuario(nombre='María García López', email='docente@monteverde.com', rol='docente', activo=True, eliminado=False)
+                    u_doc.set_password('docente123')
+                    db.session.add(u_doc)
+
+                # 3. Familias demo
+                primer_est = Estudiante.query.first()
+                est_id = primer_est.id if primer_est else 1
+                for fam_email in ('familiagonzalez@monteverde.com', 'familia@monteverde.com'):
+                    u_fam = Usuario.query.filter_by(email=fam_email).first()
+                    if not u_fam:
+                        u_fam = Usuario(nombre='Familia González', email=fam_email, rol='familia', estudiante_id=est_id, activo=True, eliminado=False)
+                        u_fam.set_password('familia123')
+                        db.session.add(u_fam)
+                    else:
+                        u_fam.activo = True
+                        u_fam.eliminado = False
+
+                db.session.commit()
+                print('[INFO] Usuarios demo verificados/creados.')
+            except Exception as exc:
+                db.session.rollback()
+                print(f'[WARN] No se pudo verificar seed de usuarios demo: {exc}')
+
         try:
             inspector = inspect(db.engine)
             if inspector.has_table('cursos'):
@@ -133,6 +207,36 @@ def create_app():
                     with db.engine.begin() as conn:
                         conn.execute(text('ALTER TABLE calificaciones_bimestre ADD COLUMN tarea_id INT NULL'))
                     print('[INFO] Columna tarea_id añadida a la tabla calificaciones_bimestre')
+                if db.engine.name != 'sqlite':
+                    with db.engine.begin() as conn:
+                        try:
+                            conn.execute(text('ALTER TABLE calificaciones_bimestre MODIFY COLUMN nota DECIMAL(5,2) NOT NULL'))
+                        except Exception:
+                            pass
+
+            if inspector.has_table('entregas') and db.engine.name != 'sqlite':
+                with db.engine.begin() as conn:
+                    try:
+                        conn.execute(text('ALTER TABLE entregas MODIFY COLUMN calificacion DECIMAL(5,2) NULL'))
+                    except Exception:
+                        pass
+
+            if inspector.has_table('materias'):
+                columnas_materias = [col['name'] for col in inspector.get_columns('materias')]
+                with db.engine.begin() as conn:
+                    if 'codigo' not in columnas_materias:
+                        conn.execute(text('ALTER TABLE materias ADD COLUMN codigo VARCHAR(20) UNIQUE NULL'))
+                    if 'area' not in columnas_materias:
+                        conn.execute(text('ALTER TABLE materias ADD COLUMN area VARCHAR(100) NULL'))
+                    if 'intensidad_horaria' not in columnas_materias:
+                        conn.execute(text('ALTER TABLE materias ADD COLUMN intensidad_horaria INT NOT NULL DEFAULT 0'))
+                    if 'activo' not in columnas_materias:
+                        conn.execute(text('ALTER TABLE materias ADD COLUMN activo BOOLEAN NOT NULL DEFAULT 1'))
+                    if 'created_at' not in columnas_materias:
+                        conn.execute(text('ALTER TABLE materias ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP'))
+                    if 'updated_at' not in columnas_materias:
+                        conn.execute(text('ALTER TABLE materias ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
+                print('[INFO] Columnas verificadas en la tabla materias')
 
             if inspector.has_table('mensajes'):
                 columnas_mensajes = [col['name'] for col in inspector.get_columns('mensajes')]
@@ -196,6 +300,7 @@ def create_app():
     from src.routes.dashboard import dashboard_bp
     from src.routes.circulares import circulares_bp
     from src.routes.tareas import tareas_bp
+    from src.routes.configuracion_evaluacion_routes import configuracion_evaluacion_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(usuario_bp, url_prefix='/api/usuarios')
@@ -213,6 +318,7 @@ def create_app():
     app.register_blueprint(dashboard_bp, url_prefix='/api')
     app.register_blueprint(circulares_bp, url_prefix='/api')
     app.register_blueprint(tareas_bp, url_prefix='/api')
+    app.register_blueprint(configuracion_evaluacion_bp, url_prefix='/api')
     return app
 
 app = create_app()

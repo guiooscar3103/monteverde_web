@@ -5,6 +5,7 @@ import {
   Users,
   GraduationCap,
   BookOpen,
+  Library,
   HeartHandshake,
   Megaphone,
   Settings,
@@ -44,6 +45,11 @@ export default function AdminLayout() {
       to: '/admin/cursos',
       label: 'Gestión de Cursos',
       icon: <BookOpen size={20} className="sidebar-icon" />
+    },
+    {
+      to: '/admin/asignaturas',
+      label: 'Gestión Asignaturas',
+      icon: <Library size={20} className="sidebar-icon" />
     },
     {
       to: '/admin/familias',

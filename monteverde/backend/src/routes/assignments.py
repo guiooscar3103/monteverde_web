@@ -33,6 +33,19 @@ def create_assignment():
         if not materia:
             return jsonify({'success': False, 'message': 'Materia no encontrada'}), 404
 
+        if not getattr(materia, 'activo', True):
+            return jsonify({'success': False, 'message': f"La asignatura '{materia.nombre}' se encuentra inactiva"}), 400
+
+        from src.models.curso_materia import CursoMateria
+        materias_curso_count = CursoMateria.query.filter_by(curso_id=curso_id, activo=True).count()
+        if materias_curso_count > 0:
+            asociada = CursoMateria.query.filter_by(curso_id=curso_id, materia_id=materia_id, activo=True).first()
+            if not asociada:
+                return jsonify({
+                    'success': False,
+                    'message': f"La asignatura '{materia.nombre}' no está disponible para el curso '{curso.nombre}'"
+                }), 400
+
         existente = DocenteAsignacion.query.filter_by(
             docente_id=docente_id,
             curso_id=curso_id,

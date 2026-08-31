@@ -3,9 +3,10 @@ from datetime import datetime
 from src.extensions import db
 from src.models.calificacion import Calificacion
 from src.models.estudiante import Estudiante
-from src.utils.auth_helpers import role_required
+from src.utils.auth_helpers import role_required, get_current_user
 
 calificaciones_bp = Blueprint('calificaciones_custom', __name__)
+
 
 @calificaciones_bp.route('/calificaciones/buscar', methods=['GET'])
 @role_required('docente', 'admin')
@@ -92,6 +93,26 @@ def guardar_calificaciones():
 def get_calificaciones_hijo(estudiante_id):
     """Calificaciones de un hijo."""
     try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'success': False, 'message': 'Usuario no autenticado'}), 401
+
+        estudiante = Estudiante.query.get(estudiante_id)
+        if not estudiante:
+            return jsonify({'success': False, 'message': 'Estudiante no encontrado'}), 404
+
+        # Validar autorización si es rol familia (anti-IDOR)
+        if current_user.rol == 'familia':
+            hijos_ids = [e.id for e in current_user.estudiantes]
+            if current_user.estudiante_id and current_user.estudiante_id not in hijos_ids:
+                hijos_ids.append(current_user.estudiante_id)
+
+            if estudiante_id not in hijos_ids:
+                return jsonify({
+                    'success': False,
+                    'message': 'No tienes permisos para consultar las calificaciones de este estudiante'
+                }), 403
+
         calificaciones = Calificacion.query.filter_by(estudiante_id=estudiante_id).order_by(
             Calificacion.fecha_registro.desc(), Calificacion.asignatura
         ).all()
@@ -103,7 +124,7 @@ def get_calificaciones_hijo(estudiante_id):
                 'asignatura': cal.asignatura,
                 'periodo': cal.periodo,
                 'nota': cal.nota,
-                'fecha': cal.fecha_registro.isoformat() if cal.fecha_registro else None
+                'fecha': cal._fmt(cal.fecha_registro) if hasattr(cal, '_fmt') else (cal.fecha_registro.isoformat() if cal.fecha_registro else None)
             }
             calificaciones_data.append(cal_dict)
         
@@ -112,3 +133,4 @@ def get_calificaciones_hijo(estudiante_id):
     except Exception as e:
         print(f"❌ Error calificaciones hijo: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+

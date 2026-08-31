@@ -3,12 +3,10 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { GraduationCap, AlertCircle, Loader2, LogIn } from 'lucide-react';
 import logoColegio from '../assets/img/logo-colegio.png';
-import adminImg from '../assets/img/admin.png';
-import docenteImg from '../assets/img/docente.png';
-import familiaImg from '../assets/img/familia.png';
 import iconoDocente from '../assets/img/icono docente.png';
 import iconoFamilia from '../assets/img/icono familia.png';
 import BorderBeam from '../components/BorderBeam';
+
 
 const ROLE_CREDENTIALS = {
   admin: { email: 'admin@monteverde.com', password: 'admin123' },
@@ -149,8 +147,9 @@ export default function Login() {
           </label>
 
           <div className="role-selector">
-            {Object.entries(ROLE_CREDENTIALS).map(([role, _]) => (
+            {Object.keys(ROLE_CREDENTIALS).map((role) => (
               <button
+
                 key={role}
                 type="button"
                 onClick={() => handleRoleSelect(role)}

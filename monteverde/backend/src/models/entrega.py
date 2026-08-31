@@ -15,13 +15,13 @@ class Entrega(db.Model):
     archivo_url = db.Column(db.String(255), nullable=True)
     contenido = db.Column(db.Text, nullable=True)
     estado = db.Column(db.String(20), default='PENDIENTE', nullable=False)
-    calificacion = db.Column(db.Numeric(3, 2), nullable=True)
+    calificacion = db.Column(db.Numeric(5, 2), nullable=True)
     comentarios = db.Column(db.Text, nullable=True)
 
     __table_args__ = (
         db.UniqueConstraint('tarea_id', 'estudiante_id', name='uq_tarea_estudiante'),
         db.CheckConstraint("estado IN ('PENDIENTE', 'ENTREGADA', 'CALIFICADA')", name='ck_entrega_estado'),
-        db.CheckConstraint("calificacion IS NULL OR (calificacion >= 0.00 AND calificacion <= 5.00)", name='ck_entrega_calificacion'),
+        db.CheckConstraint("calificacion IS NULL OR calificacion >= 0.00", name='ck_entrega_calificacion_no_negativa'),
         db.Index('idx_entrega_tarea_estudiante', 'tarea_id', 'estudiante_id'),
         db.Index('idx_entrega_estado', 'estado'),
     )
@@ -32,13 +32,25 @@ class Entrega(db.Model):
     def __repr__(self):
         return f'<Entrega #{self.id} tarea={self.tarea_id} est={self.estudiante_id} estado={self.estado}>'
 
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         return {
             'id': self.id,
             'tarea_id': self.tarea_id,
             'estudiante_id': self.estudiante_id,
             'estudiante_nombre': self.estudiante.nombre if self.estudiante else None,
-            'fecha_entrega': self.fecha_entrega.isoformat() if self.fecha_entrega else None,
+            'fecha_entrega': self._fmt(self.fecha_entrega),
             'archivo_url': self.archivo_url,
             'contenido': self.contenido,
             'estado': self.estado,

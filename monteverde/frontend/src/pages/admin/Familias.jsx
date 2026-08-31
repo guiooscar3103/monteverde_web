@@ -48,25 +48,6 @@ const CARD_STYLES = {
   }
 };
 
-const getEstudianteGrado = (estudiante) => {
-  if (!estudiante.curso) return 'Sin Curso';
-  return `${estudiante.curso.nivel}°${estudiante.curso.letra} - ${estudiante.curso.nombre}`;
-};
-
-const filterEstudiantes = (estudiantes, query, linkedIds) => {
-  if (!query.trim()) return estudiantes.filter(e => !linkedIds.includes(e.id));
-  
-  const q = query.toLowerCase().trim();
-  return estudiantes.filter(est => {
-    if (linkedIds.includes(est.id)) return false;
-    const matchNombre = est.nombre?.toLowerCase().includes(q);
-    const matchCurso = est.curso_nombre?.toLowerCase().includes(q) || 
-                      (est.curso && `${est.curso.nivel}°${est.curso.letra}`.toLowerCase().includes(q));
-    const matchId = est.id?.toString().includes(q);
-    return matchNombre || matchCurso || matchId;
-  });
-};
-
 function StudentDropdown({
   fam,
   estudiantes,

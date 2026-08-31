@@ -29,7 +29,7 @@ class Tarea(db.Model):
 
     __table_args__ = (
         db.CheckConstraint("estado IN ('BORRADOR', 'PUBLICADA', 'CERRADA')", name='ck_tarea_estado'),
-        db.CheckConstraint("numero_nota IS NULL OR numero_nota IN (1, 2, 3)", name='ck_tarea_numero_nota'),
+        db.CheckConstraint("numero_nota IS NULL OR numero_nota > 0", name='ck_tarea_numero_nota_positivo'),
         db.Index('idx_tarea_docente_curso_materia', 'docente_id', 'curso_id', 'materia_id'),
         db.Index('idx_tarea_vencimiento', 'fecha_vencimiento'),
         db.Index('idx_tarea_estado', 'estado'),
@@ -47,13 +47,25 @@ class Tarea(db.Model):
     def __repr__(self):
         return f'<Tarea #{self.id} "{self.titulo}" curso={self.curso_id} materia={self.materia_id} califica_bim={self.califica_bimestre}>'
 
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, "isoformat"):
+            return dt.isoformat()
+        return str(dt)
+
+
     def to_dict(self, include_stats=False):
         data = {
             'id': self.id,
             'titulo': self.titulo,
             'descripcion': self.descripcion,
-            'fecha_creacion': self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            'fecha_vencimiento': self.fecha_vencimiento.isoformat() if self.fecha_vencimiento else None,
+            'fecha_creacion': self._fmt(self.fecha_creacion),
+            'fecha_vencimiento': self._fmt(self.fecha_vencimiento),
             'estado': self.estado,
             'docente_id': self.docente_id,
             'docente_nombre': self.docente.nombre if self.docente else None,

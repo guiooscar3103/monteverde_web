@@ -27,6 +27,18 @@ class ConfiguracionInstitucional(db.Model):
     def __repr__(self):
         return f'<ConfiguracionInstitucional {self.nombre_institucion} ({self.anio_escolar})>'
 
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -39,7 +51,7 @@ class ConfiguracionInstitucional(db.Model):
             'telefono': self.telefono or '',
             'email_contacto': self.email_contacto or '',
             'activa': self.activa,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'created_at': self._fmt(self.created_at),
+            'updated_at': self._fmt(self.updated_at),
             'usuario_actualizo_id': self.usuario_actualizo_id
         }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Asistencia from './pages/docente/Asistencia';
@@ -18,6 +18,8 @@ import AdminLayout from './layouts/AdminLayout';
 import DocenteHome from './pages/docente/Home';
 import RegistroCalificaciones from './pages/docente/RegistroCalificaciones';
 import TareasDocente from './pages/docente/Tareas';
+import DocenteAcademicDashboard from './components/docente/DocenteAcademicDashboard';
+import PrivateRoute from './components/PrivateRoute';
 
 // Páginas de administración
 import Dashboard from './pages/admin/Dashboard';
@@ -26,40 +28,8 @@ import Docentes from './pages/admin/Docentes';
 import Familias from './pages/admin/Familias';
 import Configuracion from './pages/admin/Configuracion';
 import Cursos from './pages/admin/Cursos';
+import Asignaturas from './pages/admin/Asignaturas';
 import Circulares from './pages/admin/Circulares';
-
-// ===================================================
-// RUTA ADMINISTRATIVA DE ALTA FIDELIDAD
-// ===================================================
-
-// ===================================================
-// Componente para proteger rutas
-// ===================================================
-function PrivateRoute({ children, allowedRoles = [] }) {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '2rem' }}>
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
-        <p>Cargando...</p>
-      </div>
-    );
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.rol)) {
-    // Redirigir al dashboard correcto según el rol
-    if (user.rol === 'admin') return <Navigate to="/admin" replace />;
-    if (user.rol === 'docente') return <Navigate to="/docente" replace />;
-    if (user.rol === 'familia') return <Navigate to="/familia" replace />;
-  }
-  
-  return children;
-}
 
 // ===================================================
 // Redirección de Raíz robusta anti-bucles
@@ -80,13 +50,10 @@ function RootRedirect() {
   return <Navigate to="/login" replace />;
 }
 
-
 // ===================================================
 // Estructura principal de rutas
 // ===================================================
 function App() {
-  const { isAuthenticated, user } = useAuth();
-
   return (
     <Routes>
       {/* ======================================
@@ -106,6 +73,7 @@ function App() {
         }
       >
         <Route index element={<DocenteHome />} />
+        <Route path="rendimiento" element={<DocenteAcademicDashboard />} />
         <Route path="tareas" element={<TareasDocente />} />
         <Route path="calificaciones" element={<RegistroCalificaciones />} />
         <Route path="asistencia" element={<Asistencia />} />
@@ -114,7 +82,7 @@ function App() {
       </Route>
       
       {/* ======================================
-          ADMIN - MEJORADO
+          ADMIN
       ====================================== */}
       <Route 
         path="/admin" 
@@ -129,6 +97,7 @@ function App() {
         <Route path="docentes" element={<Docentes />} />
         <Route path="familias" element={<Familias />} />
         <Route path="cursos" element={<Cursos />} />
+        <Route path="asignaturas" element={<Asignaturas />} />
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="circulares" element={<Circulares />} />
       </Route>

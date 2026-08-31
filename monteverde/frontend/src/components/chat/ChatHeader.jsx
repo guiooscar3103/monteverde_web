@@ -1,16 +1,6 @@
 import React from 'react';
 import { User, Archive, ArchiveRestore, BookOpen, GraduationCap, ShieldCheck } from 'lucide-react';
-
-/**
- * Genera iniciales a partir de un nombre.
- * Ej: "Carlos Rodríguez" -> "CR"
- */
-export function getInitials(nombre) {
-  if (!nombre) return 'U';
-  const parts = nombre.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
+import { getInitials } from './chatUtils';
 
 /**
  * ChatHeader - Encabezado contextual moderno del chat institucional MonteVerde
@@ -18,6 +8,7 @@ export function getInitials(nombre) {
 export default function ChatHeader({
   contacto,
   esArchivada = false,
+
   onVerPerfil,
   onArchivar,
   onDesarchivar,

@@ -24,6 +24,18 @@ class Calificacion(db.Model):
         return f'<Calificacion {self.estudiante_id} - {self.asignatura}: {self.nota}>'
     
     # Convierte el modelo a diccionario para serialización JSON
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -31,5 +43,5 @@ class Calificacion(db.Model):
             'asignatura': self.asignatura,
             'periodo': self.periodo,
             'nota': self.nota,  
-            'fecha_registro': self.fecha_registro.isoformat() if self.fecha_registro else None
+            'fecha_registro': self._fmt(self.fecha_registro)
         }

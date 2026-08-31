@@ -26,11 +26,13 @@ import {
   desarchivarConversacion,
   getConversacionesArchivadas
 } from '../../services/api';
-import ChatHeader, { getInitials } from '../../components/chat/ChatHeader';
+import ChatHeader from '../../components/chat/ChatHeader';
+import { getInitials } from '../../components/chat/chatUtils';
 import ChatComposer from '../../components/chat/ChatComposer';
 import ChatMessageList from '../../components/chat/ChatMessageList';
 import DocentePerfilModal from '../../components/chat/DocentePerfilModal';
 import ChatEmptyState from '../../components/chat/ChatEmptyState';
+
 
 
 // Funciones helper para reducir complejidad
@@ -53,19 +55,20 @@ const _crearMapaConversaciones = (mensajes, usuarioId) => {
   return map;
 };
 
-const _agregarContactosAlMapa = async (mapa, docentes, usuarioId) => {
+const _agregarContactosAlMapa = async (mapa) => {
   for (const contactoId of Object.keys(mapa)) {
     try {
       const contacto = await getUsuarioPorId(parseInt(contactoId));
       if (contacto.rol === 'docente') {
         mapa[contactoId].contacto = contacto;
       }
-    } catch (e) {
+    } catch {
       delete mapa[contactoId];
     }
   }
   return mapa;
 };
+
 
 const _formatearConversaciones = (mapa) => {
   return Object.values(mapa)
@@ -540,7 +543,9 @@ export default function FamiliaMensajes() {
       try {
         const mensajesActualizados = await getMensajesPorUsuario(usuario.id);
         await procesarConversaciones(mensajesActualizados);
-      } catch {}
+      } catch (errActualizar) {
+        console.warn('No se pudieron recargar las conversaciones:', errActualizar);
+      }
     } catch (error) {
       setMensaje('❌ Error al enviar mensaje: ' + error.message);
     } finally {
@@ -606,9 +611,10 @@ export default function FamiliaMensajes() {
           ) : (
             <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
           )}
-          <span>{mensaje.replace(/^[✅❌⚠️]\s*/, '')}</span>
+          <span>{mensaje.replace(/^(?:✅|❌|⚠️)\s*/u, '')}</span>
         </div>
       )}
+
 
       <div style={{
         display: 'grid',

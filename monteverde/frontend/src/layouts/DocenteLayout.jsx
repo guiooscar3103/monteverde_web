@@ -1,6 +1,7 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
   Home,
+  TrendingUp,
   ClipboardList,
   BookOpen,
   CalendarCheck,
@@ -12,13 +13,8 @@ import { useAuth } from '../hooks/useAuth';
 import logoColegio from '../assets/img/logo-colegio.png';
 
 export default function DocenteLayout() {
-  const { user, usuario, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, usuario } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   const navItems = [
     { 
@@ -26,6 +22,11 @@ export default function DocenteLayout() {
       label: 'Inicio', 
       exact: true,
       icon: <Home size={20} className="sidebar-icon" />
+    },
+    { 
+      to: '/docente/rendimiento', 
+      label: 'Rendimiento Académico',
+      icon: <TrendingUp size={20} className="sidebar-icon" />
     },
     { 
       to: '/docente/tareas', 

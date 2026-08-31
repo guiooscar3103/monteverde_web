@@ -1,9 +1,12 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from src.services.usuario_service import UsuarioService
+from src.utils.auth_helpers import role_required
 
 usuario_bp = Blueprint('usuario_routes', __name__)
 
 @usuario_bp.route('', methods=['GET'])
+@role_required('admin')
 def get_usuarios():
     """Obtener listado de usuarios paginado con filtros"""
     try:
@@ -40,6 +43,7 @@ def get_usuarios():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @usuario_bp.route('/<int:usuario_id>', methods=['GET'])
+@role_required('admin')
 def get_usuario(usuario_id):
     """Obtener un usuario específico"""
     try:
@@ -54,6 +58,7 @@ def get_usuario(usuario_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @usuario_bp.route('', methods=['POST'])
+@role_required('admin')
 def crear_usuario():
     """Crear un nuevo usuario"""
     try:
@@ -64,6 +69,7 @@ def crear_usuario():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @usuario_bp.route('/<int:usuario_id>', methods=['PUT'])
+@role_required('admin')
 def actualizar_usuario(usuario_id):
     """Actualizar datos del usuario"""
     try:
@@ -74,6 +80,7 @@ def actualizar_usuario(usuario_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @usuario_bp.route('/<int:usuario_id>', methods=['DELETE'])
+@role_required('admin')
 def soft_delete_usuario(usuario_id):
     """Eliminación lógica de usuario"""
     try:
@@ -83,6 +90,7 @@ def soft_delete_usuario(usuario_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @usuario_bp.route('/<int:usuario_id>/restaurar', methods=['PUT'])
+@role_required('admin')
 def restaurar_usuario(usuario_id):
     """Restaurar usuario eliminado lógicamente"""
     try:
@@ -92,6 +100,7 @@ def restaurar_usuario(usuario_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @usuario_bp.route('/<int:usuario_id>/estado', methods=['PUT'])
+@role_required('admin')
 def cambiar_estado(usuario_id):
     """Activar/Desactivar cuenta de usuario"""
     try:
@@ -106,6 +115,7 @@ def cambiar_estado(usuario_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @usuario_bp.route('/<int:usuario_id>/password', methods=['PUT'])
+@role_required('admin')
 def restablecer_password(usuario_id):
     """Restablecer contraseña por el administrador"""
     try:
@@ -116,3 +126,4 @@ def restablecer_password(usuario_id):
         return jsonify(result), status_code
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+

@@ -16,12 +16,24 @@ class Circular(db.Model):
     def __repr__(self):
         return f'<Circular {self.id}: {self.titulo}>'
     
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         return {
             'id': self.id,
             'titulo': self.titulo,
             'contenido': self.contenido,
-            'fecha_publicacion': self.fecha_publicacion.isoformat() if self.fecha_publicacion else None,
+            'fecha_publicacion': self._fmt(self.fecha_publicacion),
             'autor_id': self.autor_id,
             'autor_nombre': self.autor.nombre if self.autor else 'Administrador'
         }

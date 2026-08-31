@@ -63,6 +63,15 @@ class Usuario(db.Model):
         return check_password_hash(self.password, password)
     
     def to_dict(self):
+        def _format_dt(dt):
+            if not dt:
+                return None
+            if isinstance(dt, str):
+                return dt
+            if hasattr(dt, 'isoformat'):
+                return dt.isoformat()
+            return str(dt)
+
         data = {
             'id': self.id,
             'nombre': self.nombre,
@@ -71,8 +80,8 @@ class Usuario(db.Model):
             'estudiante_id': self.estudiante_id,
             'activo': self.activo,
             'eliminado': self.eliminado,
-            'fecha_eliminacion': self.fecha_eliminacion.isoformat() if self.fecha_eliminacion else None,
-            'fecha_registro': self.fecha_registro.isoformat() if self.fecha_registro else None
+            'fecha_eliminacion': _format_dt(self.fecha_eliminacion),
+            'fecha_registro': _format_dt(self.fecha_registro)
         }
 
         if self.estudiante:

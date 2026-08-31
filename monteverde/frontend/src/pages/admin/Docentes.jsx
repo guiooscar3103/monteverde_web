@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   CheckCircle2,
   AlertCircle,
@@ -59,17 +59,21 @@ export default function Docentes() {
     mutationFn: asignarCursoADocente,
     onSuccess: (res) => {
       if (res.success) {
+        setErrorMsg('');
         setSuccessMsg(res.message || 'Asignación creada con éxito');
         queryClient.invalidateQueries({ queryKey: ['admin', 'docentes'] });
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        alert(res.message || 'Error al asignar curso y materia.');
+        setErrorMsg(res.message || 'Error al asignar curso y materia.');
+        setTimeout(() => setErrorMsg(''), 4000);
       }
     },
     onError: (error) => {
-      alert(error.message || 'Error en la petición.');
+      setErrorMsg(error.message || 'Error en la petición.');
+      setTimeout(() => setErrorMsg(''), 4000);
     }
   });
+
 
   const desassignMutation = useMutation({
     mutationFn: desasignarCursoDeDocente,
@@ -86,6 +90,21 @@ export default function Docentes() {
       alert(error.message || 'Error en la petición.');
     }
   });
+
+  const getMateriasDisponiblesParaDocente = (docId) => {
+    const cursoId = seleccionCurso[docId];
+    if (!cursoId) return [];
+    const cursoObj = cursos.find(c => String(c.id) === String(cursoId));
+    if (cursoObj && Array.isArray(cursoObj.materias) && cursoObj.materias.length > 0) {
+      return cursoObj.materias;
+    }
+    return materias.filter(m => m.activo !== false);
+  };
+
+  const handleCursoChange = (docId, cursoId) => {
+    setSeleccionCurso({ ...seleccionCurso, [docId]: cursoId });
+    setSeleccionMateria({ ...seleccionMateria, [docId]: '' });
+  };
 
   const handleAsignar = (docenteId) => {
     const cursoId = seleccionCurso[docenteId];
@@ -332,11 +351,11 @@ export default function Docentes() {
                 <div style={{ display: 'flex', flexGrow: 1, gap: '0.75rem', alignItems: 'center' }}>
                   <select
                     value={seleccionCurso[doc.id] || ''}
-                    onChange={(e) => setSeleccionCurso({ ...seleccionCurso, [doc.id]: e.target.value })}
+                    onChange={(e) => handleCursoChange(doc.id, e.target.value)}
                     style={{
                       flexGrow: 1,
                       fontSize: '0.85rem',
-                      padding: '0.4rem',
+                      padding: '0.45rem',
                       borderRadius: '6px',
                       border: '1px solid #cbd5e1'
                     }}
@@ -352,20 +371,30 @@ export default function Docentes() {
                   <select
                     value={seleccionMateria[doc.id] || ''}
                     onChange={(e) => setSeleccionMateria({ ...seleccionMateria, [doc.id]: e.target.value })}
+                    disabled={!seleccionCurso[doc.id]}
                     style={{
                       flexGrow: 1,
                       fontSize: '0.85rem',
-                      padding: '0.4rem',
+                      padding: '0.45rem',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1'
+                      border: '1px solid #cbd5e1',
+                      background: !seleccionCurso[doc.id] ? '#f8fafc' : '#ffffff',
+                      color: !seleccionCurso[doc.id] ? '#94a3b8' : '#0f172a',
+                      cursor: !seleccionCurso[doc.id] ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    <option value="">-- Seleccionar Materia --</option>
-                    {materias.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.nombre}
-                      </option>
-                    ))}
+                    {!seleccionCurso[doc.id] ? (
+                      <option value="">-- Primero elija curso --</option>
+                    ) : (
+                      <>
+                        <option value="">-- Seleccionar Asignatura --</option>
+                        {getMateriasDisponiblesParaDocente(doc.id).map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.nombre} {m.codigo ? `(${m.codigo})` : ''}
+                          </option>
+                        ))}
+                      </>
+                    )}
                   </select>
                 </div>
 

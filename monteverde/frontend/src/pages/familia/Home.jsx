@@ -20,19 +20,18 @@ import {
 } from 'lucide-react';
 import { 
   getFamiliaDashboard, 
-  getMensajesPorUsuario, 
   getCirculares, 
   getSemaforoTareasHijo,
   formatearFecha, 
   formatearFechaHora 
 } from '../../services/api';
+
 import familiaImg from '../../assets/img/familia.png';
 import logoColegio from '../../assets/img/logo-colegio.png';
 
 export default function FamiliaHome() {
   const { usuario } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
-  const [ultimoMensaje, setUltimoMensaje] = useState(null);
   const [circulares, setCirculares] = useState([]);
   const [circularSeleccionada, setCircularSeleccionada] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,12 +55,8 @@ export default function FamiliaHome() {
       }
 
       try {
-        const [dashboard, mensajes, circularesRes] = await Promise.all([
+        const [dashboard, circularesRes] = await Promise.all([
           getFamiliaDashboard(usuario.id),
-          getMensajesPorUsuario(usuario.id).catch(err => {
-            console.warn('No se pudieron cargar mensajes:', err);
-            return [];
-          }),
           getCirculares(5).catch(err => {
             console.warn('No se pudieron cargar circulares:', err);
             return [];
@@ -74,14 +69,8 @@ export default function FamiliaHome() {
           const listaCirculares = circularesRes.data ? circularesRes.data : circularesRes;
           setCirculares(listaCirculares);
         }
-
-        if (mensajes && mensajes.length > 0) {
-          const mensajesRecibidos = mensajes.filter(m => m.receptor_id === usuario.id);
-          if (mensajesRecibidos.length > 0) {
-            setUltimoMensaje(mensajesRecibidos[0]);
-          }
-        }
       } catch (error) {
+
         console.error('Error al cargar dashboard:', error);
         setMensaje('Error al cargar información: ' + error.message);
       } finally {

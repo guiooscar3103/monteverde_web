@@ -3,82 +3,64 @@ import { ClipboardList, Lightbulb } from 'lucide-react';
 
 /**
  * MatrizCalificaciones
- * Tabla tipo Excel para ingresar notas de estudiantes por indicador de logro.
+ * Tabla tipo Excel totalmente dinámica para ingresar notas de estudiantes por indicador de logro.
+ * Se adapta automáticamente a cualquier cantidad de indicadores, notas parciales y escala configurada.
  *
  * Props:
- *  - estudiantes: [{estudiante_id, estudiante_nombre, indicadores: [{indicador_id, numero, descripcion, nota_1..3, promedio}], definitiva}]
+ *  - estudiantes: [{estudiante_id, estudiante_nombre, indicadores: [{indicador_id, numero, descripcion, notas, promedio}], definitiva}]
+ *  - configuracion: { notas_por_indicador, escala: { min, max, aprobacion, tipo } }
  *  - onNotaChange: (estudianteId, indicadorId, numeroNota, valor) => void
  *  - loading: bool
  */
 
-const RANGO_MIN = 0.0;
-const RANGO_MAX = 5.0;
-const APROBATORIO = 3.0;
-
-function colorNota(nota) {
-  if (nota === null || nota === undefined || nota === '') return '';
-  const n = parseFloat(nota);
-  if (isNaN(n)) return 'nota-invalida';
-  if (n >= APROBATORIO) return 'nota-aprobada';
-  return 'nota-reprobada';
-}
-
-function colorDefinitiva(nota) {
-  if (nota === null || nota === undefined) return '';
-  return nota >= APROBATORIO ? 'definitiva-aprobada' : 'definitiva-reprobada';
-}
-
-function formatNota(nota) {
-  if (nota === null || nota === undefined || nota === '') return '—';
-  return parseFloat(nota).toFixed(2);
-}
-
-function CeldaNota({ value, onChange, onKeyDown, cellRef, pendiente }) {
-  const isInvalid =
-    value !== '' &&
-    value !== null &&
-    value !== undefined &&
-    (isNaN(parseFloat(value)) || parseFloat(value) < RANGO_MIN || parseFloat(value) > RANGO_MAX);
-
-  return (
-    <td className={`celda-nota ${pendiente && !value ? 'celda-pendiente' : ''} ${isInvalid ? 'celda-invalida' : ''}`}>
-      <input
-        ref={cellRef}
-        type="number"
-        className={`input-nota ${colorNota(value)}`}
-        value={value ?? ''}
-        min={RANGO_MIN}
-        max={RANGO_MAX}
-        step={0.1}
-        onChange={e => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-        onFocus={e => e.target.select()}
-        placeholder="—"
-        aria-label={`Nota (${RANGO_MIN}–${RANGO_MAX})`}
-      />
-      {isInvalid && (
-        <span className="nota-error-tooltip" title={`Rango: ${RANGO_MIN} a ${RANGO_MAX}`}>!</span>
-      )}
-    </td>
-  );
-}
-
-export default function MatrizCalificaciones({ estudiantes, onNotaChange, loading }) {
+export default function MatrizCalificaciones({
+  estudiantes,
+  configuracion,
+  onNotaChange,
+  loading
+}) {
   const cellRefs = useRef({});
+
+  // Extraer parámetros dinámicos de configuración con valores por defecto resilientes
+  const notasPorIndicador = configuracion?.notas_por_indicador || 3;
+  const escalaMin = configuracion?.escala?.min ?? 1.0;
+  const escalaMax = configuracion?.escala?.max ?? 5.0;
+  const notaAprobatoria = configuracion?.escala?.aprobacion ?? 3.0;
+  const pasoStep = escalaMax > 10 ? 1 : 0.1;
+
+  const colorNota = (nota) => {
+    if (nota === null || nota === undefined || nota === '') return '';
+    const n = parseFloat(nota);
+    if (isNaN(n)) return 'nota-invalida';
+    if (n >= notaAprobatoria) return 'nota-aprobada';
+    return 'nota-reprobada';
+  };
+
+  const colorDefinitiva = (nota) => {
+    if (nota === null || nota === undefined) return '';
+    return nota >= notaAprobatoria ? 'definitiva-aprobada' : 'definitiva-reprobada';
+  };
+
+  const formatNota = (nota) => {
+    if (nota === null || nota === undefined || nota === '') return '—';
+    const num = parseFloat(nota);
+    return isNaN(num) ? '—' : (escalaMax > 10 ? num.toFixed(1) : num.toFixed(2));
+  };
 
   // Construir lista plana de IDs de celdas para navegación con Tab/Enter
   const getCellIds = useCallback(() => {
     if (!estudiantes?.length) return [];
     const ids = [];
+    const listaNotas = Array.from({ length: notasPorIndicador }, (_, i) => i + 1);
     estudiantes.forEach(est => {
-      est.indicadores.forEach(ind => {
-        [1, 2, 3].forEach(n => {
+      (est.indicadores || []).forEach(ind => {
+        listaNotas.forEach(n => {
           ids.push(`${est.estudiante_id}-${ind.indicador_id}-${n}`);
         });
       });
     });
     return ids;
-  }, [estudiantes]);
+  }, [estudiantes, notasPorIndicador]);
 
   const handleKeyDown = useCallback((e, currentId) => {
     if (e.key !== 'Tab' && e.key !== 'Enter') return;
@@ -122,12 +104,16 @@ export default function MatrizCalificaciones({ estudiantes, onNotaChange, loadin
 
   const indicadoresRef = estudiantes[0]?.indicadores || [];
   const numIndicadores = indicadoresRef.length;
+  const listaIndicesNotas = Array.from({ length: notasPorIndicador }, (_, i) => i + 1);
 
-  // Calcular progreso
-  const totalCeldas = estudiantes.length * numIndicadores * 3;
+  // Calcular progreso dinámico
+  const totalCeldas = estudiantes.length * numIndicadores * notasPorIndicador;
   const celdasLlenas = estudiantes.reduce((acc, est) =>
-    acc + est.indicadores.reduce((a2, ind) =>
-      a2 + [ind.nota_1, ind.nota_2, ind.nota_3].filter(n => n !== null && n !== undefined && n !== '').length
+    acc + (est.indicadores || []).reduce((a2, ind) =>
+      a2 + listaIndicesNotas.filter(n => {
+        const val = ind.notas ? ind.notas[n] : ind[`nota_${n}`];
+        return val !== null && val !== undefined && val !== '';
+      }).length
     , 0)
   , 0);
   const progreso = totalCeldas > 0 ? Math.round((celdasLlenas / totalCeldas) * 100) : 0;
@@ -151,24 +137,24 @@ export default function MatrizCalificaciones({ estudiantes, onNotaChange, loadin
           <colgroup>
             <col className="col-estudiante" />
             {indicadoresRef.map((ind) => (
-              <>
-                <col key={`col-n1-${ind.indicador_id}`} className="col-nota" />
-                <col key={`col-n2-${ind.indicador_id}`} className="col-nota" />
-                <col key={`col-n3-${ind.indicador_id}`} className="col-nota" />
+              <span key={`cg-ind-${ind.indicador_id}`} style={{ display: 'contents' }}>
+                {listaIndicesNotas.map((n) => (
+                  <col key={`col-n${n}-${ind.indicador_id}`} className="col-nota" />
+                ))}
                 <col key={`col-prom-${ind.indicador_id}`} className="col-promedio" />
-              </>
+              </span>
             ))}
             <col className="col-definitiva" />
           </colgroup>
 
           <thead>
-            {/* Fila 1: Nombres de indicadores (agrupados) */}
+            {/* Fila 1: Nombres de indicadores (agrupados con colSpan dinámico) */}
             <tr>
               <th className="th-estudiante" rowSpan={2}>Estudiante</th>
               {indicadoresRef.map((ind) => (
                 <th
                   key={`th-ind-${ind.indicador_id}`}
-                  colSpan={4}
+                  colSpan={notasPorIndicador + 1}
                   className={`th-indicador th-indicador--${ind.numero}`}
                   title={ind.descripcion}
                 >
@@ -179,15 +165,19 @@ export default function MatrizCalificaciones({ estudiantes, onNotaChange, loadin
               <th className="th-definitiva" rowSpan={2}>Definitiva</th>
             </tr>
 
-            {/* Fila 2: Subcolumnas */}
+            {/* Fila 2: Subcolumnas dinámicas por nota */}
             <tr>
               {indicadoresRef.map((ind) => (
-                <>
-                  <th key={`sub-n1-${ind.indicador_id}`} className="th-sub">Nota 1</th>
-                  <th key={`sub-n2-${ind.indicador_id}`} className="th-sub">Nota 2</th>
-                  <th key={`sub-n3-${ind.indicador_id}`} className="th-sub">Nota 3</th>
-                  <th key={`sub-prom-${ind.indicador_id}`} className="th-sub th-sub-prom">Promedio</th>
-                </>
+                <span key={`subcols-${ind.indicador_id}`} style={{ display: 'contents' }}>
+                  {listaIndicesNotas.map((n) => (
+                    <th key={`sub-n${n}-${ind.indicador_id}`} className="th-sub">
+                      Nota {n}
+                    </th>
+                  ))}
+                  <th key={`sub-prom-${ind.indicador_id}`} className="th-sub th-sub-prom">
+                    Promedio
+                  </th>
+                </span>
               ))}
             </tr>
           </thead>
@@ -201,43 +191,57 @@ export default function MatrizCalificaciones({ estudiantes, onNotaChange, loadin
                 </td>
 
                 {/* Notas por indicador */}
-                {est.indicadores.map((ind) => {
-                  const cellId1 = `${est.estudiante_id}-${ind.indicador_id}-1`;
-                  const cellId2 = `${est.estudiante_id}-${ind.indicador_id}-2`;
-                  const cellId3 = `${est.estudiante_id}-${ind.indicador_id}-3`;
-                  const pendiente = ind.nota_1 === null && ind.nota_2 === null && ind.nota_3 === null;
+                {(est.indicadores || []).map((ind) => {
+                  const tieneAlgunaNota = listaIndicesNotas.some(n => {
+                    const v = ind.notas ? ind.notas[n] : ind[`nota_${n}`];
+                    return v !== null && v !== undefined && v !== '';
+                  });
+                  const pendiente = !tieneAlgunaNota;
 
                   return (
-                    <>
-                      <CeldaNota
-                        key={cellId1}
-                        value={ind.nota_1 ?? ''}
-                        cellRef={el => (cellRefs.current[cellId1] = el)}
-                        pendiente={pendiente}
-                        onChange={v => onNotaChange(est.estudiante_id, ind.indicador_id, 1, v)}
-                        onKeyDown={e => handleKeyDown(e, cellId1)}
-                      />
-                      <CeldaNota
-                        key={cellId2}
-                        value={ind.nota_2 ?? ''}
-                        cellRef={el => (cellRefs.current[cellId2] = el)}
-                        pendiente={pendiente}
-                        onChange={v => onNotaChange(est.estudiante_id, ind.indicador_id, 2, v)}
-                        onKeyDown={e => handleKeyDown(e, cellId2)}
-                      />
-                      <CeldaNota
-                        key={cellId3}
-                        value={ind.nota_3 ?? ''}
-                        cellRef={el => (cellRefs.current[cellId3] = el)}
-                        pendiente={pendiente}
-                        onChange={v => onNotaChange(est.estudiante_id, ind.indicador_id, 3, v)}
-                        onKeyDown={e => handleKeyDown(e, cellId3)}
-                      />
+                    <span key={`row-ind-${est.estudiante_id}-${ind.indicador_id}`} style={{ display: 'contents' }}>
+                      {listaIndicesNotas.map((n) => {
+                        const cellId = `${est.estudiante_id}-${ind.indicador_id}-${n}`;
+                        const rawVal = ind.notas ? ind.notas[n] : ind[`nota_${n}`];
+                        const val = rawVal ?? '';
+
+                        const isInvalid =
+                          val !== '' &&
+                          val !== null &&
+                          val !== undefined &&
+                          (isNaN(parseFloat(val)) || parseFloat(val) < escalaMin || parseFloat(val) > escalaMax);
+
+                        return (
+                          <td
+                            key={cellId}
+                            className={`celda-nota ${pendiente && !val ? 'celda-pendiente' : ''} ${isInvalid ? 'celda-invalida' : ''}`}
+                          >
+                            <input
+                              ref={el => (cellRefs.current[cellId] = el)}
+                              type="number"
+                              className={`input-nota ${colorNota(val)}`}
+                              value={val}
+                              min={escalaMin}
+                              max={escalaMax}
+                              step={pasoStep}
+                              onChange={e => onNotaChange(est.estudiante_id, ind.indicador_id, n, e.target.value)}
+                              onKeyDown={e => handleKeyDown(e, cellId)}
+                              onFocus={e => e.target.select()}
+                              placeholder="—"
+                              aria-label={`Nota ${n} (${escalaMin}–${escalaMax})`}
+                            />
+                            {isInvalid && (
+                              <span className="nota-error-tooltip" title={`Rango permitido: ${escalaMin} a ${escalaMax}`}>!</span>
+                            )}
+                          </td>
+                        );
+                      })}
+
                       {/* Promedio indicador (calculado) */}
                       <td key={`prom-${ind.indicador_id}`} className={`celda-promedio ${colorNota(ind.promedio)}`}>
                         <span className="prom-valor">{formatNota(ind.promedio)}</span>
                       </td>
-                    </>
+                    </span>
                   );
                 })}
 
@@ -252,13 +256,13 @@ export default function MatrizCalificaciones({ estudiantes, onNotaChange, loadin
       </div>
 
       <div className="matriz-leyenda">
-        <span className="leyenda-item"><span className="dot dot-verde" />≥ {APROBATORIO} aprobado</span>
-        <span className="leyenda-item"><span className="dot dot-rojo" />&lt; {APROBATORIO} reprobado</span>
+        <span className="leyenda-item"><span className="dot dot-verde" />≥ {notaAprobatoria} aprobado</span>
+        <span className="leyenda-item"><span className="dot dot-rojo" />&lt; {notaAprobatoria} reprobado</span>
         <span className="leyenda-item"><span className="dot dot-pendiente" />Pendiente</span>
         <span className="leyenda-sep">|</span>
         <span className="leyenda-tip" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
           <Lightbulb size={13} style={{ color: 'var(--brand)' }} />
-          <span>Navega con <kbd>Tab</kbd> / <kbd>Enter</kbd> entre celdas</span>
+          <span>Navega con <kbd>Tab</kbd> / <kbd>Enter</kbd> entre celdas · Escala: {escalaMin} a {escalaMax}</span>
         </span>
       </div>
     </div>

@@ -20,10 +20,22 @@ class ConversacionArchivada(db.Model):
     def __repr__(self):
         return f'<ConversacionArchivada {self.id}: usuario={self.usuario_id} contacto={self.contacto_id}>'
 
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         return {
             'id': self.id,
             'usuario_id': self.usuario_id,
             'contacto_id': self.contacto_id,
-            'fecha_archivado': self.fecha_archivado.isoformat() if self.fecha_archivado else None
+            'fecha_archivado': self._fmt(self.fecha_archivado)
         }

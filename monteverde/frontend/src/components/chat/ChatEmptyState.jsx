@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
 import {
-  GraduationCap,
-  Calendar,
-  Users,
   ChevronRight,
   Sparkles,
   MessageSquare,
@@ -10,39 +7,13 @@ import {
   BookOpen,
   ArrowLeft
 } from 'lucide-react';
-import { getInitials } from './ChatHeader';
-
-export const ACCIONES_RAPIDAS = [
-  {
-    id: 'rendimiento',
-    titulo: 'Consultar rendimiento académico',
-    descripcion: 'Hablar con el docente sobre calificaciones y proceso escolar.',
-    icono: GraduationCap,
-    asunto: 'Consulta sobre rendimiento académico',
-    texto: 'Hola, quisiera consultar sobre el rendimiento académico de mi hijo/a.'
-  },
-  {
-    id: 'inasistencia',
-    titulo: 'Justificar una inasistencia',
-    descripcion: 'Informar y justificar una ausencia médica o personal.',
-    icono: Calendar,
-    asunto: 'Justificación de inasistencia',
-    texto: 'Hola, quisiera informar y justificar una inasistencia de mi hijo/a.'
-  },
-  {
-    id: 'cita',
-    titulo: 'Solicitar cita de atención a padres',
-    descripcion: 'Coordinar una reunión presencial o virtual con el docente.',
-    icono: Users,
-    asunto: 'Solicitud de cita de atención a padres',
-    texto: 'Hola, quisiera solicitar una cita de atención para conversar sobre el proceso académico de mi hijo/a.'
-  }
-];
+import { getInitials, ACCIONES_RAPIDAS } from './chatUtils';
 
 export default function ChatEmptyState({
   docentes = [],
   contactoSeleccionado = null,
   onAplicarPlantilla,
+
   onSeleccionarDocente
 }) {
   const [pasoDocente, setPasoDocente] = useState(false);

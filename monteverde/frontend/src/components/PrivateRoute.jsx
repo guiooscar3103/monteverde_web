@@ -2,41 +2,30 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-function PrivateRoute({ children, requiredRoles = [] }) {
+export default function PrivateRoute({ children, allowedRoles = [], requiredRoles = [] }) {
   const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
+  const roles = allowedRoles.length > 0 ? allowedRoles : requiredRoles;
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500"></div>
+      <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto mb-4"></div>
+        <p>Cargando...</p>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    // Redirigir a login con la ubicación actual
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Verificar roles si se especificaron
-  if (requiredRoles.length > 0 && user) {
-    if (!requiredRoles.includes(user.rol)) {
-      return (
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Acceso Denegado</h2>
-            <p className="text-gray-600">No tienes permisos para acceder a esta página.</p>
-            <p className="text-sm text-gray-500 mt-2">
-              Rol requerido: {requiredRoles.join(', ')} | Tu rol: {user.rol}
-            </p>
-          </div>
-        </div>
-      );
-    }
+  if (roles.length > 0 && user && !roles.includes(user.rol)) {
+    if (user.rol === 'admin') return <Navigate to="/admin" replace />;
+    if (user.rol === 'docente') return <Navigate to="/docente" replace />;
+    if (user.rol === 'familia') return <Navigate to="/familia" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;
 }
-
-export default PrivateRoute;

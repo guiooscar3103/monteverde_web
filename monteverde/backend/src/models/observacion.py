@@ -18,12 +18,24 @@ class Observacion(db.Model):
     def __repr__(self):
         return f'<Observacion {self.estudiante_id} - {self.tipo}>'
     
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         return {
             'id': self.id,
             'estudiante_id': self.estudiante_id,
             'docente_id': self.docente_id,
-            'fecha': self.fecha.isoformat() if self.fecha else None,
+            'fecha': self._fmt(self.fecha),
             'tipo': self.tipo,
             'detalle': self.detalle
         }

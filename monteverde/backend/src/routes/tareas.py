@@ -11,6 +11,8 @@ from src.models.entrega import Entrega
 from src.models.bimestre import Bimestre
 from src.models.indicador_logro import IndicadorLogro
 from src.models.calificacion_bimestre import CalificacionBimestre
+from src.models.configuracion_institucional import ConfiguracionInstitucional
+from src.services.configuracion_evaluacion_service import ConfiguracionEvaluacionService
 from src.utils.auth_helpers import role_required, get_current_user
 
 tareas_bp = Blueprint('tareas', __name__)
@@ -83,17 +85,20 @@ def crear_tarea():
                     'message': 'Si la tarea califica bimestre, debe especificar bimestre_id, indicador_id y numero_nota'
                 }), 400
 
-            try:
-                numero_nota_int = int(numero_nota)
-                if numero_nota_int not in (1, 2, 3):
-                    return jsonify({'success': False, 'message': 'numero_nota debe ser 1, 2 o 3'}), 400
-                numero_nota = numero_nota_int
-            except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'numero_nota debe ser un número entero (1, 2 o 3)'}), 400
-
             bimestre = Bimestre.query.get(bimestre_id)
             if not bimestre:
                 return jsonify({'success': False, 'message': 'Bimestre no encontrado'}), 404
+
+            config_eval = ConfiguracionEvaluacionService.get_por_bimestre_id(bimestre_id)
+            try:
+                numero_nota_int = int(numero_nota)
+                if numero_nota_int < 1 or numero_nota_int > config_eval.notas_por_indicador:
+                    msg = 'numero_nota debe ser 1, 2 o 3' if config_eval.notas_por_indicador == 3 else f'numero_nota debe estar entre 1 y {config_eval.notas_por_indicador}'
+                    return jsonify({'success': False, 'message': msg}), 400
+                numero_nota = numero_nota_int
+            except (ValueError, TypeError):
+                msg = 'numero_nota debe ser un número entero (1, 2 o 3)' if config_eval.notas_por_indicador == 3 else f'numero_nota debe ser un número entero entre 1 y {config_eval.notas_por_indicador}'
+                return jsonify({'success': False, 'message': msg}), 400
 
             indicador = IndicadorLogro.query.get(indicador_id)
             if not indicador or indicador.curso_id != curso_id or indicador.materia_id != materia_id or indicador.bimestre_id != bimestre_id:
@@ -286,17 +291,18 @@ def actualizar_tarea_docente(tarea_id):
                         'message': 'Si la tarea califica bimestre, debe especificar bimestre_id, indicador_id y numero_nota'
                     }), 400
 
-                try:
-                    numero_nota_int = int(numero_nota)
-                    if numero_nota_int not in (1, 2, 3):
-                        return jsonify({'success': False, 'message': 'numero_nota debe ser 1, 2 o 3'}), 400
-                    numero_nota = numero_nota_int
-                except (ValueError, TypeError):
-                    return jsonify({'success': False, 'message': 'numero_nota debe ser un número entero (1, 2 o 3)'}), 400
-
                 bimestre = Bimestre.query.get(bimestre_id)
                 if not bimestre:
                     return jsonify({'success': False, 'message': 'Bimestre no encontrado'}), 404
+
+                config_eval = ConfiguracionEvaluacionService.get_por_bimestre_id(bimestre_id)
+                try:
+                    numero_nota_int = int(numero_nota)
+                    if numero_nota_int < 1 or numero_nota_int > config_eval.notas_por_indicador:
+                        return jsonify({'success': False, 'message': f'numero_nota debe estar entre 1 y {config_eval.notas_por_indicador}'}), 400
+                    numero_nota = numero_nota_int
+                except (ValueError, TypeError):
+                    return jsonify({'success': False, 'message': f'numero_nota debe ser un número entero entre 1 y {config_eval.notas_por_indicador}'}), 400
 
                 indicador = IndicadorLogro.query.get(indicador_id)
                 if not indicador or indicador.curso_id != tarea.curso_id or indicador.materia_id != tarea.materia_id or indicador.bimestre_id != bimestre_id:
@@ -463,10 +469,13 @@ def calificar_entrega_tarea(tarea_id):
 
         # Validar calificación si se proporciona
         if calificacion is not None:
+            config_eval = ConfiguracionEvaluacionService.get_por_bimestre_id(tarea.bimestre_id) if tarea.bimestre_id else ConfiguracionEvaluacionService.get_activa()
+            min_e = float(config_eval.escala_minima)
+            max_e = float(config_eval.escala_maxima)
             try:
                 calificacion_float = float(calificacion)
-                if calificacion_float < 0.0 or calificacion_float > 5.0:
-                    return jsonify({'success': False, 'message': 'La calificación debe estar entre 0.00 y 5.00'}), 400
+                if calificacion_float < min_e or calificacion_float > max_e:
+                    return jsonify({'success': False, 'message': f'La calificación debe estar entre {min_e:.2f} y {max_e:.2f}'}), 400
             except ValueError:
                 return jsonify({'success': False, 'message': 'Calificación numérica inválida'}), 400
         else:

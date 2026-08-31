@@ -4,7 +4,8 @@ from datetime import datetime
 class CalificacionBimestre(db.Model):
     """
     Nota parcial de un estudiante para un indicador de logro.
-    Cada indicador tiene exactamente 3 notas parciales (numero_nota = 1, 2 o 3).
+    La cantidad de notas parciales y la escala se determinan dinámicamente
+    por la configuración académica vigente para el año correspondiente.
     Opcionalmente se asocia a la tarea_id que originó la calificación.
     """
     __tablename__ = 'calificaciones_bimestre'
@@ -13,9 +14,10 @@ class CalificacionBimestre(db.Model):
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiantes.id', ondelete='CASCADE'), nullable=False)
     docente_id   = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
     indicador_id = db.Column(db.Integer, db.ForeignKey('indicadores_logro.id', ondelete='CASCADE'), nullable=False)
-    # 1, 2 o 3 — posición de la nota dentro del indicador
+    # Posición de la nota dentro del indicador (1, 2, 3, ... N según configuración)
     numero_nota  = db.Column(db.Integer, nullable=False)
-    nota         = db.Column(db.Numeric(3, 2), nullable=False)
+    # Escala configurable (permite valores decimales y hasta 100.00)
+    nota         = db.Column(db.Numeric(5, 2), nullable=False)
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tarea_id     = db.Column(db.Integer, db.ForeignKey('tareas.id', ondelete='SET NULL'), nullable=True)
 
@@ -24,8 +26,8 @@ class CalificacionBimestre(db.Model):
             'estudiante_id', 'indicador_id', 'numero_nota',
             name='uq_calif_bimestre_estudiante_indicador_nota'
         ),
-        db.CheckConstraint('numero_nota IN (1, 2, 3)', name='ck_numero_nota'),
-        db.CheckConstraint('nota >= 0.00 AND nota <= 5.00', name='ck_nota_rango'),
+        db.CheckConstraint('numero_nota > 0', name='ck_numero_nota_positivo'),
+        db.CheckConstraint('nota >= 0.00', name='ck_nota_no_negativa'),
         db.Index('idx_calif_bimestre_tarea', 'tarea_id'),
     )
 
@@ -37,6 +39,18 @@ class CalificacionBimestre(db.Model):
     def __repr__(self):
         return f'<CalificacionBimestre est={self.estudiante_id} ind={self.indicador_id} n={self.numero_nota} nota={self.nota} tarea={self.tarea_id}>'
 
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -45,6 +59,6 @@ class CalificacionBimestre(db.Model):
             'indicador_id': self.indicador_id,
             'numero_nota': self.numero_nota,
             'nota': float(self.nota),
-            'fecha_registro': self.fecha_registro.isoformat() if self.fecha_registro else None,
+            'fecha_registro': self._fmt(self.fecha_registro),
             'tarea_id': self.tarea_id,
         }

@@ -399,8 +399,116 @@ ALTER TABLE `observaciones`
 --
 ALTER TABLE `usuarios`
   ADD CONSTRAINT `usuarios_ibfk_1` FOREIGN KEY (`estudiante_id`) REFERENCES `estudiantes` (`id`) ON DELETE SET NULL;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `configuracion_evaluacion`
+--
+
+CREATE TABLE IF NOT EXISTS `configuracion_evaluacion` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `anio_academico` int(11) NOT NULL,
+  `nombre` varchar(150) NOT NULL DEFAULT 'Configuración Académica Estándar',
+  `tipo_periodo` varchar(50) NOT NULL DEFAULT 'Bimestre',
+  `numero_periodos` int(11) NOT NULL DEFAULT 4,
+  `indicadores_por_periodo` int(11) NOT NULL DEFAULT 2,
+  `notas_por_indicador` int(11) NOT NULL DEFAULT 3,
+  `tipo_escala` varchar(50) NOT NULL DEFAULT 'NUMERICA_CINCO',
+  `escala_minima` decimal(5,2) NOT NULL DEFAULT 1.00,
+  `escala_maxima` decimal(5,2) NOT NULL DEFAULT 5.00,
+  `nota_aprobatoria` decimal(5,2) NOT NULL DEFAULT 3.00,
+  `activa` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `usuario_actualizo_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_config_eval_anio` (`anio_academico`),
+  KEY `fk_config_eval_usuario` (`usuario_actualizo_id`),
+  CONSTRAINT `fk_config_eval_usuario` FOREIGN KEY (`usuario_actualizo_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `configuracion_evaluacion` 
+  (`id`, `anio_academico`, `nombre`, `tipo_periodo`, `numero_periodos`, `indicadores_por_periodo`, `notas_por_indicador`, `tipo_escala`, `escala_minima`, `escala_maxima`, `nota_aprobatoria`, `activa`)
+VALUES
+  (1, 2026, 'Configuración Académica 2026', 'Bimestre', 4, 2, 3, 'NUMERICA_CINCO', 1.00, 5.00, 3.00, 1)
+ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `materias`
+--
+
+CREATE TABLE IF NOT EXISTS `materias` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(100) NOT NULL,
+  `codigo` varchar(20) DEFAULT NULL,
+  `descripcion` varchar(255) DEFAULT NULL,
+  `area` varchar(100) DEFAULT NULL,
+  `intensidad_horaria` int(11) NOT NULL DEFAULT 0,
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_materia_nombre` (`nombre`),
+  UNIQUE KEY `uq_materia_codigo` (`codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `materias` (`id`, `nombre`, `codigo`, `descripcion`, `area`, `intensidad_horaria`, `activo`) VALUES
+(1, 'Matemáticas', 'MAT', 'Materia de cálculo, álgebra y geometría', 'Matemáticas', 5, 1),
+(2, 'Lenguaje', 'LEN', 'Materia de comprensión lectora y expresión escrita', 'Humanidades y Lengua Castellana', 5, 1),
+(3, 'Ciencias Naturales', 'CNAT', 'Materia de ciencias y biología', 'Ciencias Naturales', 4, 1),
+(4, 'Ciencias Sociales', 'CSOC', 'Materia de historia y geografía', 'Ciencias Sociales', 4, 1),
+(5, 'Inglés', 'ING', 'Materia de idioma extranjero', 'Idiomas Extranjeros', 3, 1),
+(6, 'Educación Física', 'EDF', 'Materia de deporte y actividad física', 'Educación Física', 2, 1)
+ON DUPLICATE KEY UPDATE `codigo` = VALUES(`codigo`), `area` = VALUES(`area`);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `curso_materia`
+--
+
+CREATE TABLE IF NOT EXISTS `curso_materia` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `curso_id` int(11) NOT NULL,
+  `materia_id` int(11) NOT NULL,
+  `intensidad_horaria` int(11) DEFAULT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_curso_materia` (`curso_id`, `materia_id`),
+  KEY `fk_cm_curso` (`curso_id`),
+  KEY `fk_cm_materia` (`materia_id`),
+  CONSTRAINT `fk_cm_curso` FOREIGN KEY (`curso_id`) REFERENCES `cursos` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_cm_materia` FOREIGN KEY (`materia_id`) REFERENCES `materias` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `docente_asignacion`
+--
+
+CREATE TABLE IF NOT EXISTS `docente_asignacion` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `docente_id` int(11) NOT NULL,
+  `curso_id` int(11) NOT NULL,
+  `materia_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_docente_curso_materia` (`docente_id`, `curso_id`, `materia_id`),
+  KEY `fk_da_docente` (`docente_id`),
+  KEY `fk_da_curso` (`curso_id`),
+  KEY `fk_da_materia` (`materia_id`),
+  CONSTRAINT `fk_da_docente` FOREIGN KEY (`docente_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_da_curso` FOREIGN KEY (`curso_id`) REFERENCES `cursos` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_da_materia` FOREIGN KEY (`materia_id`) REFERENCES `materias` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+

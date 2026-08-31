@@ -212,3 +212,128 @@ def delete_curso(curso_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Error al eliminar curso', 'error': str(e)}), 500
+
+
+# ─────────────────────────────────────────────────────────────────
+# GESTIÓN DE ASIGNATURAS POR CURSO (curso_materia)
+# ─────────────────────────────────────────────────────────────────
+
+@cursos_bp.route('/<int:curso_id>/materias', methods=['GET'])
+@jwt_required(optional=True)
+def get_curso_materias(curso_id):
+    """Obtener todas las materias asociadas a un curso."""
+    try:
+        from src.models.curso_materia import CursoMateria
+        from src.models.materia import Materia
+
+        curso = Curso.query.get_or_404(curso_id)
+        
+        # Consultar las asociaciones activas
+        curso_materias = CursoMateria.query.filter_by(curso_id=curso_id).all()
+        
+        resultado = []
+        for cm in curso_materias:
+            if cm.materia:
+                item = cm.materia.to_dict()
+                item['curso_materia_id'] = cm.id
+                item['intensidad_horaria_curso'] = cm.intensidad_horaria if cm.intensidad_horaria is not None else cm.materia.intensidad_horaria
+                item['asociacion_activa'] = cm.activo
+                resultado.append(item)
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'curso': curso.to_dict(include_materias=False),
+                'materias': resultado,
+                'total': len(resultado)
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': 'Error al consultar materias del curso', 'error': str(e)}), 500
+
+
+@cursos_bp.route('/<int:curso_id>/materias', methods=['POST'])
+@role_required('admin')
+def set_curso_materias(curso_id):
+    """
+    Sincroniza o asigna las materias que pertenecen al plan de estudios de un curso.
+    Payload: { materia_ids: [1, 2, 3] } o { materias: [{ materia_id: 1, intensidad_horaria: 4 }, ...] }
+    """
+    try:
+        from src.models.curso_materia import CursoMateria
+        from src.models.materia import Materia
+
+        curso = Curso.query.get_or_404(curso_id)
+        data = request.get_json() or {}
+
+        # Soportar array de IDs o array de objetos
+        materia_ids = data.get('materia_ids') or data.get('materiaIds')
+        materias_input = data.get('materias')
+
+        if materia_ids is None and materias_input is None:
+            return jsonify({'success': False, 'message': 'Se requiere materia_ids o materias'}), 400
+
+        target_materias = {}
+        if materias_input is not None:
+            for m in materias_input:
+                mid = m.get('materia_id') or m.get('id')
+                if mid:
+                    horas = m.get('intensidad_horaria')
+                    target_materias[int(mid)] = horas
+        elif materia_ids is not None:
+            for mid in materia_ids:
+                if mid:
+                    target_materias[int(mid)] = None
+
+        # Validar que las materias existan
+        materias_existentes = Materia.query.filter(Materia.id.in_(list(target_materias.keys()))).all() if target_materias else []
+        existentes_map = {m.id: m for m in materias_existentes}
+
+        # Actualizar asociaciones existentes o agregar nuevas
+        actuales = CursoMateria.query.filter_by(curso_id=curso_id).all()
+        actuales_map = {cm.materia_id: cm for cm in actuales}
+
+        # 1. Desactivar / eliminar las que ya no están
+        for mid, cm in actuales_map.items():
+            if mid not in target_materias:
+                db.session.delete(cm)
+
+        # 2. Agregar / reactivar las nuevas
+        for mid, horas in target_materias.items():
+            if mid in existentes_map:
+                if mid in actuales_map:
+                    cm = actuales_map[mid]
+                    cm.activo = True
+                    if horas is not None:
+                        cm.intensidad_horaria = horas
+                else:
+                    nueva_cm = CursoMateria(
+                        curso_id=curso_id,
+                        materia_id=mid,
+                        intensidad_horaria=horas if horas is not None else existentes_map[mid].intensidad_horaria,
+                        activo=True
+                    )
+                    db.session.add(nueva_cm)
+
+        db.session.commit()
+
+        # Retornar lista actualizada
+        actualizadas = [
+            cm.materia.to_dict()
+            for cm in CursoMateria.query.filter_by(curso_id=curso_id, activo=True).all()
+            if cm.materia
+        ]
+
+        return jsonify({
+            'success': True,
+            'message': f"Se configuraron {len(actualizadas)} asignatura(s) para el curso '{curso.nombre}'.",
+            'data': {
+                'curso_id': curso.id,
+                'materias': actualizadas
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Error al configurar materias del curso', 'error': str(e)}), 500
+

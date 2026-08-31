@@ -23,6 +23,18 @@ class Mensaje(db.Model):
     def __repr__(self):
         return f'<Mensaje {self.id}: {self.asunto} (eliminado={self.eliminado})>'
     
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         cuerpo_mostrar = '🚫 Este mensaje fue eliminado por su remitente.' if self.eliminado else self.cuerpo
         return {
@@ -33,8 +45,8 @@ class Mensaje(db.Model):
             'receptorId': self.receptor_id,
             'asunto': self.asunto,
             'cuerpo': cuerpo_mostrar,
-            'fecha': self.fecha.isoformat() if self.fecha else None,
+            'fecha': self._fmt(self.fecha),
             'leido': self.leido,
             'eliminado': bool(self.eliminado),
-            'fecha_eliminacion': self.fecha_eliminacion.isoformat() if self.fecha_eliminacion else None
+            'fecha_eliminacion': self._fmt(self.fecha_eliminacion)
         }

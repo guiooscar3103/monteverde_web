@@ -157,6 +157,21 @@ def asignar_curso():
             return jsonify({'success': False, 'message': 'Curso no encontrado'}), 404
         if not materia:
             return jsonify({'success': False, 'message': 'Materia no encontrada'}), 404
+
+        # Validar que la materia esté activa
+        if not getattr(materia, 'activo', True):
+            return jsonify({'success': False, 'message': f"La asignatura '{materia.nombre}' se encuentra inactiva"}), 400
+
+        # Validar que la materia esté asociada al plan de estudios del curso (si el curso tiene plan configurado)
+        from src.models.curso_materia import CursoMateria
+        materias_curso_count = CursoMateria.query.filter_by(curso_id=curso_id, activo=True).count()
+        if materias_curso_count > 0:
+            asociada = CursoMateria.query.filter_by(curso_id=curso_id, materia_id=materia_id, activo=True).first()
+            if not asociada:
+                return jsonify({
+                    'success': False,
+                    'message': f"La asignatura '{materia.nombre}' no está disponible para el curso '{curso.nombre}'"
+                }), 400
             
         # Verificar si ya está asignado el mismo curso+materia
         existente = DocenteAsignacion.query.filter_by(docente_id=docente_id, curso_id=curso_id, materia_id=materia_id).first()

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import BarraTitulo from '../../components/BarraTitulo';
 import Card from '../../components/Card';
@@ -62,7 +63,7 @@ const _buildConversationMap = (mensajes, usuarioId) => {
   return map;
 };
 
-const _addContactosToMap = async (mapa, usuarioId) => {
+const _addContactosToMap = async (mapa) => {
   for (const contactoId of Object.keys(mapa)) {
     try {
       const contacto = await getUsuarioPorId(parseInt(contactoId));
@@ -74,6 +75,7 @@ const _addContactosToMap = async (mapa, usuarioId) => {
   return mapa;
 };
 
+
 const _formatConversations = (mapa) => {
   return Object.values(mapa)
     .filter(c => c.contacto)
@@ -82,6 +84,7 @@ const _formatConversations = (mapa) => {
 
 export default function MensajesDocente() {
   const { usuario } = useAuth();
+  const location = useLocation();
   const [conversaciones, setConversaciones] = useState([]);
   const [conversacionActual, setConversacionActual] = useState([]);
   const [contactoSeleccionado, setContactoSeleccionado] = useState(null);
@@ -263,11 +266,11 @@ export default function MensajesDocente() {
   };
 
   // Abrir conversación 1-a-1 con una familia
-  const abrirConversacion = async (contacto, estudiante = null) => {
+  const abrirConversacion = async (contacto, estudiante = null, asuntoPredefinido = '') => {
     setModoDifusion(false);
     setContactoSeleccionado(contacto);
     setEstudianteSeleccionado(estudiante);
-    setAsunto('');
+    setAsunto(asuntoPredefinido || '');
     try {
       const mensajes = await getConversacion(usuario.id, contacto.id);
       setConversacionActual(mensajes);
@@ -298,6 +301,27 @@ export default function MensajesDocente() {
       setConversacionActual([]);
     }
   };
+
+  // Soporte para apertura directa desde Rendimiento Académico ("Contactar acudiente")
+  useEffect(() => {
+    if (location.state && !loading) {
+      const { contacto, estudiante, mensajeInicial, asuntoInicial, cursoId } = location.state;
+      if (cursoId) {
+        setCursoSeleccionado(cursoId);
+      }
+      if (asuntoInicial) {
+        setAsunto(asuntoInicial);
+      }
+      if (mensajeInicial) {
+        setNuevoMensaje(mensajeInicial);
+      }
+      if (contacto) {
+        abrirConversacion(contacto, estudiante || null, asuntoInicial || '');
+      } else if (estudiante) {
+        seleccionarEstudiante(estudiante);
+      }
+    }
+  }, [location.state, loading]);
 
   // Activar modo difusión masiva
   const activarModoDifusion = () => {
@@ -465,8 +489,9 @@ export default function MensajesDocente() {
             ) : (
               <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
             )}
-            <span>{mensaje.replace(/^[✅❌⚠️]\s*/, '')}</span>
+            <span>{mensaje.replace(/^(?:✅|❌|⚠️)\s*/u, '')}</span>
           </div>
+
         </BlurFade>
       )}
       

@@ -19,30 +19,36 @@ import {
   guardarIndicadoresBimestre,
   getMatrizCalificaciones,
   guardarMatrizCalificaciones,
+  getConfiguracionEvaluacionActiva
 } from '../../services/api';
 
-// ─── Helpers ──────────────────────────────────────────────────────
+// ─── Helpers Dinámicos ─────────────────────────────────────────────
 
-const _calcularPromedio = (n1, n2, n3) => {
-  const vals = [n1, n2, n3].filter(v => v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v)));
+const _calcularPromedio = (notasArray) => {
+  const vals = (notasArray || []).filter(v => v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v)));
   if (!vals.length) return null;
-  return Math.round(vals.reduce((s, v) => s + parseFloat(v), 0) / vals.length * 100) / 100;
+  return Math.round((vals.reduce((s, v) => s + parseFloat(v), 0) / vals.length) * 100) / 100;
 };
 
 const _calcularDefinitiva = (indicadores) => {
-  const proms = indicadores.map(i => i.promedio).filter(p => p !== null && p !== undefined);
+  const proms = (indicadores || []).map(i => i.promedio).filter(p => p !== null && p !== undefined && !isNaN(p));
   if (!proms.length) return null;
-  return Math.round(proms.reduce((s, p) => s + p, 0) / proms.length * 100) / 100;
+  return Math.round((proms.reduce((s, p) => s + p, 0) / proms.length) * 100) / 100;
 };
 
-const _actualizarNota = (estudiantes, estId, indId, numNota, valor) => {
+const _actualizarNota = (estudiantes, estId, indId, numNota, valor, notasPorInd = 3) => {
   return estudiantes.map(est => {
     if (est.estudiante_id !== estId) return est;
-    const nuevosInd = est.indicadores.map(ind => {
+    const nuevosInd = (est.indicadores || []).map(ind => {
       if (ind.indicador_id !== indId) return ind;
       const key = `nota_${numNota}`;
-      const updated = { ...ind, [key]: valor === '' ? null : valor };
-      updated.promedio = _calcularPromedio(updated.nota_1, updated.nota_2, updated.nota_3);
+      const nuevoNotasMap = { ...(ind.notas || {}), [numNota]: valor === '' ? null : valor };
+      const updated = { ...ind, [key]: valor === '' ? null : valor, notas: nuevoNotasMap };
+
+      const listaValores = Array.from({ length: notasPorInd }, (_, i) => i + 1).map(n =>
+        nuevoNotasMap[n] !== undefined ? nuevoNotasMap[n] : updated[`nota_${n}`]
+      );
+      updated.promedio = _calcularPromedio(listaValores);
       return updated;
     });
     return { ...est, indicadores: nuevosInd, definitiva: _calcularDefinitiva(nuevosInd) };
@@ -99,10 +105,10 @@ function BarraGuardado({ status, mensaje, onGuardar, celdasModificadas }) {
 
 // ─── Filtros de selección ─────────────────────────────────────────
 
-function FiltrosCalificaciones({ cursos, asignaturas, bimestres, valores, onChange, loading }) {
+function FiltrosCalificaciones({ cursos, asignaturas, bimestres, valores, onChange, loading, tipoPeriodo = 'Periodo' }) {
   return (
     <BlurFade delay={0.08} duration={0.35}>
-      <Card title="Selección">
+      <Card title="Selección Académica">
         <div className="filtros-cal-grid">
           <SelectSimple
             etiqueta="Curso / Grupo"
@@ -117,7 +123,7 @@ function FiltrosCalificaciones({ cursos, asignaturas, bimestres, valores, onChan
             options={asignaturas.map(a => ({ value: a.materia_id.toString(), label: a.materia_nombre }))}
           />
           <SelectSimple
-            etiqueta="Bimestre"
+            etiqueta={tipoPeriodo}
             value={valores.bimestreId}
             onChange={v => onChange('bimestreId', v)}
             options={bimestres.map(b => ({ value: b.id.toString(), label: b.nombre }))}
@@ -134,23 +140,25 @@ function FiltrosCalificaciones({ cursos, asignaturas, bimestres, valores, onChan
   );
 }
 
-// ─── Estadísticas del bimestre ────────────────────────────────────
+// ─── Estadísticas del periodo ─────────────────────────────────────
 
-function EstadisticasBimestre({ estudiantes }) {
+function EstadisticasPeriodo({ estudiantes, configuracion }) {
   if (!estudiantes?.length) return null;
 
+  const notaAprobatoria = configuracion?.escala?.aprobacion ?? 3.0;
+  const escalaMax = configuracion?.escala?.max ?? 5.0;
   const total = estudiantes.length;
-  const conDefinitiva = estudiantes.filter(e => e.definitiva !== null).length;
-  const aprobados = estudiantes.filter(e => e.definitiva !== null && e.definitiva >= 3.0).length;
+  const conDefinitiva = estudiantes.filter(e => e.definitiva !== null && !isNaN(e.definitiva)).length;
+  const aprobados = estudiantes.filter(e => e.definitiva !== null && !isNaN(e.definitiva) && e.definitiva >= notaAprobatoria).length;
   const promedioGeneral = conDefinitiva > 0
-    ? (estudiantes.filter(e => e.definitiva !== null).reduce((s, e) => s + e.definitiva, 0) / conDefinitiva).toFixed(2)
+    ? (estudiantes.filter(e => e.definitiva !== null && !isNaN(e.definitiva)).reduce((s, e) => s + e.definitiva, 0) / conDefinitiva).toFixed(escalaMax > 10 ? 1 : 2)
     : null;
 
   const stats = [
     { label: 'Estudiantes', valor: total, color: 'var(--brand)' },
     { label: 'Con definitiva', valor: conDefinitiva, color: '#0ea5e9' },
     { label: 'Aprobados', valor: aprobados, color: '#16a34a' },
-    { label: 'Promedio grupo', valor: promedioGeneral ?? '—', color: promedioGeneral >= 3 ? '#16a34a' : '#dc2626' },
+    { label: 'Promedio grupo', valor: promedioGeneral ?? '—', color: (promedioGeneral !== null && parseFloat(promedioGeneral) >= notaAprobatoria) ? '#16a34a' : '#dc2626' },
   ];
 
   return (
@@ -174,14 +182,15 @@ export default function RegistroCalificaciones() {
   const [asignacionAcademica, setAsignacionAcademica] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [bimestres, setBimestres] = useState([]);
+  const [configuracion, setConfiguracion] = useState(null);
 
   // ── Selección activa ──
   const [filtros, setFiltros] = useState({ cursoId: '', materiaId: '', bimestreId: '' });
   const [asignaturas, setAsignaturas] = useState([]);
 
-  // ── Datos del bimestre ──
+  // ── Datos del periodo ──
   const [indicadores, setIndicadores] = useState([]);
-  const [estudiantes, setEstudiantes] = useState([]);   // con notas calculadas localmente
+  const [estudiantes, setEstudiantes] = useState([]);
 
   // ── Estado UI ──
   const [loadingInicial, setLoadingInicial] = useState(true);
@@ -193,28 +202,42 @@ export default function RegistroCalificaciones() {
 
   // Timer para autosave (debounce)
   const saveTimerRef = useRef(null);
-  const notasPendientesRef = useRef([]);   // buffer de cambios para guardar en lote
+  const notasPendientesRef = useRef([]);
 
   // ── Selección derivada ──
-  const cursoActual    = cursos.find(c => c.id.toString() === filtros.cursoId);
+  const cursoActual = cursos.find(c => c.id.toString() === filtros.cursoId);
   const asignaturaActual = asignaturas.find(a => a.materia_id.toString() === filtros.materiaId);
   const bimestreActual = bimestres.find(b => b.id.toString() === filtros.bimestreId);
-  const indicadoresListos = indicadores.length === 2;
-  const tieneNotas = estudiantes.some(e => e.indicadores?.some(i =>
-    [i.nota_1, i.nota_2, i.nota_3].some(n => n !== null)
-  ));
+
+  const numIndicadoresRequeridos = configuracion?.indicadores_por_periodo || 2;
+  const indicadoresListos = (indicadores || []).length === numIndicadoresRequeridos;
+
+  const tieneNotas = estudiantes.some(e =>
+    (e.indicadores || []).some(i => {
+      if (i.notas) {
+        return Object.values(i.notas).some(n => n !== null && n !== undefined && n !== '');
+      }
+      return Object.keys(i).some(k => k.startsWith('nota_') && i[k] !== null && i[k] !== undefined && i[k] !== '');
+    })
+  );
 
   // ── 1. Cargar datos maestros al montar ───────────────────────────
   useEffect(() => {
     const init = async () => {
       setLoadingInicial(true);
       try {
-        const [academica, bims] = await Promise.all([
+        const [academica, bims, configActiva] = await Promise.all([
           getMyCoursesAndSubjects(),
           getBimestres(),
+          getConfiguracionEvaluacionActiva().catch(() => null)
         ]);
 
         setAsignacionAcademica(academica || []);
+        if (configActiva?.estructura) {
+          setConfiguracion(configActiva.estructura);
+        } else if (configActiva) {
+          setConfiguracion(configActiva);
+        }
 
         const cursosUnicos = [];
         const seen = new Set();
@@ -225,10 +248,8 @@ export default function RegistroCalificaciones() {
           }
         });
         setCursos(cursosUnicos);
-
         setBimestres(bims || []);
 
-        // Seleccionar primeros valores por defecto
         if (cursosUnicos.length > 0) {
           setFiltros(prev => ({ ...prev, cursoId: cursosUnicos[0].id.toString() }));
         }
@@ -271,10 +292,15 @@ export default function RegistroCalificaciones() {
           getIndicadoresBimestre({ cursoId: parseInt(cursoId), materiaId: parseInt(materiaId), bimestreId: parseInt(bimestreId) }),
           getMatrizCalificaciones({ cursoId: parseInt(cursoId), materiaId: parseInt(materiaId), bimestreId: parseInt(bimestreId) }),
         ]);
-        setIndicadores(indsData || []);
+
+        if (matrizData?.configuracion) {
+          setConfiguracion(matrizData.configuracion);
+        }
+
+        setIndicadores(indsData?.data || indsData || []);
         setEstudiantes(matrizData?.estudiantes || []);
       } catch (err) {
-        console.error('Error cargando datos de bimestre:', err);
+        console.error('Error cargando datos de periodo:', err);
         setIndicadores([]);
         setEstudiantes([]);
       } finally {
@@ -289,26 +315,32 @@ export default function RegistroCalificaciones() {
     setFiltros(prev => ({ ...prev, [campo]: valor }));
   }, []);
 
-  // ── Guardar indicadores ───────────────────────────────────────────
-  const handleGuardarIndicadores = useCallback(async ({ ind1, ind2 }) => {
+  // ── Guardar indicadores dinámicos ─────────────────────────────────
+  const handleGuardarIndicadores = useCallback(async ({ indicadores: payloadInds, ind1, ind2 }) => {
     setGuardandoIndicadores(true);
     try {
+      const indicadoresAEnviar = payloadInds || [
+        { numero: 1, descripcion: ind1 },
+        { numero: 2, descripcion: ind2 },
+      ];
+
       const result = await guardarIndicadoresBimestre({
         cursoId: parseInt(filtros.cursoId),
         materiaId: parseInt(filtros.materiaId),
         bimestreId: parseInt(filtros.bimestreId),
-        indicadores: [
-          { numero: 1, descripcion: ind1 },
-          { numero: 2, descripcion: ind2 },
-        ],
+        indicadores: indicadoresAEnviar,
       });
+
       setIndicadores(result || []);
-      // Recargar matriz para reflejar posibles cambios
+      // Recargar matriz
       const matrizData = await getMatrizCalificaciones({
         cursoId: parseInt(filtros.cursoId),
         materiaId: parseInt(filtros.materiaId),
         bimestreId: parseInt(filtros.bimestreId),
       });
+      if (matrizData?.configuracion) {
+        setConfiguracion(matrizData.configuracion);
+      }
       setEstudiantes(matrizData?.estudiantes || []);
       setCeldasModificadas(0);
     } finally {
@@ -316,12 +348,11 @@ export default function RegistroCalificaciones() {
     }
   }, [filtros]);
 
-  // ── Cambio de nota ────────────────────────────────────────────────
+  // ── Cambio de nota dinámico ───────────────────────────────────────
   const handleNotaChange = useCallback((estId, indId, numNota, valor) => {
-    // Actualizar estado local con cálculos de promedio automático
-    setEstudiantes(prev => _actualizarNota(prev, estId, indId, numNota, valor));
+    const notasPorInd = configuracion?.notas_por_indicador || 3;
+    setEstudiantes(prev => _actualizarNota(prev, estId, indId, numNota, valor, notasPorInd));
 
-    // Acumular en buffer de pendientes
     const key = `${estId}-${indId}-${numNota}`;
     const idx = notasPendientesRef.current.findIndex(n => n.key === key);
     const entry = { key, estudianteId: estId, indicadorId: indId, numeroNota: numNota, nota: valor };
@@ -339,13 +370,16 @@ export default function RegistroCalificaciones() {
     saveTimerRef.current = setTimeout(() => {
       handleGuardar();
     }, 2000);
-  }, []); // eslint-disable-line
+  }, [configuracion]); // eslint-disable-line
 
   // ── Guardar notas en lote ─────────────────────────────────────────
   const handleGuardar = useCallback(async () => {
+    const minEscala = configuracion?.escala?.min ?? 1.0;
+    const maxEscala = configuracion?.escala?.max ?? 5.0;
+
     const pendientes = notasPendientesRef.current.filter(
       n => n.nota !== '' && n.nota !== null && !isNaN(parseFloat(n.nota)) &&
-           parseFloat(n.nota) >= 0 && parseFloat(n.nota) <= 5
+           parseFloat(n.nota) >= minEscala && parseFloat(n.nota) <= maxEscala
     );
     if (!pendientes.length) return;
 
@@ -363,14 +397,13 @@ export default function RegistroCalificaciones() {
       notasPendientesRef.current = [];
       setCeldasModificadas(0);
       setSaveStatus(SAVE_STATUS.OK);
-      // Volver a idle después de 3 s
       setTimeout(() => setSaveStatus(SAVE_STATUS.IDLE), 3000);
     } catch (err) {
       console.error('Error guardando notas:', err);
       setSaveStatus(SAVE_STATUS.ERROR);
       setSaveMensaje(err.message || 'No se pudieron guardar las notas.');
     }
-  }, []);
+  }, [configuracion]);
 
   // ─────────────────────────────────────────────────────────────────
   // RENDER
@@ -385,13 +418,15 @@ export default function RegistroCalificaciones() {
     );
   }
 
+  const tipoPeriodoLabel = configuracion?.tipo_periodo || 'Período';
+
   return (
     <div className="reg-cal-wrapper">
       {/* Título */}
       <BlurFade delay={0.04} duration={0.3}>
         <BarraTitulo
           titulo="Registro de Calificaciones"
-          subtitulo="Evaluación por indicadores de logro y bimestres"
+          subtitulo="Evaluación académica por indicadores de logro y periodos configurables"
           derecha={
             cursoActual && asignaturaActual && bimestreActual ? (
               <div className="titulo-derecha">
@@ -412,6 +447,7 @@ export default function RegistroCalificaciones() {
         valores={filtros}
         onChange={handleFiltroChange}
         loading={loadingMatriz}
+        tipoPeriodo={tipoPeriodoLabel}
       />
 
       {/* Panel de indicadores */}
@@ -420,6 +456,7 @@ export default function RegistroCalificaciones() {
           <Card>
             <PanelIndicadores
               indicadores={indicadores}
+              cantidadIndicadores={numIndicadoresRequeridos}
               onGuardar={handleGuardarIndicadores}
               guardando={guardandoIndicadores}
               tieneNotas={tieneNotas}
@@ -429,7 +466,9 @@ export default function RegistroCalificaciones() {
       )}
 
       {/* Estadísticas */}
-      {indicadoresListos && !loadingMatriz && <EstadisticasBimestre estudiantes={estudiantes} />}
+      {indicadoresListos && !loadingMatriz && (
+        <EstadisticasPeriodo estudiantes={estudiantes} configuracion={configuracion} />
+      )}
 
       {/* Aviso si no hay indicadores */}
       {filtros.cursoId && filtros.materiaId && filtros.bimestreId && !indicadoresListos && !loadingMatriz && (
@@ -438,7 +477,7 @@ export default function RegistroCalificaciones() {
             <ClipboardList size={22} className="aviso-icon" />
             <div>
               <strong>Define los indicadores primero</strong>
-              <p>Debes configurar los 2 indicadores de logro del bimestre antes de ingresar notas.</p>
+              <p>Debes configurar los {numIndicadoresRequeridos} indicadores de logro del {tipoPeriodoLabel.toLowerCase()} antes de ingresar notas.</p>
             </div>
           </div>
         </BlurFade>
@@ -450,6 +489,7 @@ export default function RegistroCalificaciones() {
           <Card title={`Matriz de calificaciones — ${bimestreActual?.nombre || ''}`}>
             <MatrizCalificaciones
               estudiantes={estudiantes}
+              configuracion={configuracion}
               onNotaChange={handleNotaChange}
               loading={loadingMatriz}
             />

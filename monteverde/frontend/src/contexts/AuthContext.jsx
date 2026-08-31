@@ -1,7 +1,9 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
-import { verificarToken } from '../services/api';
+import { verificarToken, API_BASE_URL } from '../services/api';
 
 const AuthContext = createContext();
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -31,17 +33,17 @@ export const AuthProvider = ({ children }) => {
     verificarSesion();
   }, []);
 
-
   const login = async ({ email, password }) => {
     setError(null);
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+
 
       const data = await response.json();
 

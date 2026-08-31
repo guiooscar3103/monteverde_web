@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X, User, Mail, BookOpen, GraduationCap, Clock, ShieldCheck } from 'lucide-react';
-import { getInitials } from './ChatHeader';
+import { getInitials } from './chatUtils';
+
 
 export default function DocentePerfilModal({ docente, isOpen, onClose }) {
   // Manejo de la tecla Escape para accesibilidad

@@ -10,6 +10,16 @@ from .tarea import Tarea
 from .entrega import Entrega
 from .configuracion_institucional import ConfiguracionInstitucional
 from .conversacion_archivada import ConversacionArchivada
+from .bimestre import Bimestre
+from .indicador_logro import IndicadorLogro
+from .calificacion_bimestre import CalificacionBimestre
+from .configuracion_evaluacion import ConfiguracionEvaluacion
+from .actividad_admin import ActividadAdmin
+
+from .materia import Materia
+from .curso_materia import CursoMateria
+from .docente_asignacion import DocenteAsignacion
+from .docente_curso import DocenteCurso
 
 __all__ = [
     'Usuario',
@@ -23,6 +33,18 @@ __all__ = [
     'Tarea',
     'Entrega',
     'ConfiguracionInstitucional',
-    'ConversacionArchivada'
+    'ConversacionArchivada',
+    'Bimestre',
+    'IndicadorLogro',
+    'CalificacionBimestre',
+    'ConfiguracionEvaluacion',
+    'ActividadAdmin',
+    'Materia',
+    'CursoMateria',
+    'DocenteAsignacion',
+    'DocenteCurso'
 ]
+
+
+
 

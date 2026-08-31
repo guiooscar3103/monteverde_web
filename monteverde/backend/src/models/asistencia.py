@@ -16,10 +16,22 @@ class Asistencia(db.Model):
     estado = db.Column(db.Enum('PRESENTE', 'AUSENTE', 'TARDE', 'JUSTIFICADO'), nullable=False)
     
     # Convierte el modelo a diccionario para serialización JSON
+
+    @staticmethod
+    def _fmt(dt):
+        """Safely serialize a datetime field that may arrive as str or datetime."""
+        if not dt:
+            return None
+        if isinstance(dt, str):
+            return dt
+        if hasattr(dt, 'isoformat'):
+            return dt.isoformat()
+        return str(dt)
+
     def to_dict(self):
         return {
             'id': self.id,
             'estudiante_id': self.estudiante_id,
-            'fecha': self.fecha.isoformat() if self.fecha else None,
+            'fecha': self._fmt(self.fecha),
             'estado': self.estado
         }

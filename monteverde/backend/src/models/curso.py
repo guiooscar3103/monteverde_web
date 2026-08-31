@@ -10,7 +10,9 @@ class Curso(db.Model):
     letra = db.Column(db.String(10), nullable=False)
     descripcion = db.Column(db.String(255), nullable=True)
     
-    def __init__(self, nombre, nivel, letra, descripcion=None):
+    def __init__(self, nombre=None, nivel=None, letra=None, descripcion=None, id=None):
+        if id is not None:
+            self.id = id
         self.nombre = nombre
         self.nivel = nivel
         self.letra = letra
@@ -19,9 +21,9 @@ class Curso(db.Model):
     def __repr__(self):
         return f'<Curso {self.nombre}>'
     
-    def to_dict(self):
+    def to_dict(self, include_materias=True):
         grado = f"{self.nivel}{self.letra}" if self.letra else self.nivel
-        return {
+        data = {
             'id': self.id,
             'nombre': self.nombre,
             'nombre_curso': self.nombre,
@@ -30,6 +32,20 @@ class Curso(db.Model):
             'grado': grado,
             'descripcion': self.descripcion
         }
+        if include_materias:
+            try:
+                # Obtener materias activas asociadas al curso
+                materias_asociadas = [
+                    cm.materia.to_dict()
+                    for cm in getattr(self, 'curso_materias', [])
+                    if cm.activo and cm.materia and cm.materia.activo
+                ]
+                data['materias'] = materias_asociadas
+                data['materias_count'] = len(materias_asociadas)
+            except Exception:
+                data['materias'] = []
+                data['materias_count'] = 0
+        return data
 
     @classmethod
     def parse_grado(cls, grado_value):

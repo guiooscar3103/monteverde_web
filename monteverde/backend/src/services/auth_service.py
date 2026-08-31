@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta
-import jwt
-from flask import current_app
+from datetime import timedelta
+from flask_jwt_extended import create_access_token
 from src.models.usuario import Usuario
+
 
 class AuthService:
     @staticmethod
