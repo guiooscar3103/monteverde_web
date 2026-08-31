@@ -50,6 +50,7 @@ export default function Configuracion() {
   // ── Configuración de Evaluación ──
   const [listaConfigsEval, setListaConfigsEval] = useState([]);
   const [anioEvalSeleccionado, setAnioEvalSeleccionado] = useState(2026);
+  const [anioInput, setAnioInput] = useState('2026');
   const [configEval, setConfigEval] = useState({
     anio_academico: 2026,
     nombre: 'Configuración Académica 2026',
@@ -94,6 +95,7 @@ export default function Configuracion() {
         : 2026;
 
       setAnioEvalSeleccionado(anioActivo);
+      setAnioInput(String(anioActivo));
 
       const lista = Array.isArray(resEvalList) ? resEvalList : (resEvalList?.data || []);
       setListaConfigsEval(lista);
@@ -101,10 +103,17 @@ export default function Configuracion() {
       const configActual = lista.find(c => c.anio_academico === anioActivo) || lista[0];
       if (configActual) {
         setConfigEval(configActual);
+        setAnioEvalSeleccionado(configActual.anio_academico);
+        setAnioInput(String(configActual.anio_academico));
       } else {
         // Cargar por año o inicializar
         const configAnio = await getConfiguracionEvaluacionPorAnio(anioActivo).catch(() => null);
-        if (configAnio) setConfigEval(configAnio);
+        if (configAnio) {
+          const configData = configAnio.data || configAnio;
+          if (configData && configData.anio_academico) {
+            setConfigEval(configData);
+          }
+        }
       }
     } catch (error) {
       console.error('Error al cargar configuración:', error);
@@ -116,7 +125,11 @@ export default function Configuracion() {
 
   const cambiarAnioEvaluacion = async (nuevoAnio) => {
     const anioNum = parseInt(nuevoAnio);
+    if (isNaN(anioNum) || anioNum < 1900 || anioNum > 2100) {
+      return;
+    }
     setAnioEvalSeleccionado(anioNum);
+    setAnioInput(String(anioNum));
     setErrorMsg('');
     setSuccessMsg('');
     setCompatibilidadInfo(null);
@@ -127,11 +140,14 @@ export default function Configuracion() {
     } else {
       try {
         const res = await getConfiguracionEvaluacionPorAnio(anioNum);
-        if (res) {
-          setConfigEval(res);
+        const configData = res?.data || res;
+        if (configData && configData.anio_academico) {
+          setConfigEval(configData);
+        } else {
+          throw new Error('No existe en BD');
         }
       } catch {
-        // Inicializar propuesta nueva para ese año
+        // Inicializar borrador nuevo para ese año (sin persistir en base de datos)
         setConfigEval({
           anio_academico: anioNum,
           nombre: `Configuración Académica ${anioNum}`,
@@ -146,6 +162,15 @@ export default function Configuracion() {
           activa: true
         });
       }
+    }
+  };
+
+  const handleAnioInputChange = (e) => {
+    const valor = e.target.value;
+    setAnioInput(valor);
+    const parsed = parseInt(valor);
+    if (valor.length === 4 && !isNaN(parsed) && parsed >= 1900 && parsed <= 2100) {
+      cambiarAnioEvaluacion(parsed);
     }
   };
 
@@ -235,8 +260,11 @@ export default function Configuracion() {
       const resLista = await getConfiguracionesEvaluacion().catch(() => []);
       const lista = Array.isArray(resLista) ? resLista : (resLista?.data || []);
       setListaConfigsEval(lista);
-      if (res?.data) {
-        setConfigEval(res.data);
+      const savedData = res?.data || res;
+      if (savedData && savedData.anio_academico) {
+        setConfigEval(savedData);
+        setAnioEvalSeleccionado(savedData.anio_academico);
+        setAnioInput(String(savedData.anio_academico));
       }
     } catch (error) {
       setErrorMsg(error.message || 'Ocurrió un error al guardar la configuración de evaluación.');
@@ -434,50 +462,148 @@ export default function Configuracion() {
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.04)',
           padding: '2rem'
         }}>
-          {/* Selector de Año Académico */}
+          {/* Selector Dinámico de Año Académico */}
           <div style={{
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
+            flexDirection: 'column',
             gap: '1rem',
             paddingBottom: '1.5rem',
             marginBottom: '1.75rem',
             borderBottom: '1px solid var(--border, #e2e8f0)'
           }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text, #1e293b)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <GraduationCap size={22} style={{ color: 'var(--color-primary, #0A3A20)' }} />
-                <span>Configuración por Año Escolar</span>
-              </h3>
-              <p style={{ margin: '4px 0 0', color: 'var(--text-secondary, #64748b)', fontSize: '0.88rem' }}>
-                Cada año académico puede tener su propia estructura y escala de evaluación independiente.
-              </p>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text, #1e293b)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <GraduationCap size={22} style={{ color: 'var(--color-primary, #0A3A20)' }} />
+                  <span>Configuración por Año Escolar</span>
+                </h3>
+                <p style={{ margin: '4px 0 0', color: 'var(--text-secondary, #64748b)', fontSize: '0.88rem' }}>
+                  Cada año académico puede tener su propia estructura y escala de evaluación independiente.
+                </p>
+              </div>
+
+              {/* Input Numérico Dinámico de Año */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <label htmlFor="inputAnioAcademico" style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text, #1e293b)' }}>
+                  Año Académico:
+                </label>
+                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                  <input
+                    id="inputAnioAcademico"
+                    type="number"
+                    min="1900"
+                    max="2100"
+                    value={anioInput}
+                    onChange={handleAnioInputChange}
+                    onBlur={() => {
+                      const num = parseInt(anioInput);
+                      if (!isNaN(num) && num >= 1900 && num <= 2100) {
+                        cambiarAnioEvaluacion(num);
+                      } else {
+                        setAnioInput(String(anioEvalSeleccionado));
+                      }
+                    }}
+                    placeholder="Ej. 2026"
+                    style={{
+                      width: '120px',
+                      padding: '0.6rem 0.9rem',
+                      borderRadius: '10px',
+                      border: '2px solid var(--color-primary, #0A3A20)',
+                      fontWeight: 800,
+                      fontSize: '1.05rem',
+                      color: 'var(--color-primary, #0A3A20)',
+                      background: '#f0fdf4',
+                      outline: 'none',
+                      textAlign: 'center'
+                    }}
+                  />
+                </div>
+
+                {/* Badge indicador de estado del año */}
+                {listaConfigsEval.some(c => c.anio_academico === parseInt(anioEvalSeleccionado)) ? (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    background: '#dcfce7',
+                    color: '#15803d',
+                    border: '1px solid #86efac'
+                  }}>
+                    <CheckCircle2 size={14} /> Guardado en BD
+                  </span>
+                ) : (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe'
+                  }}>
+                    <Sparkles size={14} /> Nuevo Año (Sin guardar)
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text, #1e293b)' }}>
-                Año Académico:
-              </label>
-              <select
-                value={anioEvalSeleccionado}
-                onChange={(e) => cambiarAnioEvaluacion(e.target.value)}
-                style={{
-                  padding: '0.6rem 1.2rem',
-                  borderRadius: '10px',
-                  border: '2px solid var(--color-primary, #0A3A20)',
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  color: 'var(--color-primary, #0A3A20)',
-                  background: '#f0fdf4',
-                  cursor: 'pointer'
-                }}
-              >
-                {[2025, 2026, 2027, 2028, 2029, 2030].map(y => (
-                  <option key={y} value={y}>Año {y} {listaConfigsEval.some(c => c.anio_academico === y) ? '✓' : '(Nuevo)'}</option>
-                ))}
-              </select>
-            </div>
+            {/* Chips de Años Existentes en la Base de Datos */}
+            {listaConfigsEval.length > 0 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
+                background: '#f8fafc',
+                padding: '0.6rem 0.9rem',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>
+                  Años registrados en BD:
+                </span>
+                {listaConfigsEval.map((c) => {
+                  const esSeleccionado = c.anio_academico === parseInt(anioEvalSeleccionado);
+                  return (
+                    <button
+                      key={c.anio_academico}
+                      type="button"
+                      onClick={() => cambiarAnioEvaluacion(c.anio_academico)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        border: esSeleccionado ? '1.5px solid var(--color-primary, #0A3A20)' : '1px solid #cbd5e1',
+                        background: esSeleccionado ? 'var(--color-primary, #0A3A20)' : '#ffffff',
+                        color: esSeleccionado ? '#ffffff' : '#334155',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <span>{c.anio_academico}</span>
+                      {c.activa && <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>• Activa</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmitEvaluacion}>

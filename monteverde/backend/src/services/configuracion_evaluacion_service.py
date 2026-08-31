@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from src.extensions import db
 from src.models.configuracion_evaluacion import ConfiguracionEvaluacion
 from src.models.bimestre import Bimestre
@@ -27,6 +27,7 @@ class ConfiguracionEvaluacionService:
 
         config = ConfiguracionEvaluacion.query.filter_by(anio_academico=anio).first()
         if not config:
+            now = datetime.now(timezone.utc)
             config = ConfiguracionEvaluacion(
                 anio_academico=anio,
                 nombre=f'Configuración Académica {anio}',
@@ -39,8 +40,8 @@ class ConfiguracionEvaluacionService:
                 escala_maxima=5.00,
                 nota_aprobatoria=3.00,
                 activa=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=now,
+                updated_at=now
             )
             db.session.add(config)
             db.session.commit()
@@ -95,86 +96,115 @@ class ConfiguracionEvaluacionService:
         return [c.to_dict() for c in configs]
 
     @classmethod
+    def _validar_datos_configuracion(cls, data: dict) -> tuple[dict | None, str | None]:
+        """Valida y sanitiza los parámetros recibidos para una configuración de evaluación."""
+        anio_raw = data.get('anio_academico')
+        if anio_raw is None or not str(anio_raw).strip().isdigit():
+            return None, 'El año académico es obligatorio y debe ser un número entero de 4 dígitos.'
+        anio = int(str(anio_raw).strip())
+        if not (1900 <= anio <= 2100):
+            return None, 'El año académico debe ser un año válido de 4 dígitos (entre 1900 y 2100).'
+
+        numero_periodos = int(data.get('numero_periodos', 4))
+        indicadores_por_periodo = int(data.get('indicadores_por_periodo', 2))
+        notas_por_indicador = int(data.get('notas_por_indicador', 3))
+        escala_minima = float(data.get('escala_minima', 1.0))
+        escala_maxima = float(data.get('escala_maxima', 5.0))
+        nota_aprobatoria = float(data.get('nota_aprobatoria', 3.0))
+        tipo_escala = data.get('tipo_escala', 'NUMERICA_CINCO')
+        tipo_periodo = data.get('tipo_periodo', 'Bimestre').strip() or 'Periodo'
+        nombre = data.get('nombre', f'Configuración {tipo_periodo} {anio}').strip()
+        activa = bool(data.get('activa', True))
+
+        if not (1 <= numero_periodos <= 12):
+            return None, 'El número de periodos debe estar entre 1 y 12.'
+        if not (1 <= indicadores_por_periodo <= 20):
+            return None, 'La cantidad de indicadores por periodo debe estar entre 1 y 20.'
+        if not (1 <= notas_por_indicador <= 20):
+            return None, 'La cantidad de notas por indicador debe estar entre 1 y 20.'
+        if escala_minima >= escala_maxima:
+            return None, 'La escala mínima debe ser estrictamente menor a la escala máxima.'
+        if not (escala_minima <= nota_aprobatoria <= escala_maxima):
+            return None, f'La nota aprobatoria ({nota_aprobatoria}) debe estar dentro de la escala ({escala_minima} - {escala_maxima}).'
+
+        return {
+            'anio': anio,
+            'numero_periodos': numero_periodos,
+            'indicadores_por_periodo': indicadores_por_periodo,
+            'notas_por_indicador': notas_por_indicador,
+            'escala_minima': escala_minima,
+            'escala_maxima': escala_maxima,
+            'nota_aprobatoria': nota_aprobatoria,
+            'tipo_escala': tipo_escala,
+            'tipo_periodo': tipo_periodo,
+            'nombre': nombre,
+            'activa': activa,
+        }, None
+
+    @classmethod
+    def _aplicar_o_crear_configuracion(cls, params: dict, usuario_id: int | None) -> ConfiguracionEvaluacion:
+        """Actualiza la entidad existente o crea una nueva si no existe."""
+        now = datetime.now(timezone.utc)
+        config = ConfiguracionEvaluacion.query.filter_by(anio_academico=params['anio']).first()
+        if config:
+            config.nombre = params['nombre']
+            config.tipo_periodo = params['tipo_periodo']
+            config.numero_periodos = params['numero_periodos']
+            config.indicadores_por_periodo = params['indicadores_por_periodo']
+            config.notas_por_indicador = params['notas_por_indicador']
+            config.tipo_escala = params['tipo_escala']
+            config.escala_minima = params['escala_minima']
+            config.escala_maxima = params['escala_maxima']
+            config.nota_aprobatoria = params['nota_aprobatoria']
+            config.activa = params['activa']
+            config.usuario_actualizo_id = usuario_id
+            config.updated_at = now
+        else:
+            config = ConfiguracionEvaluacion(
+                anio_academico=params['anio'],
+                nombre=params['nombre'],
+                tipo_periodo=params['tipo_periodo'],
+                numero_periodos=params['numero_periodos'],
+                indicadores_por_periodo=params['indicadores_por_periodo'],
+                notas_por_indicador=params['notas_por_indicador'],
+                tipo_escala=params['tipo_escala'],
+                escala_minima=params['escala_minima'],
+                escala_maxima=params['escala_maxima'],
+                nota_aprobatoria=params['nota_aprobatoria'],
+                activa=params['activa'],
+                usuario_actualizo_id=usuario_id,
+                created_at=now,
+                updated_at=now
+            )
+            db.session.add(config)
+        return config
+
+    @classmethod
     def guardar_o_actualizar(cls, data: dict, usuario_id: int | None = None) -> tuple[ConfiguracionEvaluacion | None, str | None]:
         """
         Crea o actualiza una configuración de evaluación con validaciones estrictas y control de cambios.
         """
         try:
-            anio = data.get('anio_academico')
-            if not anio or not str(anio).isdigit():
-                return None, 'El año académico es obligatorio y debe ser numérico.'
-            anio = int(anio)
-
-            numero_periodos = int(data.get('numero_periodos', 4))
-            indicadores_por_periodo = int(data.get('indicadores_por_periodo', 2))
-            notas_por_indicador = int(data.get('notas_por_indicador', 3))
-            escala_minima = float(data.get('escala_minima', 1.0))
-            escala_maxima = float(data.get('escala_maxima', 5.0))
-            nota_aprobatoria = float(data.get('nota_aprobatoria', 3.0))
-            tipo_escala = data.get('tipo_escala', 'NUMERICA_CINCO')
-            tipo_periodo = data.get('tipo_periodo', 'Bimestre').strip() or 'Periodo'
-            nombre = data.get('nombre', f'Configuración {tipo_periodo} {anio}').strip()
-            activa = bool(data.get('activa', True))
-
-            if numero_periodos < 1 or numero_periodos > 12:
-                return None, 'El número de periodos debe estar entre 1 y 12.'
-            if indicadores_por_periodo < 1 or indicadores_por_periodo > 20:
-                return None, 'La cantidad de indicadores por periodo debe estar entre 1 y 20.'
-            if notas_por_indicador < 1 or notas_por_indicador > 20:
-                return None, 'La cantidad de notas por indicador debe estar entre 1 y 20.'
-            if escala_minima >= escala_maxima:
-                return None, 'La escala mínima debe ser estrictamente menor a la escala máxima.'
-            if not (escala_minima <= nota_aprobatoria <= escala_maxima):
-                return None, f'La nota aprobatoria ({nota_aprobatoria}) debe estar dentro de la escala ({escala_minima} - {escala_maxima}).'
+            params, error = cls._validar_datos_configuracion(data)
+            if error:
+                return None, error
 
             # Verificar compatibilidad con datos existentes
             compatibilidad = cls.verificar_compatibilidad_cambio(
-                anio=anio,
-                nuevo_indicadores=indicadores_por_periodo,
-                nuevo_notas=notas_por_indicador,
-                nueva_escala_min=escala_minima,
-                nueva_escala_max=escala_maxima
+                anio=params['anio'],
+                nuevo_indicadores=params['indicadores_por_periodo'],
+                nuevo_notas=params['notas_por_indicador'],
+                nueva_escala_min=params['escala_minima'],
+                nueva_escala_max=params['escala_maxima']
             )
 
             # Si el usuario no forzó la omisión y hay conflictos estructurales destructivos
             forzar = data.get('forzar', False)
             if not compatibilidad['compatible'] and not forzar:
                 detalles = "; ".join(compatibilidad['conflictos'])
-                return None, f'Conflicto con datos existentes para el año {anio}: {detalles}. Se requiere confirmación explícita.'
+                return None, f"Conflicto con datos existentes para el año {params['anio']}: {detalles}. Se requiere confirmación explícita."
 
-            config = ConfiguracionEvaluacion.query.filter_by(anio_academico=anio).first()
-            if config:
-                config.nombre = nombre
-                config.tipo_periodo = tipo_periodo
-                config.numero_periodos = numero_periodos
-                config.indicadores_por_periodo = indicadores_por_periodo
-                config.notas_por_indicador = notas_por_indicador
-                config.tipo_escala = tipo_escala
-                config.escala_minima = escala_minima
-                config.escala_maxima = escala_maxima
-                config.nota_aprobatoria = nota_aprobatoria
-                config.activa = activa
-                config.usuario_actualizo_id = usuario_id
-                config.updated_at = datetime.utcnow()
-            else:
-                config = ConfiguracionEvaluacion(
-                    anio_academico=anio,
-                    nombre=nombre,
-                    tipo_periodo=tipo_periodo,
-                    numero_periodos=numero_periodos,
-                    indicadores_por_periodo=indicadores_por_periodo,
-                    notas_por_indicador=notas_por_indicador,
-                    tipo_escala=tipo_escala,
-                    escala_minima=escala_minima,
-                    escala_maxima=escala_maxima,
-                    nota_aprobatoria=nota_aprobatoria,
-                    activa=activa,
-                    usuario_actualizo_id=usuario_id,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
-                )
-                db.session.add(config)
-
+            config = cls._aplicar_o_crear_configuracion(params, usuario_id)
             db.session.flush()
             cls._sincronizar_periodos_db(config)
             db.session.commit()
@@ -195,7 +225,7 @@ class ConfiguracionEvaluacionService:
                 periodo = existentes_por_orden[orden]
                 # Actualizar nombre si el prefijo cambió
                 nombre_esperado = f'{config.tipo_periodo} {orden}'
-                if periodo.nombre.startswith('Bimestre') or periodo.nombre.startswith('Periodo') or periodo.nombre.startswith('Trimestre'):
+                if periodo.nombre.startswith(('Bimestre', 'Periodo', 'Trimestre')):
                     periodo.nombre = nombre_esperado
             else:
                 nuevo_periodo = Bimestre(

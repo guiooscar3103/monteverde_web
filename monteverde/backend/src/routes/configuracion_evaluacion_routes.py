@@ -36,7 +36,11 @@ def get_configuracion_por_anio(anio):
     try:
         config = ConfiguracionEvaluacionService.get_por_anio(anio)
         if not config:
-            config = ConfiguracionEvaluacionService.get_or_create_default(anio)
+            return jsonify({
+                'success': False,
+                'message': f'No existe configuración registrada para el año {anio}.',
+                'data': None
+            }), 404
         return jsonify({'success': True, 'data': config.to_dict()})
     except Exception as exc:
         return jsonify({'success': False, 'message': str(exc)}), 500
