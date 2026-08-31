@@ -113,13 +113,14 @@ export default function Cursos() {
   const setMateriasMutation = useMutation({
     mutationFn: ({ cursoId, payload }) => setCursoMaterias(cursoId, payload),
     onSuccess: (res) => {
-      if (res?.success) {
-        setSuccessMsg(res.message || 'Plan de asignaturas actualizado');
+      const { exito, mensaje } = _parseCursoResponse(res, 'Plan de asignaturas actualizado');
+      if (exito) {
+        setSuccessMsg(mensaje);
         queryClient.invalidateQueries({ queryKey: ['cursos'] });
         cerrarModalMaterias();
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {
-        setErrorMsg(res?.message || 'Error al guardar asignaturas');
+        setErrorMsg(mensaje || 'Error al guardar asignaturas');
       }
     },
     onError: (err) => setErrorMsg(err.message || 'Error en la petición')
@@ -154,15 +155,20 @@ export default function Cursos() {
     setErrorMsg('');
     try {
       const res = await getCursoMaterias(curso.id);
-      if (res?.success && res.data?.materias) {
-        const ids = res.data.materias.map(m => m.id);
-        setMateriasSeleccionadas(ids);
-      } else {
-        const ids = (curso.materias || []).map(m => m.id);
-        setMateriasSeleccionadas(ids);
+      let materiasList = [];
+      if (Array.isArray(res?.materias)) {
+        materiasList = res.materias;
+      } else if (Array.isArray(res?.data?.materias)) {
+        materiasList = res.data.materias;
+      } else if (Array.isArray(res)) {
+        materiasList = res;
+      } else if (Array.isArray(curso?.materias)) {
+        materiasList = curso.materias;
       }
+      const ids = materiasList.map(m => m.id || m.materia_id).filter(Boolean);
+      setMateriasSeleccionadas(ids);
     } catch {
-      const ids = (curso.materias || []).map(m => m.id);
+      const ids = (curso?.materias || []).map(m => m.id || m.materia_id).filter(Boolean);
       setMateriasSeleccionadas(ids);
     }
 
@@ -185,7 +191,8 @@ export default function Cursos() {
   };
 
   const handleSelectAllMaterias = () => {
-    setMateriasSeleccionadas(catalogoMaterias.map(m => m.id));
+    const list = Array.isArray(catalogoMaterias) ? catalogoMaterias : (catalogoMaterias?.materias || []);
+    setMateriasSeleccionadas(list.map(m => m.id));
   };
 
   const handleDeselectAllMaterias = () => {
@@ -571,7 +578,10 @@ export default function Cursos() {
                       <input
                         type="checkbox"
                         checked={estaSeleccionada}
-                        onChange={() => {}} // Handled by container
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleToggleMateria(m.id);
+                        }}
                         style={{
                           width: '18px',
                           height: '18px',

@@ -267,7 +267,7 @@ def set_curso_materias(curso_id):
         data = request.get_json() or {}
 
         # Soportar array de IDs o array de objetos
-        materia_ids = data.get('materia_ids') or data.get('materiaIds')
+        materia_ids = data.get('materia_ids') if 'materia_ids' in data else data.get('materiaIds')
         materias_input = data.get('materias')
 
         if materia_ids is None and materias_input is None:
