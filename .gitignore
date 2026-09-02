@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+dist/
+dist-ssr/
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python caching
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+!*.env.example
+
+# Database backup / dumps
+*.sql.bak
+*.sql.gz
+*.sqlite
+
+# OS and IDE files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Institutional local configuration
+config_institucion.json
+backend/src/config_institucion.json

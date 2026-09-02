@@ -372,6 +372,6 @@ if __name__ == '__main__':
             print(f"[ERROR] Error creando tablas: {e}")
     
     print("[SERVER] MonteVerde API iniciando...")
-    print("[INFO] http://localhost:5000")
+    print("[INFO] http://localhost:5000 (127.0.0.1:5000)")
     print("[INFO] CORS permitido: http://localhost:5173")
-    app.run(debug=True, port=5000, host='localhost')
+    app.run(debug=True, port=5000, host='0.0.0.0')

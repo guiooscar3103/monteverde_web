@@ -460,7 +460,17 @@ try:
 
         conn.close()
 
-    print("[SUCCESS] Database initialization and migration completed successfully!")
+    # Ejecutar siembra de datos de demostración
+    try:
+        import subprocess
+        seed_script = os.path.join(backend_dir, 'scripts', 'seed_demo_data.py')
+        if os.path.exists(seed_script):
+            print("\n[INFO] Ejecutando siembra de datos demo...")
+            subprocess.run([sys.executable, seed_script], check=True)
+    except Exception as seed_err:
+        print(f"[WARN] Error ejecutando seed_demo_data: {seed_err}")
+
+    print("\n[SUCCESS] Database initialization and migration completed successfully!")
 
 except Exception as e:
-    print(f"[ERROR] Error initializing database: {e}")
+    print(f"\n[ERROR] Error initializing database: {e}")
