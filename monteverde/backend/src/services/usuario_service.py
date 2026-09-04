@@ -4,6 +4,8 @@ from src.extensions import db
 from src.models.usuario import Usuario
 from src.models.estudiante import Estudiante
 
+from src.utils.permissions import ROLES_SISTEMA
+
 class UsuarioService:
     @staticmethod
     def get_usuarios(page=1, limit=10, search=None, rol=None, activo=None, order_by='nombre', order_direction='ASC'):
@@ -19,7 +21,7 @@ class UsuarioService:
             ))
             
         # Filtro por rol
-        if rol and rol in ['admin', 'docente', 'familia']:
+        if rol and rol in ROLES_SISTEMA:
             query = query.filter(Usuario.rol == rol)
             
         # Filtro por estado activo (1 o 0)
@@ -66,7 +68,7 @@ class UsuarioService:
         if not all([nombre, email, password, rol]):
             return {'success': False, 'message': 'Faltan campos obligatorios (nombre, email, password, rol)'}, 400
             
-        if rol not in ['admin', 'docente', 'familia']:
+        if rol not in ROLES_SISTEMA:
             return {'success': False, 'message': 'Rol inválido'}, 400
             
         # Verificar si el email ya existe
@@ -121,7 +123,7 @@ class UsuarioService:
                 return {'success': False, 'message': 'El correo electrónico ya está registrado por otro usuario'}, 400
             usuario.email = email
             
-        if rol and rol in ['admin', 'docente', 'familia']:
+        if rol and rol in ROLES_SISTEMA:
             usuario.rol = rol
             
         if 'estudiante_id' in data:

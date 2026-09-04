@@ -13,6 +13,7 @@ import ReporteAcademico from './pages/familia/ReporteAcademico';
 import DocenteLayout from './layouts/DocenteLayout';
 import FamiliaLayout from './layouts/FamiliaLayout'; 
 import AdminLayout from './layouts/AdminLayout';
+import CoordinadorLayout from './layouts/CoordinadorLayout';
 
 // Páginas
 import DocenteHome from './pages/docente/Home';
@@ -31,6 +32,10 @@ import Cursos from './pages/admin/Cursos';
 import Asignaturas from './pages/admin/Asignaturas';
 import Circulares from './pages/admin/Circulares';
 
+// Páginas de Coordinación Académica
+import CoordinadorDashboard from './pages/coordinador/Dashboard';
+import CalendarioAcademico from './pages/coordinador/CalendarioAcademico';
+
 // ===================================================
 // Redirección de Raíz robusta anti-bucles
 // ===================================================
@@ -42,6 +47,7 @@ function RootRedirect() {
   }
 
   if (user?.rol === 'admin') return <Navigate to="/admin" replace />;
+  if (user?.rol === 'coordinador') return <Navigate to="/coordinador" replace />;
   if (user?.rol === 'docente') return <Navigate to="/docente" replace />;
   if (user?.rol === 'familia') return <Navigate to="/familia" replace />;
 
@@ -79,6 +85,25 @@ function App() {
         <Route path="asistencia" element={<Asistencia />} />
         <Route path="observador" element={<ObservadorAlumno />} />
         <Route path="mensajes" element={<Mensajes />} />
+      </Route>
+
+      {/* ======================================
+          COORDINACIÓN ACADÉMICA
+      ====================================== */}
+      <Route 
+        path="/coordinador" 
+        element={
+          <PrivateRoute allowedRoles={['coordinador']}>
+            <CoordinadorLayout />
+          </PrivateRoute>
+        } 
+      >
+        <Route index element={<CoordinadorDashboard />} />
+        <Route path="calendario" element={<CalendarioAcademico />} />
+        <Route path="cursos" element={<Cursos />} />
+        <Route path="asignaturas" element={<Asignaturas />} />
+        <Route path="docentes" element={<Docentes />} />
+        <Route path="circulares" element={<Circulares />} />
       </Route>
       
       {/* ======================================

@@ -58,6 +58,8 @@ class AdminService:
             
             # Roles
             admins = Usuario.query.filter_by(rol='admin', eliminado=False).count()
+            coordinadores = Usuario.query.filter_by(rol='coordinador', eliminado=False).count()
+            secretarias = Usuario.query.filter_by(rol='secretaria', eliminado=False).count()
             docentes = Usuario.query.filter_by(rol='docente', eliminado=False).count()
             familias = Usuario.query.filter_by(rol='familia', eliminado=False).count()
             
@@ -81,7 +83,10 @@ class AdminService:
             for c in cursos_list:
                 estudiantes_count = Estudiante.query.filter_by(curso_id=c.id).count()
                 distribucion_cursos.append({
-                    'nombre': f"{c.nivel}°{c.letra}",
+                    'id': c.id,
+                    'nombre': c.nombre,
+                    'nivel': c.nivel,
+                    'letra': c.letra,
                     'estudiantes': estudiantes_count
                 })
 
@@ -97,6 +102,8 @@ class AdminService:
                     'activos': usuarios_activos,
                     'inactivos': usuarios_inactivos,
                     'admins': admins,
+                    'coordinadores': coordinadores,
+                    'secretarias': secretarias,
                     'docentes': docentes,
                     'familias': familias
                 },

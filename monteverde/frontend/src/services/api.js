@@ -894,5 +894,46 @@ export const verificarCompatibilidadEvaluacion = async (datos) => {
   });
 };
 
+// =====================================================
+// CALENDARIO ACADÉMICO Y PERIODOS LECTIVOS
+// =====================================================
+
+/** Obtiene el calendario académico y sus periodos para un año específico */
+export const getCalendarioAcademico = async (anio = null) => {
+  const query = anio ? `?anio=${anio}` : '';
+  return await apiRequest(`/calendario/${query}`);
+};
+
+/** Actualiza los metadatos generales del calendario escolar */
+export const actualizarCalendarioAcademico = async (id, datos) => {
+  return await apiRequest(`/calendario/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(datos),
+  });
+};
+
+/** Obtiene la lista de periodos lectivos (bimestres) */
+export const getPeriodosLectivos = async (anio = null) => {
+  const query = anio ? `?anio=${anio}` : '';
+  return await apiRequest(`/calendario/periodos${query}`);
+};
+
+/** Cambia el estado de un periodo (ABIERTO o CERRADO) */
+export const cambiarEstadoPeriodoLectivo = async (periodoId, estado) => {
+  return await apiRequest(`/calendario/periodos/${periodoId}/estado`, {
+    method: 'PATCH',
+    body: JSON.stringify({ estado }),
+  });
+};
+
+/** Actualiza fechas y fecha límite de calificaciones para un periodo */
+export const actualizarPeriodoLectivo = async (periodoId, datos) => {
+  return await apiRequest(`/calendario/periodos/${periodoId}`, {
+    method: 'PUT',
+    body: JSON.stringify(datos),
+  });
+};
+
+
 
 

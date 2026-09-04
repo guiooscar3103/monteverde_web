@@ -10,7 +10,7 @@ from src.utils.auth_helpers import role_required, get_current_user
 assignments_bp = Blueprint('assignments', __name__, url_prefix='/assignments')
 
 @assignments_bp.route('', methods=['POST'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def create_assignment():
     try:
         data = request.get_json() or {}
@@ -68,7 +68,7 @@ def create_assignment():
         return jsonify({'success': False, 'message': 'Error creando asignación', 'error': str(e)}), 500
 
 @assignments_bp.route('/teacher/<int:docente_id>', methods=['GET'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def get_teacher_assignments(docente_id):
     try:
         docente = Usuario.query.filter_by(id=docente_id, rol='docente', eliminado=False).first()
@@ -81,7 +81,7 @@ def get_teacher_assignments(docente_id):
         return jsonify({'success': False, 'message': 'Error obteniendo asignaciones', 'error': str(e)}), 500
 
 @assignments_bp.route('/<int:assignment_id>', methods=['DELETE'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def delete_assignment(assignment_id):
     try:
         asignacion = DocenteAsignacion.query.get(assignment_id)

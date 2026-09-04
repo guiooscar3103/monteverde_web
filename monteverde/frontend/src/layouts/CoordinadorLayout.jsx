@@ -2,17 +2,19 @@ import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Users,
-  HeartHandshake,
-  Settings,
+  GraduationCap,
+  BookOpen,
+  Library,
+  Megaphone,
   LogOut,
   Bell,
-  ShieldCheck
+  Sparkles,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import logoColegio from '../assets/img/logo-colegio.png';
 
-export default function AdminLayout() {
+export default function CoordinadorLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -23,25 +25,35 @@ export default function AdminLayout() {
 
   const navItems = [
     {
-      to: '/admin',
-      label: 'Panel Principal',
+      to: '/coordinador',
+      label: 'Panel Académico',
       exact: true,
       icon: <LayoutDashboard size={20} className="sidebar-icon" />
     },
     {
-      to: '/admin/usuarios',
-      label: 'Gestión Usuarios y Roles',
-      icon: <Users size={20} className="sidebar-icon" />
+      to: '/coordinador/calendario',
+      label: 'Calendario y Periodos',
+      icon: <Calendar size={20} className="sidebar-icon" />
     },
     {
-      to: '/admin/familias',
-      label: 'Vínculos Familiares',
-      icon: <HeartHandshake size={20} className="sidebar-icon" />
+      to: '/coordinador/cursos',
+      label: 'Gestión de Cursos',
+      icon: <BookOpen size={20} className="sidebar-icon" />
     },
     {
-      to: '/admin/configuracion',
-      label: 'Configuración del Sistema',
-      icon: <Settings size={20} className="sidebar-icon" />
+      to: '/coordinador/asignaturas',
+      label: 'Planes y Asignaturas',
+      icon: <Library size={20} className="sidebar-icon" />
+    },
+    {
+      to: '/coordinador/docentes',
+      label: 'Asignación Docente',
+      icon: <GraduationCap size={20} className="sidebar-icon" />
+    },
+    {
+      to: '/coordinador/circulares',
+      label: 'Circulares Académicas',
+      icon: <Megaphone size={20} className="sidebar-icon" />
     }
   ];
 
@@ -82,17 +94,21 @@ export default function AdminLayout() {
             }}>
               MonteVerde
             </span>
-            <span style={{
-              fontSize: '0.68rem',
-              color: 'var(--text-muted)',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.8px',
-              display: 'block',
-              marginTop: '2px'
-            }}>
-              Administración
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+              <span style={{
+                fontSize: '0.66rem',
+                color: '#047857',
+                background: '#D1FAE5',
+                padding: '2px 6px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                display: 'inline-block'
+              }}>
+                Coordinación
+              </span>
+            </div>
           </div>
         </div>
 
@@ -127,7 +143,7 @@ export default function AdminLayout() {
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              background: 'var(--color-primary)',
+              background: '#047857',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -136,14 +152,14 @@ export default function AdminLayout() {
               color: '#ffffff',
               boxShadow: 'var(--shadow-sm)'
             }}>
-              {user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'A'}
+              {user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'C'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.nombre || 'Administrador'}
+                {user?.nombre || 'Coordinador Académico'}
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.email || 'admin@monteverde.com'}
+                {user?.email || 'coordinador@monteverde.com'}
               </span>
             </div>
           </div>
@@ -181,7 +197,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      {/* Área de contenido del panel principal */}
+      {/* Área de contenido principal */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -205,37 +221,11 @@ export default function AdminLayout() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.3px' }}>
-              Panel de Administración
+              Portal de Coordinación Académica
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* Campana de notificación simulada */}
-            <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{
-                background: 'var(--bg-light)',
-                padding: '8px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-secondary)'
-              }}>
-                <Bell size={16} />
-              </div>
-              <span style={{
-                position: 'absolute',
-                top: '-1px',
-                right: '-1px',
-                background: 'var(--color-error)',
-                borderRadius: '50%',
-                width: '7px',
-                height: '7px',
-                border: '1.5px solid #ffffff'
-              }}></span>
-            </div>
-
-            {/* Píldora de perfil de usuario */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -249,7 +239,7 @@ export default function AdminLayout() {
                 width: '26px',
                 height: '26px',
                 borderRadius: '50%',
-                background: 'var(--color-primary)',
+                background: '#047857',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -257,10 +247,10 @@ export default function AdminLayout() {
                 fontSize: '0.8rem',
                 fontWeight: 700
               }}>
-                {user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'A'}
+                {user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'C'}
               </div>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                {user?.nombre || 'Admin'}
+                {user?.nombre || 'Coordinación'}
               </span>
             </div>
           </div>

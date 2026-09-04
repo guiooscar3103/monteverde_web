@@ -5,7 +5,7 @@ from src.utils.auth_helpers import role_required, get_current_user
 configuracion_evaluacion_bp = Blueprint('configuracion_evaluacion', __name__)
 
 @configuracion_evaluacion_bp.route('/configuracion/evaluacion', methods=['GET'])
-@role_required('admin', 'docente', 'familia')
+@role_required('admin', 'coordinador', 'docente', 'familia')
 def listar_configuraciones():
     """Retorna la lista de todas las configuraciones de evaluación registradas."""
     try:
@@ -15,7 +15,7 @@ def listar_configuraciones():
         return jsonify({'success': False, 'message': str(exc)}), 500
 
 @configuracion_evaluacion_bp.route('/configuracion/evaluacion/activa', methods=['GET'])
-@role_required('admin', 'docente', 'familia')
+@role_required('admin', 'coordinador', 'docente', 'familia')
 def get_configuracion_activa():
     """Retorna la configuración de evaluación activa para el año institucional vigente."""
     try:
@@ -30,7 +30,7 @@ def get_configuracion_activa():
         return jsonify({'success': False, 'message': str(exc)}), 500
 
 @configuracion_evaluacion_bp.route('/configuracion/evaluacion/<int:anio>', methods=['GET'])
-@role_required('admin', 'docente', 'familia')
+@role_required('admin', 'coordinador', 'docente', 'familia')
 def get_configuracion_por_anio(anio):
     """Retorna la configuración de evaluación para un año específico."""
     try:
@@ -46,9 +46,9 @@ def get_configuracion_por_anio(anio):
         return jsonify({'success': False, 'message': str(exc)}), 500
 
 @configuracion_evaluacion_bp.route('/configuracion/evaluacion', methods=['POST'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def guardar_configuracion():
-    """Crea o actualiza la configuración de evaluación de un año académico (Solo Admin)."""
+    """Crea o actualiza la configuración de evaluación de un año académico (Admin y Coordinador)."""
     try:
         data = request.get_json() or {}
         usuario = get_current_user()
@@ -67,9 +67,9 @@ def guardar_configuracion():
         return jsonify({'success': False, 'message': str(exc)}), 500
 
 @configuracion_evaluacion_bp.route('/configuracion/evaluacion/<int:anio>', methods=['PUT'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def actualizar_configuracion(anio):
-    """Actualiza la configuración de evaluación para un año específico (Solo Admin)."""
+    """Actualiza la configuración de evaluación para un año específico (Admin y Coordinador)."""
     try:
         data = request.get_json() or {}
         data['anio_academico'] = anio
@@ -89,7 +89,7 @@ def actualizar_configuracion(anio):
         return jsonify({'success': False, 'message': str(exc)}), 500
 
 @configuracion_evaluacion_bp.route('/configuracion/evaluacion/verificar-compatibilidad', methods=['POST'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def verificar_compatibilidad():
     """Verifica si un cambio de configuración propuesta generaría conflictos con notas existentes."""
     try:

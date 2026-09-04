@@ -91,94 +91,33 @@ def create_app():
                     conn.execute(text('DROP TABLE IF EXISTS docente_curso;'))
                 print('[INFO] Tablas corruptas eliminadas, intentando crear de nuevo')
                 db.create_all()
+            elif "2003" in str(exc) or "Can't connect" in str(exc) or "10061" in str(exc):
+                print('[WARN] MySQL no conectado; omitiendo inicialización automática en inicio.')
             else:
                 raise
 
-        # ----- Seed de bimestres por defecto -----
-        try:
-            if Bimestre.query.count() == 0:
-                anio_actual = datetime.now().year
-                for orden in range(1, 5):
-                    db.session.add(Bimestre(
-                        nombre=f'Bimestre {orden}',
-                        anio=anio_actual,
-                        orden=orden
-                    ))
-                db.session.commit()
-                print(f'[INFO] Bimestres {anio_actual} creados correctamente')
-        except Exception as exc:
-            db.session.rollback()
-            print(f'[WARN] No se pudo crear seed de bimestres: {exc}')
-
-        # ----- Seed de configuración institucional por defecto -----
-        try:
-            ConfiguracionService.get_or_create_default()
-        except Exception as exc:
-            db.session.rollback()
-            print(f'[WARN] No se pudo verificar seed de configuracion institucional: {exc}')
-
-        # ----- Seed de configuración de evaluación por defecto -----
-        try:
-            ConfiguracionEvaluacionService.get_or_create_default()
-        except Exception as exc:
-            db.session.rollback()
-            print(f'[WARN] No se pudo verificar seed de configuracion evaluacion: {exc}')
-
-        # ----- Seed de cursos, estudiantes y usuarios demo en entorno de desarrollo/producción (MySQL) -----
-        if not app.config.get('TESTING') and db.engine.name != 'sqlite':
-            try:
-                if Curso.query.count() == 0:
-                    c1 = Curso(id=1, nombre='Primero A', nivel='1°', letra='A')
-                    c2 = Curso(id=2, nombre='Primero B', nivel='1°', letra='B')
-                    c3 = Curso(id=3, nombre='Segundo A', nivel='2°', letra='A')
-                    c4 = Curso(id=4, nombre='Tercero A', nivel='3°', letra='A')
-                    c5 = Curso(id=5, nombre='Cuarto A', nivel='4°', letra='A')
-                    c6 = Curso(id=6, nombre='Quinto A', nivel='5°', letra='A')
-                    db.session.add_all([c1, c2, c3, c4, c5, c6])
-                    db.session.commit()
-                    print('[INFO] Cursos iniciales creados.')
-
-                if Estudiante.query.count() == 0:
-                    e1 = Estudiante(id=1, nombre='Santiago González Pérez', curso_id=1)
-                    e2 = Estudiante(id=2, nombre='Valentina López García', curso_id=1)
-                    e3 = Estudiante(id=3, nombre='Matías Rodríguez Silva', curso_id=1)
-                    db.session.add_all([e1, e2, e3])
-                    db.session.commit()
-                    print('[INFO] Estudiantes iniciales creados.')
-
-                # 1. Admin
-                if not Usuario.query.filter_by(email='admin@monteverde.com').first():
-                    u_admin = Usuario(nombre='Administrador Sistema', email='admin@monteverde.com', rol='admin', activo=True, eliminado=False)
-                    u_admin.set_password('admin123')
-                    db.session.add(u_admin)
-
-                # 2. Docente
-                if not Usuario.query.filter_by(email='docente@monteverde.com').first():
-                    u_doc = Usuario(nombre='María García López', email='docente@monteverde.com', rol='docente', activo=True, eliminado=False)
-                    u_doc.set_password('docente123')
-                    db.session.add(u_doc)
-
-                # 3. Familias demo
-                primer_est = Estudiante.query.first()
-                est_id = primer_est.id if primer_est else 1
-                for fam_email in ('familiagonzalez@monteverde.com', 'familia@monteverde.com'):
-                    u_fam = Usuario.query.filter_by(email=fam_email).first()
-                    if not u_fam:
-                        u_fam = Usuario(nombre='Familia González', email=fam_email, rol='familia', estudiante_id=est_id, activo=True, eliminado=False)
-                        u_fam.set_password('familia123')
-                        db.session.add(u_fam)
-                    else:
-                        u_fam.activo = True
-                        u_fam.eliminado = False
-
-                db.session.commit()
-                print('[INFO] Usuarios demo verificados/creados.')
-            except Exception as exc:
-                db.session.rollback()
-                print(f'[WARN] No se pudo verificar seed de usuarios demo: {exc}')
-
+        # ====================================================
+        # MIGRACIONES Y VERIFICACIÓN DE COLUMNAS / TABLAS
+        # ====================================================
         try:
             inspector = inspect(db.engine)
+            if inspector.has_table('usuarios') and db.engine.name != 'sqlite':
+                columnas_usuarios = [col['name'] for col in inspector.get_columns('usuarios')]
+                with db.engine.begin() as conn:
+                    if 'activo' not in columnas_usuarios:
+                        conn.execute(text('ALTER TABLE usuarios ADD COLUMN activo BOOLEAN NOT NULL DEFAULT 1'))
+                    if 'eliminado' not in columnas_usuarios:
+                        conn.execute(text('ALTER TABLE usuarios ADD COLUMN eliminado BOOLEAN NOT NULL DEFAULT 0'))
+                    if 'fecha_eliminacion' not in columnas_usuarios:
+                        conn.execute(text('ALTER TABLE usuarios ADD COLUMN fecha_eliminacion DATETIME NULL'))
+                    if 'fecha_registro' not in columnas_usuarios:
+                        conn.execute(text('ALTER TABLE usuarios ADD COLUMN fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP'))
+                    try:
+                        conn.execute(text('ALTER TABLE usuarios MODIFY COLUMN rol VARCHAR(50) NOT NULL'))
+                    except Exception:
+                        pass
+                print('[INFO] Columnas de usuarios verificadas/migradas.')
+
             if inspector.has_table('cursos'):
                 columnas = [col['name'] for col in inspector.get_columns('cursos')]
                 if 'descripcion' not in columnas:
@@ -283,6 +222,105 @@ def create_app():
             except Exception as exc:
                 print(f"[WARN] No se pudo verificar/migrar tablas asociativas: {exc}")
 
+        if inspector.has_table('bimestres_config') and db.engine.name != 'sqlite':
+            try:
+                columnas_bimestres = [col['name'] for col in inspector.get_columns('bimestres_config')]
+                with db.engine.begin() as conn:
+                    if 'calendario_id' not in columnas_bimestres:
+                        conn.execute(text('ALTER TABLE bimestres_config ADD COLUMN calendario_id INT NULL'))
+                    if 'fecha_inicio' not in columnas_bimestres:
+                        conn.execute(text('ALTER TABLE bimestres_config ADD COLUMN fecha_inicio DATE NULL'))
+                    if 'fecha_fin' not in columnas_bimestres:
+                        conn.execute(text('ALTER TABLE bimestres_config ADD COLUMN fecha_fin DATE NULL'))
+                    if 'fecha_cierre_calificaciones' not in columnas_bimestres:
+                        conn.execute(text('ALTER TABLE bimestres_config ADD COLUMN fecha_cierre_calificaciones DATE NULL'))
+                    if 'estado' not in columnas_bimestres:
+                        conn.execute(text("ALTER TABLE bimestres_config ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'ABIERTO'"))
+                print('[INFO] Columnas de bimestres_config verificadas/migradas.')
+            except Exception as exc:
+                print(f"[WARN] No se pudo migrar bimestres_config: {exc}")
+
+        # ----- Seed de calendario académico y bimestres por defecto -----
+        try:
+            from src.services.calendario_service import CalendarioService
+            CalendarioService.get_or_create_calendario(datetime.now().year)
+            print(f'[INFO] Calendario académico y bimestres {datetime.now().year} creados/verificados correctamente')
+        except Exception as exc:
+            db.session.rollback()
+            print(f'[WARN] No se pudo crear seed de calendario académico: {exc}')
+
+        # ----- Seed de configuración institucional por defecto -----
+        try:
+            ConfiguracionService.get_or_create_default()
+        except Exception as exc:
+            db.session.rollback()
+            print(f'[WARN] No se pudo verificar seed de configuracion institucional: {exc}')
+
+        # ----- Seed de configuración de evaluación por defecto -----
+        try:
+            ConfiguracionEvaluacionService.get_or_create_default()
+        except Exception as exc:
+            db.session.rollback()
+            print(f'[WARN] No se pudo verificar seed de configuracion evaluacion: {exc}')
+
+        # ----- Seed de cursos, estudiantes y usuarios demo en entorno de desarrollo/producción (MySQL) -----
+        if not app.config.get('TESTING') and db.engine.name != 'sqlite':
+            try:
+                if Curso.query.count() == 0:
+                    c1 = Curso(id=1, nombre='Primero A', nivel='1°', letra='A')
+                    c2 = Curso(id=2, nombre='Primero B', nivel='1°', letra='B')
+                    c3 = Curso(id=3, nombre='Segundo A', nivel='2°', letra='A')
+                    c4 = Curso(id=4, nombre='Tercero A', nivel='3°', letra='A')
+                    c5 = Curso(id=5, nombre='Cuarto A', nivel='4°', letra='A')
+                    c6 = Curso(id=6, nombre='Quinto A', nivel='5°', letra='A')
+                    db.session.add_all([c1, c2, c3, c4, c5, c6])
+                    db.session.commit()
+                    print('[INFO] Cursos iniciales creados.')
+
+                if Estudiante.query.count() == 0:
+                    e1 = Estudiante(id=1, nombre='Santiago González Pérez', curso_id=1)
+                    e2 = Estudiante(id=2, nombre='Valentina López García', curso_id=1)
+                    e3 = Estudiante(id=3, nombre='Matías Rodríguez Silva', curso_id=1)
+                    db.session.add_all([e1, e2, e3])
+                    db.session.commit()
+                    print('[INFO] Estudiantes iniciales creados.')
+
+                # 1. Admin
+                if not Usuario.query.filter_by(email='admin@monteverde.com').first():
+                    u_admin = Usuario(nombre='Administrador Sistema', email='admin@monteverde.com', rol='admin', activo=True, eliminado=False)
+                    u_admin.set_password('admin123')
+                    db.session.add(u_admin)
+
+                # 1.1 Coordinador Académico
+                if not Usuario.query.filter_by(email='coordinador@monteverde.com').first():
+                    u_coord = Usuario(nombre='Coordinador Académico', email='coordinador@monteverde.com', rol='coordinador', activo=True, eliminado=False)
+                    u_coord.set_password('coordinador123')
+                    db.session.add(u_coord)
+
+                # 2. Docente
+                if not Usuario.query.filter_by(email='docente@monteverde.com').first():
+                    u_doc = Usuario(nombre='María García López', email='docente@monteverde.com', rol='docente', activo=True, eliminado=False)
+                    u_doc.set_password('docente123')
+                    db.session.add(u_doc)
+
+                # 3. Familias demo
+                primer_est = Estudiante.query.first()
+                est_id = primer_est.id if primer_est else 1
+                u_fam = Usuario.query.filter_by(email='familiagonzalez@monteverde.com').first()
+                if not u_fam:
+                    u_fam = Usuario(nombre='Familia González', email='familiagonzalez@monteverde.com', rol='familia', estudiante_id=est_id, activo=True, eliminado=False)
+                    u_fam.set_password('familia123')
+                    db.session.add(u_fam)
+                else:
+                    u_fam.activo = True
+                    u_fam.eliminado = False
+
+                db.session.commit()
+                print('[INFO] Usuarios demo verificados/creados.')
+            except Exception as exc:
+                db.session.rollback()
+                print(f'[WARN] No se pudo verificar seed de usuarios demo: {exc}')
+
 
     from src.routes.auth_routes import auth_bp
     from src.routes.usuario_routes import usuario_bp
@@ -301,6 +339,7 @@ def create_app():
     from src.routes.circulares import circulares_bp
     from src.routes.tareas import tareas_bp
     from src.routes.configuracion_evaluacion_routes import configuracion_evaluacion_bp
+    from src.routes.calendario_routes import calendario_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(usuario_bp, url_prefix='/api/usuarios')
@@ -319,6 +358,7 @@ def create_app():
     app.register_blueprint(circulares_bp, url_prefix='/api')
     app.register_blueprint(tareas_bp, url_prefix='/api')
     app.register_blueprint(configuracion_evaluacion_bp, url_prefix='/api')
+    app.register_blueprint(calendario_bp, url_prefix='/api/calendario')
     return app
 
 app = create_app()

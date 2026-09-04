@@ -22,6 +22,7 @@ export default function PrivateRoute({ children, allowedRoles = [], requiredRole
 
   if (roles.length > 0 && user && !roles.includes(user.rol)) {
     if (user.rol === 'admin') return <Navigate to="/admin" replace />;
+    if (user.rol === 'coordinador') return <Navigate to="/coordinador" replace />;
     if (user.rol === 'docente') return <Navigate to="/docente" replace />;
     if (user.rol === 'familia') return <Navigate to="/familia" replace />;
     return <Navigate to="/login" replace />;

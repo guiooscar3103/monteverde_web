@@ -116,12 +116,13 @@ try:
         hash_admin = generate_password_hash('admin123')
         hash_docente = generate_password_hash('docente123')
         hash_familia = generate_password_hash('familia123')
+        hash_coord = generate_password_hash('coordinador123')
 
         usuarios_data = [
             (1, 'Administrador Sistema', 'admin@monteverde.com', hash_admin, 'admin', None),
+            (10, 'Coordinador Académico', 'coordinador@monteverde.com', hash_coord, 'coordinador', None),
             (2, 'María García López', 'docente@monteverde.com', hash_docente, 'docente', None),
             (3, 'Familia González', 'familiagonzalez@monteverde.com', hash_familia, 'familia', 1),
-            (4, 'Familia González', 'familia@monteverde.com', hash_familia, 'familia', 1),
             (5, 'Familia López García', 'familia.lopez@monteverde.com', hash_familia, 'familia', 2),
             (6, 'Familia Rodríguez Silva', 'familia.rodriguez@monteverde.com', hash_familia, 'familia', 3),
             (7, 'Familia Martínez Torres', 'familia.martinez@monteverde.com', hash_familia, 'familia', 4),
@@ -135,53 +136,59 @@ try:
             """, (uid, nom, email, psw, rol, est_id, nom, psw, rol, est_id))
 
         # Corregir roles no válidos o legacy
-        cur.execute("UPDATE usuarios SET rol = 'admin' WHERE rol NOT IN ('admin', 'docente', 'familia');")
+        cur.execute("UPDATE usuarios SET rol = 'admin' WHERE rol NOT IN ('admin', 'docente', 'familia', 'coordinador');")
+
+        # Mapeo dinámico de emails a IDs reales en la base de datos
+        cur.execute("SELECT email, id FROM usuarios;")
+        user_ids = {row[0]: row[1] for row in cur.fetchall()}
 
         # -------------------------------------------------------------
         # 6. FAMILIA_ESTUDIANTE
         # -------------------------------------------------------------
         print("6. Sembrando Vinculación Familias...")
         fam_est_data = [
-            (3, 1), # Familia González -> Santiago (1)
-            (3, 6), # Familia González -> Sofía (6)
-            (4, 1), # familia@monteverde.com -> Santiago (1)
-            (4, 6), # familia@monteverde.com -> Sofía (6)
-            (5, 2), # Familia López -> Valentina (2)
-            (6, 3), # Familia Rodríguez -> Matías (3)
-            (7, 4), # Familia Martínez -> Isabella (4)
+            (user_ids.get('familiagonzalez@monteverde.com'), 1), # Familia González -> Santiago (1)
+            (user_ids.get('familiagonzalez@monteverde.com'), 6), # Familia González -> Sofía (6)
+            (user_ids.get('familia.lopez@monteverde.com'), 2),    # Familia López -> Valentina (2)
+            (user_ids.get('familia.rodriguez@monteverde.com'), 3),# Familia Rodríguez -> Matías (3)
+            (user_ids.get('familia.martinez@monteverde.com'), 4), # Familia Martínez -> Isabella (4)
         ]
         for fid, eid in fam_est_data:
-            cur.execute("INSERT IGNORE INTO familia_estudiante (familia_id, estudiante_id) VALUES (%s, %s);", (fid, eid))
+            if fid and eid:
+                cur.execute("INSERT IGNORE INTO familia_estudiante (familia_id, estudiante_id) VALUES (%s, %s);", (fid, eid))
 
         # -------------------------------------------------------------
         # 7. DOCENTE ASIGNACIONES (docente_asignacion & docente_curso)
         # -------------------------------------------------------------
         print("7. Sembrando Asignaciones Docentes...")
+        doc_maria_id = user_ids.get('docente@monteverde.com', 2)
+        doc_carlos_id = user_ids.get('carlos.docente@monteverde.edu.co', 52)
         doc_asig = [
-            # María García López (Docente id 2)
-            (2, 1, 1), # Primero A -> Matemáticas
-            (2, 1, 2), # Primero A -> Lenguaje
-            (2, 1, 3), # Primero A -> Ciencias Naturales
-            (2, 2, 1), # Primero B -> Matemáticas
-            (2, 2, 2), # Primero B -> Lenguaje
-            (2, 3, 1), # Segundo A -> Matemáticas
-            # Carlos Ruiz (Docente id 52)
-            (52, 1, 4), # Primero A -> Ciencias Sociales
-            (52, 1, 5), # Primero A -> Inglés
-            (52, 1, 6), # Primero A -> Educación Física
-            (52, 2, 3), # Primero B -> Ciencias Naturales
-            (52, 2, 4), # Primero B -> Ciencias Sociales
-            (52, 3, 3), # Segundo A -> Ciencias Naturales
+            # María García López
+            (doc_maria_id, 1, 1), # Primero A -> Matemáticas
+            (doc_maria_id, 1, 2), # Primero A -> Lenguaje
+            (doc_maria_id, 1, 3), # Primero A -> Ciencias Naturales
+            (doc_maria_id, 2, 1), # Primero B -> Matemáticas
+            (doc_maria_id, 2, 2), # Primero B -> Lenguaje
+            (doc_maria_id, 3, 1), # Segundo A -> Matemáticas
+            # Carlos Ruiz
+            (doc_carlos_id, 1, 4), # Primero A -> Ciencias Sociales
+            (doc_carlos_id, 1, 5), # Primero A -> Inglés
+            (doc_carlos_id, 1, 6), # Primero A -> Educación Física
+            (doc_carlos_id, 2, 3), # Primero B -> Ciencias Naturales
+            (doc_carlos_id, 2, 4), # Primero B -> Ciencias Sociales
+            (doc_carlos_id, 3, 3), # Segundo A -> Ciencias Naturales
         ]
         for did, cid, mid in doc_asig:
-            cur.execute("""
-                INSERT IGNORE INTO docente_asignacion (docente_id, curso_id, materia_id)
-                VALUES (%s, %s, %s);
-            """, (did, cid, mid))
-            cur.execute("""
-                INSERT IGNORE INTO docente_curso (docente_id, curso_id)
-                VALUES (%s, %s);
-            """, (did, cid))
+            if did and cid and mid:
+                cur.execute("""
+                    INSERT IGNORE INTO docente_asignacion (docente_id, curso_id, materia_id)
+                    VALUES (%s, %s, %s);
+                """, (did, cid, mid))
+                cur.execute("""
+                    INSERT IGNORE INTO docente_curso (docente_id, curso_id)
+                    VALUES (%s, %s);
+                """, (did, cid))
 
         # -------------------------------------------------------------
         # 8. BIMESTRES & INDICADORES DE LOGRO
@@ -421,23 +428,26 @@ try:
         # 14. MENSAJES
         # -------------------------------------------------------------
         print("14. Sembrando Mensajes...")
-        mensajes_data = [
-            # Docente María (2) -> Familia González (4)
-            (2, 4, 'Felicitaciones por el desempeño de Santiago', 'Estimada Familia González: Queremos felicitar a Santiago por su destacada participación y compromiso en las clases de Matemáticas. ¡Continúen apoyándolo así!', now - timedelta(days=3), 1),
-            # Familia González (4) -> Docente María (2)
-            (4, 2, 'Re: Felicitaciones por el desempeño de Santiago', 'Muchas gracias Profesora María. Nos alegra mucho saber de su progreso y estaremos muy atentos a los próximos proyectos escolares.', now - timedelta(days=2), 1),
-            # Docente María (2) -> Familia González (3)
-            (2, 3, 'Circular informativa sobre proyectos del mes', 'Adjuntamos las pautas para la preparación del proyecto de Ciencias Naturales de la próxima semana.', now - timedelta(days=1), 0),
-            # Docente María (2) -> Familia López (5)
-            (2, 5, 'Excelente desempeño de Valentina', 'Buenas tardes, Valentina ha demostrado un rendimiento sobresaliente en todas las actividades de lectura y redacción.', now - timedelta(days=4), 1),
-            # Docente María (2) -> Familia Martínez (7)
-            (2, 7, 'Reunión de seguimiento pedagógico', 'Estimados padres de Isabella: Nos gustaría coordinar una breve reunión virtual para comentar los avances del bimestre.', now - timedelta(hours=5), 0),
+        mensajes_defs = [
+            # Docente María -> Familia González (familiagonzalez@monteverde.com)
+            ('docente@monteverde.com', 'familiagonzalez@monteverde.com', 'Felicitaciones por el desempeño de Santiago', 'Estimada Familia González: Queremos felicitar a Santiago por su destacada participación y compromiso en las clases de Matemáticas. ¡Continúen apoyándolo así!', now - timedelta(days=3), 1),
+            # Familia González (familiagonzalez@monteverde.com) -> Docente María
+            ('familiagonzalez@monteverde.com', 'docente@monteverde.com', 'Re: Felicitaciones por el desempeño de Santiago', 'Muchas gracias Profesora María. Nos alegra mucho saber de su progreso y estaremos muy atentos a los próximos proyectos escolares.', now - timedelta(days=2), 1),
+            # Docente María -> Familia González (familiagonzalez@monteverde.com)
+            ('docente@monteverde.com', 'familiagonzalez@monteverde.com', 'Circular informativa sobre proyectos del mes', 'Adjuntamos las pautas para la preparación del proyecto de Ciencias Naturales de la próxima semana.', now - timedelta(days=1), 0),
+            # Docente María -> Familia López
+            ('docente@monteverde.com', 'familia.lopez@monteverde.com', 'Excelente desempeño de Valentina', 'Buenas tardes, Valentina ha demostrado un rendimiento sobresaliente en todas las actividades de lectura y redacción.', now - timedelta(days=4), 1),
+            # Docente María -> Familia Martínez
+            ('docente@monteverde.com', 'familia.martinez@monteverde.com', 'Reunión de seguimiento pedagógico', 'Estimados padres de Isabella: Nos gustaría coordinar una breve reunión virtual para comentar los avances del bimestre.', now - timedelta(hours=5), 0),
         ]
-        for em, rec, asu, cue, fec, lei in mensajes_data:
-            cur.execute("""
-                INSERT INTO mensajes (emisor_id, receptor_id, asunto, cuerpo, fecha, leido, eliminado)
-                VALUES (%s, %s, %s, %s, %s, %s, 0);
-            """, (em, rec, asu, cue, fec, lei))
+        for em_email, rec_email, asu, cue, fec, lei in mensajes_defs:
+            em_id = user_ids.get(em_email)
+            rec_id = user_ids.get(rec_email)
+            if em_id and rec_id:
+                cur.execute("""
+                    INSERT INTO mensajes (emisor_id, receptor_id, asunto, cuerpo, fecha, leido, eliminado)
+                    VALUES (%s, %s, %s, %s, %s, %s, 0);
+                """, (em_id, rec_id, asu, cue, fec, lei))
 
     conn.commit()
     print("\n[ÉXITO] ¡Todos los datos demo fueron sembrados satisfactoriamente!")

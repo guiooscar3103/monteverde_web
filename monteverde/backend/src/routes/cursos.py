@@ -90,9 +90,9 @@ def get_curso(curso_id):
         return jsonify({'success': False, 'message': 'Error al obtener curso', 'error': str(e)}), 500
 
 @cursos_bp.route('/', methods=['POST'], strict_slashes=False)
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def create_curso():
-    """Crear nuevo curso (solo admin)"""
+    """Crear nuevo curso (admin y coordinador)"""
     try:
         data = request.get_json() or {}
         nombre = data.get('nombre') or data.get('nombre_curso')
@@ -168,9 +168,9 @@ def _update_curso_fields(curso, data):
 
 
 @cursos_bp.route('/<int:curso_id>', methods=['PUT'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def update_curso(curso_id):
-    """Actualizar curso (solo admin)"""
+    """Actualizar curso (admin y coordinador)"""
     try:
         curso = Curso.query.get_or_404(curso_id)
         data = request.get_json() or {}
@@ -190,9 +190,9 @@ def update_curso(curso_id):
         return jsonify({'success': False, 'message': 'Error al actualizar curso', 'error': str(e)}), 500
 
 @cursos_bp.route('/<int:curso_id>', methods=['DELETE'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def delete_curso(curso_id):
-    """Eliminar curso (solo admin)"""
+    """Eliminar curso (admin y coordinador)"""
     try:
         curso = Curso.query.get_or_404(curso_id)
         
@@ -253,7 +253,7 @@ def get_curso_materias(curso_id):
 
 
 @cursos_bp.route('/<int:curso_id>/materias', methods=['POST'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def set_curso_materias(curso_id):
     """
     Sincroniza o asigna las materias que pertenecen al plan de estudios de un curso.

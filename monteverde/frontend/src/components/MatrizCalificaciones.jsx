@@ -17,7 +17,8 @@ export default function MatrizCalificaciones({
   estudiantes,
   configuracion,
   onNotaChange,
-  loading
+  loading,
+  disabled = false
 }) {
   const cellRefs = useRef({});
 
@@ -219,11 +220,12 @@ export default function MatrizCalificaciones({
                             <input
                               ref={el => (cellRefs.current[cellId] = el)}
                               type="number"
-                              className={`input-nota ${colorNota(val)}`}
+                              className={`input-nota ${colorNota(val)} ${disabled ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
                               value={val}
                               min={escalaMin}
                               max={escalaMax}
                               step={pasoStep}
+                              disabled={disabled}
                               onChange={e => onNotaChange(est.estudiante_id, ind.indicador_id, n, e.target.value)}
                               onKeyDown={e => handleKeyDown(e, cellId)}
                               onFocus={e => e.target.select()}

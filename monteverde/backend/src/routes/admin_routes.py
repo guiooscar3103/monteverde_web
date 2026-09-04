@@ -13,6 +13,7 @@ from src.models.docente_asignacion import DocenteAsignacion
 from src.models.docente_curso import DocenteCurso
 from src.services.admin_service import AdminService
 from src.services.configuracion_service import ConfiguracionService
+from src.utils.auth_helpers import role_required, get_current_user
 
 admin_bp = Blueprint('admin_routes', __name__)
 
@@ -90,6 +91,7 @@ def _get_detalles_desasignacion(asignacion, docente_id):
     return f"Se desasignó '{materia.nombre if materia else 'una materia'}' del curso '{curso.nombre}' ({curso.nivel}°{curso.letra}) del docente {docente.nombre if docente else docente_id}"
 
 @admin_bp.route('/estadisticas', methods=['GET'])
+@role_required('admin', 'coordinador')
 def get_estadisticas():
     """Obtener estadísticas y KPIs generales del sistema"""
     try:
@@ -103,6 +105,7 @@ def get_estadisticas():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/auditoria', methods=['GET'])
+@role_required('admin')
 def get_auditoria():
     """Obtener la bitácora de auditoría reciente"""
     try:
@@ -115,6 +118,7 @@ def get_auditoria():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/docentes', methods=['GET'])
+@role_required('admin', 'coordinador')
 def get_docentes_asignaciones():
     """Obtener listado de docentes y sus asignaciones de curso y materia"""
     try:
@@ -134,6 +138,7 @@ def get_docentes_asignaciones():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/docentes/asignar', methods=['POST'])
+@role_required('admin', 'coordinador')
 def asignar_curso():
     """Asignar un curso y materia a un docente"""
     try:
@@ -195,6 +200,7 @@ def asignar_curso():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/docentes/desasignar', methods=['POST'])
+@role_required('admin', 'coordinador')
 def desasignar_curso():
     """Desasignar una asignación de curso y materia de un docente"""
     try:
@@ -226,6 +232,7 @@ def desasignar_curso():
 
 
 @admin_bp.route('/familias', methods=['GET'])
+@role_required('admin', 'coordinador')
 def get_familias_vinculos():
     """Obtener listado de familias y sus vínculos con estudiantes"""
     try:
@@ -244,6 +251,7 @@ def get_familias_vinculos():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/familias/vincular', methods=['POST'])
+@role_required('admin', 'coordinador')
 def vincular_estudiante():
     """Vincular una cuenta de familia a un estudiante"""
     try:
@@ -289,6 +297,7 @@ def vincular_estudiante():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/familias/desvincular', methods=['POST'])
+@role_required('admin', 'coordinador')
 def desvincular_estudiante():
     """Desvincular una cuenta de familia de un estudiante de manera individual"""
     try:

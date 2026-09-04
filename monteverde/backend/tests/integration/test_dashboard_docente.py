@@ -84,7 +84,7 @@ class DashboardDocenteTestCase(unittest.TestCase):
             # --- Usuario familia (no docente) ---
             self.familia = Usuario(
                 nombre='Familia Test',
-                email='familia@monteverde.com',
+                email='familiagonzalez@monteverde.com',
                 rol='familia',
                 activo=True,
                 eliminado=False
@@ -224,7 +224,7 @@ class DashboardDocenteTestCase(unittest.TestCase):
 
     def test_rol_familia_403(self):
         """Un usuario con rol 'familia' no puede acceder al dashboard docente."""
-        headers = self._get_jwt_headers('familia@monteverde.com', 'password123')
+        headers = self._get_jwt_headers('familiagonzalez@monteverde.com', 'password123')
         response = self.client.get('/api/docente/dashboard', headers=headers)
         self.assertEqual(response.status_code, 403)
 

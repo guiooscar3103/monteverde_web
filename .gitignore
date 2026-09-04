@@ -36,3 +36,7 @@ Thumbs.db
 # Institutional local configuration
 config_institucion.json
 backend/src/config_institucion.json
+
+# Temporary office files
+~$*
+*.tmp

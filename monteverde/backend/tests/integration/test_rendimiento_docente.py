@@ -82,7 +82,7 @@ class RendimientoDocenteTestCase(unittest.TestCase):
             # 5. Usuario Familia (para pruebas de rol)
             self.familia_user = Usuario(
                 nombre='Familia Test',
-                email='familia@monteverde.com',
+                email='familiagonzalez@monteverde.com',
                 rol='familia',
                 activo=True,
                 eliminado=False
@@ -333,7 +333,7 @@ class RendimientoDocenteTestCase(unittest.TestCase):
     # =========================================================================
     def test_06_rol_incorrecto_familia_403(self):
         """Usuario con rol 'familia' debe recibir 403 Forbidden."""
-        headers = self._get_jwt_headers('familia@monteverde.com')
+        headers = self._get_jwt_headers('familiagonzalez@monteverde.com')
         response = self.client.get('/api/docente/rendimiento-academico', headers=headers)
         self.assertEqual(response.status_code, 403)
 

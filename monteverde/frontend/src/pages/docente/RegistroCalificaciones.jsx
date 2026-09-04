@@ -10,7 +10,8 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  ClipboardList
+  ClipboardList,
+  Lock
 } from 'lucide-react';
 import {
   getMyCoursesAndSubjects,
@@ -208,6 +209,7 @@ export default function RegistroCalificaciones() {
   const cursoActual = cursos.find(c => c.id.toString() === filtros.cursoId);
   const asignaturaActual = asignaturas.find(a => a.materia_id.toString() === filtros.materiaId);
   const bimestreActual = bimestres.find(b => b.id.toString() === filtros.bimestreId);
+  const periodoBloqueado = Boolean(bimestreActual && bimestreActual.permite_calificaciones === false);
 
   const numIndicadoresRequeridos = configuracion?.indicadores_por_periodo || 2;
   const indicadoresListos = (indicadores || []).length === numIndicadoresRequeridos;
@@ -350,6 +352,8 @@ export default function RegistroCalificaciones() {
 
   // ── Cambio de nota dinámico ───────────────────────────────────────
   const handleNotaChange = useCallback((estId, indId, numNota, valor) => {
+    if (periodoBloqueado) return;
+
     const notasPorInd = configuracion?.notas_por_indicador || 3;
     setEstudiantes(prev => _actualizarNota(prev, estId, indId, numNota, valor, notasPorInd));
 
@@ -483,6 +487,47 @@ export default function RegistroCalificaciones() {
         </BlurFade>
       )}
 
+      {/* Aviso de Periodo Cerrado para Calificaciones */}
+      {periodoBloqueado && (
+        <BlurFade delay={0.15} duration={0.3}>
+          <div style={{
+            backgroundColor: '#fff1f2',
+            border: '1px solid #fecdd3',
+            color: '#9f1239',
+            padding: '1.25rem 1.5rem',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            marginBottom: '1.25rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+          }}>
+            <div style={{
+              backgroundColor: '#ffe4e6',
+              padding: '10px',
+              borderRadius: '10px',
+              color: '#e11d48',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Lock size={24} />
+            </div>
+            <div>
+              <strong style={{ fontSize: '1rem', display: 'block', color: '#881337' }}>
+                Periodo Cerrado para Ingreso de Calificaciones
+              </strong>
+              <p style={{ margin: '3px 0 0', fontSize: '0.86rem', color: '#be123c', lineHeight: '1.4' }}>
+                {bimestreActual?.estado === 'CERRADO'
+                  ? 'La Coordinación Académica ha cerrado este periodo de evaluación.'
+                  : `El plazo límite para ingreso de notas en este periodo finalizó el ${bimestreActual?.fecha_cierre_calificaciones || 'plazo establecido'}.`}
+                {' '}Las notas de este bimestre se encuentran protegidas en modo solo lectura.
+              </p>
+            </div>
+          </div>
+        </BlurFade>
+      )}
+
       {/* Matriz de calificaciones */}
       {indicadoresListos && (
         <BlurFade delay={0.2} duration={0.4}>
@@ -492,6 +537,7 @@ export default function RegistroCalificaciones() {
               configuracion={configuracion}
               onNotaChange={handleNotaChange}
               loading={loadingMatriz}
+              disabled={periodoBloqueado}
             />
           </Card>
         </BlurFade>

@@ -12,6 +12,7 @@ from src.models.estudiante import Estudiante
 from src.models.docente_asignacion import DocenteAsignacion
 from src.models.materia import Materia
 from src.services.configuracion_evaluacion_service import ConfiguracionEvaluacionService
+from src.services.calendario_service import CalendarioService
 from src.utils.auth_helpers import role_required, get_current_user
 
 calificaciones_bimestre_bp = Blueprint('calificaciones_bimestre', __name__)
@@ -43,7 +44,7 @@ def _docente_tiene_acceso(docente_id: int, curso_id: int, materia_id: int) -> bo
 # ─────────────────────────────────────────────────────────────────
 
 @calificaciones_bimestre_bp.route('/bimestres', methods=['GET'])
-@role_required('docente', 'admin', 'familia')
+@role_required(['docente', 'coordinador', 'admin', 'familia'])
 def get_bimestres():
     """Retorna los bimestres/periodos del año actual (o todos si se pasa ?anio=)."""
     try:
@@ -366,6 +367,12 @@ def guardar_notas():
                 errores.append(f'Indicador {ind_id} no autorizado o no encontrado')
                 continue
 
+            # Verificar si el periodo académico permite ingreso de calificaciones
+            puede_calificar, motivo_bloqueo = CalendarioService.puede_calificar_periodo(indicador.bimestre_id)
+            if not puede_calificar:
+                errores.append(motivo_bloqueo)
+                continue
+
             # Obtener configuración de evaluación correspondiente al año del bimestre
             if indicador.bimestre_id not in config_cache:
                 config = ConfiguracionEvaluacionService.get_por_bimestre_id(indicador.bimestre_id)
@@ -407,11 +414,13 @@ def guardar_notas():
             guardadas += 1
 
         if guardadas == 0 and errores:
+            es_bloqueo_periodo = any('CERRADO' in err or 'venció' in err or 'cerrado' in err.lower() for err in errores)
+            status_code = 403 if es_bloqueo_periodo else 400
             return jsonify({
                 'success': False,
-                'message': 'No se pudo guardar ninguna nota debido a errores de validación',
+                'message': errores[0] if len(errores) == 1 else 'No se pudo guardar ninguna nota debido a errores de validación',
                 'errores': errores
-            }), 400
+            }), status_code
 
         db.session.commit()
 

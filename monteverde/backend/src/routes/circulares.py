@@ -7,9 +7,9 @@ from src.services.admin_service import AdminService
 circulares_bp = Blueprint('circulares', __name__)
 
 @circulares_bp.route('/circulares', methods=['POST'], strict_slashes=False)
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def crear_circular():
-    """Crear una circular institucional (solo administrador)"""
+    """Crear una circular institucional (administrador y coordinador)"""
     try:
         data = request.get_json() or {}
         titulo = data.get('titulo')
@@ -51,7 +51,7 @@ def crear_circular():
 
 
 @circulares_bp.route('/circulares', methods=['GET'], strict_slashes=False)
-@role_required('admin', 'docente', 'familia')
+@role_required('admin', 'coordinador', 'docente', 'familia')
 def listar_circulares():
     """Listar todas las circulares de forma descendente por fecha de publicación (admite parámetro limit)"""
     try:
@@ -91,9 +91,9 @@ def obtener_circular(circular_id):
 
 
 @circulares_bp.route('/circulares/<int:circular_id>', methods=['PUT'], strict_slashes=False)
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def actualizar_circular(circular_id):
-    """Editar una circular (solo administrador)"""
+    """Editar una circular (administrador y coordinador)"""
     try:
         circular = db.session.get(Circular, circular_id)
         if not circular:
@@ -130,9 +130,9 @@ def actualizar_circular(circular_id):
 
 
 @circulares_bp.route('/circulares/<int:circular_id>', methods=['DELETE'], strict_slashes=False)
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def eliminar_circular(circular_id):
-    """Eliminar una circular (solo administrador)"""
+    """Eliminar una circular (administrador y coordinador)"""
     try:
         circular = db.session.get(Circular, circular_id)
         if not circular:

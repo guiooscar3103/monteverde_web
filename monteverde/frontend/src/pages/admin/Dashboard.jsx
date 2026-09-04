@@ -7,7 +7,8 @@ import {
   ShieldCheck,
   AlertTriangle,
   Calendar,
-  User
+  User,
+  HeartHandshake
 } from 'lucide-react';
 import { getEstadisticasAdmin } from '../../services/api';
 import Chart from 'chart.js/auto';
@@ -41,20 +42,23 @@ export default function Dashboard() {
       doughnutInstance.current = new Chart(ctx, {
         type: 'doughnut',
         data: {
-          labels: ['Administradores', 'Docentes', 'Familias'],
+          labels: ['Administradores', 'Coordinadores', 'Docentes', 'Familias'],
           datasets: [{
             data: [
               stats.usuarios.admins || 0,
+              stats.usuarios.coordinadores || 0,
               stats.usuarios.docentes || 0,
               stats.usuarios.familias || 0
             ],
             backgroundColor: [
               'rgba(15, 23, 42, 0.85)',   // Slate oscuro (Admin)
-              'rgba(21, 128, 61, 0.85)',   // Emerald (Docente)
-              'rgba(180, 83, 9, 0.85)'     // Warm Amber (Familia)
+              'rgba(4, 120, 87, 0.85)',   // Esmeralda (Coordinador)
+              'rgba(21, 128, 61, 0.85)',  // Emerald (Docente)
+              'rgba(180, 83, 9, 0.85)'    // Warm Amber (Familia)
             ],
             borderColor: [
               '#0f172a',
+              '#047857',
               '#15803d',
               '#b45309'
             ],
@@ -222,36 +226,36 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Card 2: Students */}
+        {/* Card 2: Docentes */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem 1.5rem' }}>
           <div style={{ background: '#DCFCE7', color: 'var(--color-success)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <GraduationCap size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Estudiantes</span>
-            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.academia.estudiantes}</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cuentas Docentes</span>
+            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.usuarios.docentes || 0}</h3>
           </div>
         </div>
 
-        {/* Card 3: Attendance Average */}
+        {/* Card 3: Familias */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem 1.5rem' }}>
-          <div style={{ background: '#FEF3C7', color: 'var(--color-warning)', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <CalendarCheck size={24} />
+          <div style={{ background: '#FEF3C7', color: '#B45309', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <HeartHandshake size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Asistencia Promedio</span>
-            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.academia.promedio_asistencia}%</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cuentas Familiares</span>
+            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.usuarios.familias || 0}</h3>
           </div>
         </div>
 
-        {/* Card 4: Academic Performance */}
+        {/* Card 4: Auditoria y Seguridad */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem 1.5rem' }}>
-          <div style={{ background: '#FFE4E6', color: '#BE123C', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Award size={24} />
+          <div style={{ background: '#EFF6FF', color: '#1D4ED8', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ShieldCheck size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Promedio General</span>
-            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.academia.promedio_notes || stats.academia.promedio_notas} <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>/ 5.0</span></h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Auditoría y Logs</span>
+            <h3 style={{ margin: '2px 0 0', fontSize: '1.35rem', color: 'var(--text)', fontWeight: 800 }}>{stats.actividades_recientes?.length ?? 0} <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>eventos</span></h3>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import os
+import sys
 import pymysql
 from dotenv import load_dotenv
 
@@ -80,6 +81,12 @@ try:
             except Exception as e:
                 # Si falla, probablemente la columna ya existe
                 pass
+
+        try:
+            cursor.execute("ALTER TABLE usuarios MODIFY COLUMN rol VARCHAR(50) NOT NULL;")
+            print("[OK] Altered column 'rol' to VARCHAR(50) in 'usuarios' table.")
+        except Exception as e:
+            pass
 
         # ====================================================
         # REPARAR/RECREAR TABLAS CORRUPTAS
@@ -303,6 +310,18 @@ try:
                 )
                 print("[OK] Usuario 'admin@monteverde.com' creado.")
 
+            # 1.1 Coordinador Académico por defecto
+            cursor.execute("SELECT id FROM usuarios WHERE email = 'coordinador@monteverde.com';")
+            if not cursor.fetchone():
+                cursor.execute(
+                    """
+                    INSERT INTO usuarios (nombre, email, password, rol, estudiante_id, activo, eliminado)
+                    VALUES (%s, %s, %s, %s, NULL, 1, 0);
+                    """,
+                    ('Coordinador Académico', 'coordinador@monteverde.com', generate_password_hash('coordinador123'), 'coordinador')
+                )
+                print("[OK] Usuario 'coordinador@monteverde.com' creado.")
+
             # 2. Docente por defecto
             cursor.execute("SELECT id FROM usuarios WHERE email = 'docente@monteverde.com';")
             if not cursor.fetchone():
@@ -315,14 +334,13 @@ try:
                 )
                 print("[OK] Usuario 'docente@monteverde.com' creado.")
 
-            # 3. Familia por defecto (soportar ambos emails de acceso: familiagonzalez@monteverde.com y familia@monteverde.com)
+            # 3. Familia por defecto (familiagonzalez@monteverde.com)
             cursor.execute("SELECT id FROM estudiantes LIMIT 1;")
             primer_est = cursor.fetchone()
             est_id = primer_est[0] if primer_est else None
 
             familias_seed = [
-                ('Familia González', 'familiagonzalez@monteverde.com', 'familia123'),
-                ('Familia González', 'familia@monteverde.com', 'familia123')
+                ('Familia González', 'familiagonzalez@monteverde.com', 'familia123')
             ]
 
             for fam_nombre, fam_email, fam_pass in familias_seed:

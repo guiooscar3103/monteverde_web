@@ -10,7 +10,8 @@ from .tarea import Tarea
 from .entrega import Entrega
 from .configuracion_institucional import ConfiguracionInstitucional
 from .conversacion_archivada import ConversacionArchivada
-from .bimestre import Bimestre
+from .bimestre import Bimestre, PeriodoLectivo
+from .calendario_academico import CalendarioAcademico
 from .indicador_logro import IndicadorLogro
 from .calificacion_bimestre import CalificacionBimestre
 from .configuracion_evaluacion import ConfiguracionEvaluacion
@@ -35,6 +36,8 @@ __all__ = [
     'ConfiguracionInstitucional',
     'ConversacionArchivada',
     'Bimestre',
+    'PeriodoLectivo',
+    'CalendarioAcademico',
     'IndicadorLogro',
     'CalificacionBimestre',
     'ConfiguracionEvaluacion',

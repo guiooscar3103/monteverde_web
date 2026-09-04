@@ -487,6 +487,16 @@ def calificar_entrega_tarea(tarea_id):
         if estado not in ('PENDIENTE', 'ENTREGADA', 'CALIFICADA'):
             return jsonify({'success': False, 'message': 'Estado inválido'}), 400
 
+        # Si la tarea califica bimestre, verificar que el periodo lectivo permita ingreso de notas
+        if tarea.califica_bimestre and tarea.indicador_id and calificacion_float is not None:
+            from src.models.indicador_logro import IndicadorLogro
+            from src.services.calendario_service import CalendarioService
+            ind = IndicadorLogro.query.get(tarea.indicador_id)
+            if ind and ind.bimestre_id:
+                puede_calif, motivo = CalendarioService.puede_calificar_periodo(ind.bimestre_id)
+                if not puede_calif:
+                    return jsonify({'success': False, 'message': motivo}), 403
+
         # 1. Buscar entrega existente o crear nueva
         entrega = Entrega.query.filter_by(tarea_id=tarea.id, estudiante_id=estudiante_id).first()
         if not entrega:

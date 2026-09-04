@@ -50,8 +50,8 @@ def list_materias():
                 query = query.filter(Materia.activo == True)
             elif activo_param.lower() in ('false', '0'):
                 query = query.filter(Materia.activo == False)
-        elif not include_inactive and (not current_user or current_user.rol != 'admin'):
-            # Usuarios no admin ven solo activas por defecto a menos que se indique
+        elif not include_inactive and (not current_user or current_user.rol not in ('admin', 'coordinador')):
+            # Usuarios no administradores/coordinadores ven solo activas por defecto
             query = query.filter(Materia.activo == True)
 
         # Filtro por área
@@ -83,7 +83,7 @@ def get_materia(materia_id):
 
 
 @materias_bp.route('/materias', methods=['POST'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def create_materia():
     """
     Crea una nueva asignatura en el catálogo académico.
@@ -142,7 +142,7 @@ def create_materia():
 
 
 @materias_bp.route('/materias/<int:materia_id>', methods=['PUT'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def update_materia(materia_id):
     """
     Actualiza los datos de una asignatura existente.
@@ -215,7 +215,7 @@ def update_materia(materia_id):
 
 
 @materias_bp.route('/materias/<int:materia_id>/toggle-activo', methods=['PATCH'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def toggle_activo_materia(materia_id):
     """Alterna el estado activo/inactivo de una asignatura."""
     try:
@@ -239,7 +239,7 @@ def toggle_activo_materia(materia_id):
 
 
 @materias_bp.route('/materias/<int:materia_id>', methods=['DELETE'])
-@role_required('admin')
+@role_required('admin', 'coordinador')
 def delete_materia(materia_id):
     """
     Elimina una asignatura de forma segura:

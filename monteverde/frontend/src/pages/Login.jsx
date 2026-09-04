@@ -10,18 +10,21 @@ import BorderBeam from '../components/BorderBeam';
 
 const ROLE_CREDENTIALS = {
   admin: { email: 'admin@monteverde.com', password: 'admin123' },
+  coordinador: { email: 'coordinador@monteverde.com', password: 'coordinador123' },
   docente: { email: 'docente@monteverde.com', password: 'docente123' },
   familia: { email: 'familiagonzalez@monteverde.com', password: 'familia123' }
 };
 
 const ROLE_IMAGES = {
   admin: logoColegio,
+  coordinador: logoColegio,
   docente: iconoDocente,
   familia: iconoFamilia
 };
 
 const ROLE_LABELS = {
-  admin: 'Administrador',
+  admin: 'Admin Sistema',
+  coordinador: 'Coordinador',
   docente: 'Docente',
   familia: 'Familia'
 };
@@ -57,7 +60,12 @@ export default function Login() {
 
     try {
       const user = await login({ email, password });
-      const roleRoutes = { admin: '/admin', docente: '/docente', familia: '/familia' };
+      const roleRoutes = {
+        admin: '/admin',
+        coordinador: '/coordinador',
+        docente: '/docente',
+        familia: '/familia'
+      };
       navigate(roleRoutes[user?.rol] || '/');
     } catch (err) {
       console.error('Error en login:', err);

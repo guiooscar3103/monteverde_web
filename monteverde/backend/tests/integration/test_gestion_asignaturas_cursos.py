@@ -1,3 +1,9 @@
+import os
+os.environ['JWT_SECRET_KEY'] = 'test-secret-key'
+from config import Config
+Config.SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+Config.SQLALCHEMY_ECHO = False
+
 import unittest
 import json
 from datetime import datetime

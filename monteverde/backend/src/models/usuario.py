@@ -21,7 +21,7 @@ class Usuario(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    rol = db.Column(db.Enum('docente', 'familia', 'admin'), nullable=False)
+    rol = db.Column(db.String(50), nullable=False)
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiantes.id'), nullable=True)
     activo = db.Column(db.Boolean, default=True, nullable=False)
     eliminado = db.Column(db.Boolean, default=False, nullable=False)
@@ -42,6 +42,16 @@ class Usuario(db.Model):
 
     def __repr__(self):
         return f'<Usuario {self.email}>'
+    
+    def has_permission(self, permission_slug):
+        """Verificar si el usuario tiene un permiso específico"""
+        from src.utils.permissions import has_permission
+        return has_permission(self, permission_slug)
+
+    def get_permissions(self):
+        """Obtener la lista de permisos asignados al rol del usuario"""
+        from src.utils.permissions import ROLE_PERMISSIONS
+        return sorted(list(ROLE_PERMISSIONS.get(self.rol, set())))
     
     @validates('password')
     def validate_password(self, key, password):
@@ -77,12 +87,14 @@ class Usuario(db.Model):
             'nombre': self.nombre,
             'email': self.email,
             'rol': self.rol,
+            'permisos': self.get_permissions(),
             'estudiante_id': self.estudiante_id,
             'activo': self.activo,
             'eliminado': self.eliminado,
             'fecha_eliminacion': _format_dt(self.fecha_eliminacion),
             'fecha_registro': _format_dt(self.fecha_registro)
         }
+
 
         if self.estudiante:
             data['estudiante'] = self.estudiante.to_dict()
